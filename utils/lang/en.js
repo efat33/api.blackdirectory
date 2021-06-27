@@ -1,0 +1,79 @@
+exports.RESPONSE_CODES = Object.freeze({
+  "415_unsupported": "Unsupported Content Type :entity",
+  "401_invalidApiKey": "Invalid HTTP request",
+  "415_missingHeader": "Missing Header :entity.",
+  "400_paramMissing": "Please enter :entity.",
+  "400_paramMissingGeneral": "Please enter the missing fields",
+
+  "401_invalidCredentials": "uauthorized",
+  "401_accountNotVerified": "Account is not verified",
+  "401_invalidAge": "You must be 18 to register",
+  "403_unknownError": "Something went wrong. Please try again.",
+
+  // Errors
+  // Generalized erros
+  "404_foundNothing": ":entity not found",
+
+  // User Specific Errors
+  "403_emailAlreadyExists": "Email already exists",
+  "403_usernameAlreadyExists": "Username already exists",
+  "403_emailUsernameAlreadyExists": "Email or Username already exists",
+  "403_invalidEmail": "Invalid Email",
+  "403_passwordValidation": "Password must be at least 8 characters, must contain one lowercase, one uppercase and one number",
+  "403_passwordsDontMatch": "Passwords do not match",
+  "403_passwordsCurrentDontMatch": "Current Passwords do not match",
+  "403_newPasswordsDontMatch": "New Passwords do not match",
+  "403_signInInvalidEmail": "Email is not correct",
+  "403_signInInvalidPassword": "Password is not correct",
+  "403_signInInvalidCredential": "Email/password invalid",
+  "403_invalidResetKey": "Reset key is not valid",
+  "403_invalidVerificationKey": "Verification key is not valid",
+
+  // File Specific Error
+  "403_invalidImageFormat": "Supported images are png, jpg and jpeg",
+  "403_invalidFileFormat": "Supported file type are doc, docx, pdf and file size cannot be greater than 5MB",
+
+
+
+
+
+  // SUCCESS
+  // Generalized Success
+  "200_successful": "Successful",
+  "200_loginSuccessful": "Login Successful",
+  "200_detailFound": ":entity retrieved successfully",
+  "200_registerSuccess": "Registered successfully",
+  "200_verifiedSuccess": "Account is verified successfully",
+  "200_recorded": ":entity recorded successfully",
+  "200_added": ":entity added successfully",
+  "200_updated": ":entity updated successfully",
+
+  // user Specific Success
+  "200_userCreated": "Account created!",
+
+  // File Specific Success
+  "200_uploadSuccess": "Uploaded Successfully",
+
+  
+});
+
+exports.ENTITIES = Object.freeze({
+  // Users
+  entity_apiKey: "API Key",
+  entity_fullname: "Full Name",
+  entity_username: "Username",
+  entity_email: "Email",
+  entity_user: "User",
+  entity_users: "Users",
+  entity_password: "Password",
+  entity_confirmPassword: "Confirm Password",
+
+  // listing
+  entity_listing: "Listing",
+
+
+  // job
+  entity_sectors: "Sectors",
+
+
+});
