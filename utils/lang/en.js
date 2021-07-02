@@ -8,6 +8,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "401_invalidCredentials": "uauthorized",
   "401_accountNotVerified": "Account is not verified",
   "401_invalidAge": "You must be 18 to register",
+  "401_notEmployer": "You must be an employer",
   "403_unknownError": "Something went wrong. Please try again.",
 
   // Errors
@@ -74,6 +75,7 @@ exports.ENTITIES = Object.freeze({
 
   // job
   entity_sectors: "Sectors",
+  entity_job: "Job",
 
 
 });
