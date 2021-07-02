@@ -26,8 +26,25 @@ const diskStorageUser = multer.diskStorage({
 });
 
 
+const diskStorageJob = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, `uploads/job`);
+  },
+  filename: (req, file, cb) => {
+    const fileType = file.originalname.substring(file.originalname.lastIndexOf('.') + 1);
+    const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+    const fileName = onlyName.replace(' ', '-') + '-'+ Date.now() + '.' + fileType;
+    cb(null, fileName);
+  },
+});
+
 const storageFileUser = multer({ storage: diskStorageUser, fileFilter: fileFilter }).single(
   'file'
 );
 
+const storageFileJob = multer({ storage: diskStorageJob, fileFilter: fileFilter }).single(
+  'file'
+);
+
 exports.storageFileUser = storageFileUser;
+exports.storageFileJob = storageFileJob;
