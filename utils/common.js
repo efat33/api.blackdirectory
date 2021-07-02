@@ -1,5 +1,5 @@
 const {query, query2, query3} = require('../server');
-
+const AppError = require("../utils/appError");
 
 exports.multipleColumnSet = (object, joinBy = 'AND') => {
   if (typeof object !== 'object') {
@@ -103,3 +103,19 @@ exports.generateSlug = async (str, table) => {
 
   return slug;
 }
+
+exports.isEmployer = () => {
+  return async function (req, res, next) {
+    try {
+      if (req.currentUser.role === 'employer') {
+        next();
+      } else {
+        throw new AppError(401, "401_notEmployer");
+      }
+    } catch (e) {
+      e.status = 401;
+      next(e);
+    }
+  };
+};
+

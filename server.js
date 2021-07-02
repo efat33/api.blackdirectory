@@ -59,6 +59,12 @@ class DBConnection {
         }
         resolve(result);
       };
+
+      // replace 'undefined' with 'null' to avoid SQL error
+      if (values) {
+        values = values.map((value) => value === undefined ? null : value);
+      }
+      
       // execute will internally call prepare and query
       this.db.execute(sql, values, callback);
     }).catch((err) => {
