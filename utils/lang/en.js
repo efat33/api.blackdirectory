@@ -48,6 +48,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "200_recorded": ":entity recorded successfully",
   "200_added": ":entity added successfully",
   "200_updated": ":entity updated successfully",
+  "200_deleted": ":entity deleted successfully",
 
   // user Specific Success
   "200_userCreated": "Account created!",
