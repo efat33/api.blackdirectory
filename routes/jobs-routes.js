@@ -19,5 +19,7 @@ router.get('/get-user-jobs', apiKey(), auth(), isEmployer(), awaitHandlerFactory
 router.get('/get-user-job/:job_id', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getUserJob));
 
 router.get('/get-job/:job_slug', apiKey(), awaitHandlerFactory(jobController.getJob));
+router.post('/get-jobs', apiKey(), awaitHandlerFactory(jobController.getJobs));
+router.post('/get-job-count', apiKey(), awaitHandlerFactory(jobController.getJobCount));
 
 module.exports = router;

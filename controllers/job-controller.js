@@ -57,17 +57,23 @@ class JobController {
     }
 
     getJobs = async (req, res, next) => {
-        const result = await JobModel.getJobs();
+        const result = await JobModel.getJobs(req.body, req.query.page, req.query.limit);
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job' }, result);
+    };
+
+    getJobCount = async (req, res, next) => {
+        const result = await JobModel.getJobCount(req.body);
 
         if (Object.keys(result).length === 0) {
             throw new AppError(403, "403_unknownError")
         };
 
-        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job' }, result);
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job' }, result[0]);
     };
 
     getUserJobs = async (req, res, next) => {
-        const result = await JobModel.getJobs({ 'Job.user_id': req.currentUser.id });
+        const result = await JobModel.getUserJobs({ 'Job.user_id': req.currentUser.id });
 
         if (Object.keys(result).length === 0) {
             throw new AppError(403, "403_unknownError")
@@ -96,7 +102,7 @@ class JobController {
 
         const user = await UserModel.findOne({id: job.user_id});
         const { password, ...userDetails } = user;
-        
+
         const sector = await JobModel.getSector({id: job.job_sector_id});
 
         job['user'] = userDetails;

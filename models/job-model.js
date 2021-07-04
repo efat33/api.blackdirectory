@@ -7,6 +7,7 @@ class JobModel {
     tableName = 'jobs';
     tableNameMeta = 'job_meta';
     tableSectors = 'job_sectors';
+    tableUsers = 'users';
 
     createJob = async (params, currentUser) => {
         const current_date = commonfn.dateTimeNow();
@@ -48,7 +49,7 @@ class JobModel {
             if (params.job_apply_email) {
                 meta_values.push([job_id, 'job_apply_email', params.job_apply_email]);
             }
-            
+
             if (params.external_url) {
                 meta_values.push([job_id, 'external_url', params.external_url]);
             }
@@ -112,17 +113,125 @@ class JobModel {
         if (params.job_apply_email) {
             meta_values.push([params.id, 'job_apply_email', params.job_apply_email]);
         }
-        
+
         if (params.external_url) {
             meta_values.push([params.id, 'external_url', params.external_url]);
         }
-        
+
         await query2(meta_sql, [meta_values]);
 
         return result;
     }
 
-    getJobs = async (params = {}) => {
+    getJobs = async (params, page = 1, limit = 10) => {
+        let { sql, values } = this.getJobSqlGenerate(params);
+
+        sql += ` ORDER BY Job.created_at DESC`;
+
+        sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+
+        return await query(sql, [...values]);
+    }
+
+    getJobSqlGenerate(params = {}) {
+        let {
+            status = 'approved',
+            datePosted = null,
+            jobType = null,
+            keyword = null,
+            loc_radius = 50,
+            latitude = null,
+            longitude = null,
+            salary = null,
+            sector = null
+        } = params;
+
+        let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
+                JobSector.title as job_sector, Job.filled as filled, Job.address as address, 
+                Users.username as username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo, 
+                Job.created_at as created_at 
+                FROM ${this.tableName} as Job 
+                LEFT JOIN ${this.tableSectors} as JobSector ON Job.job_sector_id=JobSector.id 
+                LEFT JOIN ${this.tableUsers} as Users ON Job.user_id=Users.id 
+                `;
+
+        if (latitude && longitude) {
+            sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
+                        JobSector.title as job_sector, Job.filled as filled, Job.address as address, 
+                        Users.username as username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo, 
+                        Job.created_at as created_at, 
+                        ( 6371 * acos( cos( radians('${latitude}') ) * cos( radians( Job.latitude ) ) * cos( radians( Job.longitude ) - radians('${longitude}') ) + sin( radians('${latitude}') ) * sin( radians( Job.latitude ) ) ) ) as listing_distance 
+                        FROM ${this.tableName} as Job 
+                        LEFT JOIN ${this.tableSectors} as JobSector ON Job.job_sector_id=JobSector.id 
+                        LEFT JOIN ${this.tableUsers} as Users ON Job.user_id=Users.id 
+                        `;
+        }
+
+        const values = [];
+        const conditions = [];
+
+        if (status) {
+            conditions.push('Job.status = ?');
+            values.push(status)
+        }
+
+        if (keyword) {
+            conditions.push(`(Job.title LIKE '%${keyword}%' OR Job.description LIKE '%${keyword}%')`);
+        }
+
+        if (jobType) {
+            conditions.push('Job.job_type = ?');
+            values.push(jobType)
+        }
+
+        if (sector) {
+            conditions.push('Job.job_sector_id = ?');
+            values.push(sector)
+        }
+
+        if (salary) {
+            conditions.push('(Job.salary >= ? AND Job.salary <= ?)');
+            values.push(salary[0]);
+            values.push(salary[1]);
+        }
+
+        sql += ' WHERE ' + conditions.join(' AND ');
+
+        if (datePosted) {
+            if (datePosted === '1hour') {
+                sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR) AND Job.created_at <= NOW()';
+            }
+            else if (datePosted === '24hours') {
+                sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 1 DAY) AND Job.created_at <= NOW()';
+            }
+            else if (datePosted === '7days') {
+                sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY) AND Job.created_at <= NOW()';
+            }
+            else if (datePosted === '14days') {
+                sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) AND Job.created_at <= NOW()';
+            }
+            else if (datePosted === '30days') {
+                sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY) AND Job.created_at <= NOW()';
+            }
+        }
+
+        if (latitude && longitude) {
+            sql += ` HAVING listing_distance < ?`
+            values.push(loc_radius);
+        }
+
+        return { sql, values };
+    }
+
+    getJobCount = async (params = {}) => {
+        let { sql, values } = this.getJobSqlGenerate(params, true);
+
+        sql = `SELECT COUNT(*) as count FROM (${sql}) as custom_table`;
+
+        return await query(sql, [...values]);
+    }
+
+    getUserJobs = async (params = {}) => {
         let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, 
         JobSector.title as job_sector, Job.filled as filled, Job.status as status, Job.views as views, 
         Job.expiry_date as expiry_date, Job.featured as featured, Job.applicants_number as applicants_number,
