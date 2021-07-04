@@ -5,7 +5,7 @@ const commonfn = require('../utils/common');
 
 class JobModel {
     tableName = 'jobs';
-    tableNameMeta = 'jobs_meta';
+    tableNameMeta = 'job_meta';
     tableSectors = 'job_sectors';
 
     createJob = async (params, currentUser) => {
@@ -37,6 +37,25 @@ class JobModel {
 
         if (result.insertId) {
             const job_id = result.insertId;
+
+            // insert data into listings table
+            const meta_sql = `INSERT INTO ${this.tableNameMeta} 
+                (job_id, meta_key, meta_value)
+                VALUES ?`;
+
+            const meta_values = [];
+
+            if (params.job_apply_email) {
+                meta_values.push([job_id, 'job_apply_email', params.job_apply_email]);
+            }
+            
+            if (params.external_url) {
+                meta_values.push([job_id, 'external_url', params.external_url]);
+            }
+
+            if (meta_values.length > 0) {
+                await query2(meta_sql, [meta_values]);
+            }
 
             output.status = 200
             output.data = { 'job_id': job_id, 'slug': slug }
@@ -87,6 +106,19 @@ class JobModel {
 
         const result = await query(sql, values);
 
+        const meta_sql = `INSERT INTO ${this.tableNameMeta} (job_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value)`;
+        const meta_values = [];
+
+        if (params.job_apply_email) {
+            meta_values.push([params.id, 'job_apply_email', params.job_apply_email]);
+        }
+        
+        if (params.external_url) {
+            meta_values.push([params.id, 'external_url', params.external_url]);
+        }
+        
+        await query2(meta_sql, [meta_values]);
+
         return result;
     }
 
@@ -114,6 +146,31 @@ class JobModel {
     getJob = async (params = {}) => {
         let sql = `SELECT * FROM ${this.tableName}`;
 
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+
+        const result = await query(sql, [...values]);
+
+        if (result.length > 0) {
+            let meta_sql = `SELECT * FROM ${this.tableNameMeta} WHERE job_id = ?`;
+            let result_meta = await query(meta_sql, [result[0].id]);
+
+            result[0]['job_meta'] = commonfn.generateMetaObject(result_meta);
+        }
+
+        return result;
+    }
+
+    getSectors = async () => {
+        const sql = `SELECT * FROM ${this.tableSectors} ORDER BY title`;
+        const result = await query(sql);
+
+        return result;
+    }
+
+    getSector = async (params = {}) => {
+        let sql = `SELECT * FROM ${this.tableSectors}`;
+
         if (!Object.keys(params).length) {
             return await query(sql);
         }
@@ -122,13 +179,6 @@ class JobModel {
         sql += ` WHERE ${columnSet}`;
 
         return await query(sql, [...values]);
-    }
-
-    getSectors = async () => {
-        const sql = `SELECT * FROM ${this.tableSectors} ORDER BY title`;
-        const result = await query(sql);
-
-        return result;
     }
 
     deleteJob = async (id) => {

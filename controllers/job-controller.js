@@ -4,6 +4,7 @@ const { validationResult } = require("express-validator");
 const commonfn = require('../utils/common');
 const nodemailer = require('nodemailer');
 const JobModel = require('../models/job-model');
+const UserModel = require('../models/user-model');
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -78,6 +79,30 @@ class JobController {
         });
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job' }, result);
+    };
+
+    getJob = async (req, res, next) => {
+        const result = await JobModel.getJob({ slug: req.params.job_slug });
+
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        const job = result[0];
+
+        job.featured = !!job.featured;
+        job.filled = !!job.filled;
+        job.urgent = !!job.urgent;
+
+        const user = await UserModel.findOne({id: job.user_id});
+        const { password, ...userDetails } = user;
+        
+        const sector = await JobModel.getSector({id: job.job_sector_id});
+
+        job['user'] = userDetails;
+        job['job_sector'] = sector[0].title;
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job' }, job);
     };
 
     getUserJob = async (req, res, next) => {

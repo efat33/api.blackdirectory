@@ -18,4 +18,6 @@ router.delete('/delete-job/:job_id', apiKey(), auth(), awaitHandlerFactory(jobCo
 router.get('/get-user-jobs', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getUserJobs));
 router.get('/get-user-job/:job_id', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getUserJob));
 
+router.get('/get-job/:job_slug', apiKey(), awaitHandlerFactory(jobController.getJob));
+
 module.exports = router;
