@@ -22,4 +22,7 @@ router.get('/get-job/:job_slug', apiKey(), awaitHandlerFactory(jobController.get
 router.post('/get-jobs', apiKey(), awaitHandlerFactory(jobController.getJobs));
 router.post('/get-job-count', apiKey(), awaitHandlerFactory(jobController.getJobCount));
 
+router.post('/new-application', apiKey(), auth(), awaitHandlerFactory(jobController.newJobApplication));
+router.get('/get-application-status/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.getUserJobApplication));
+
 module.exports = router;

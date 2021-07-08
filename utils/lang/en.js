@@ -34,6 +34,8 @@ exports.RESPONSE_CODES = Object.freeze({
   "403_invalidImageFormat": "Supported images are png, jpg and jpeg",
   "403_invalidFileFormat": "Supported file type are doc, docx, pdf and file size cannot be greater than 5MB",
 
+  // Mail Specific Error
+  "403_missingValue": "Email To, Subject, and Body are required",
 
 
 
@@ -56,6 +58,8 @@ exports.RESPONSE_CODES = Object.freeze({
   // File Specific Success
   "200_uploadSuccess": "Uploaded Successfully",
 
+  // Mail Specific Success
+  "200_mailSuccess": "Email Sent Successfully",
   
 });
 
@@ -77,6 +81,7 @@ exports.ENTITIES = Object.freeze({
   // job
   entity_sectors: "Sectors",
   entity_job: "Job",
+  entity_jobApplication: "Job Application",
 
 
 });

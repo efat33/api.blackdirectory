@@ -142,6 +142,22 @@ class JobController {
 
         new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_job' });
     };
+
+    newJobApplication = async (req, res, next) => {
+        const jobApplication = await JobModel.createJobApplication(req.body, req.currentUser);
+
+        if (jobApplication.status !== 200) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_jobApplication' });
+    }
+
+    getUserJobApplication = async (req, res, next) => {
+        const result = await JobModel.getUserJobApplication({ job_id: req.params.job_id, user_id: req.currentUser.id });
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
+    };
 }
 
 module.exports = new JobController();

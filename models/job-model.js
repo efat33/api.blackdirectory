@@ -7,6 +7,8 @@ class JobModel {
     tableName = 'jobs';
     tableNameMeta = 'job_meta';
     tableSectors = 'job_sectors';
+    tableJobApplications = 'job_applications';
+    tableJobNotifications = 'job_notifications';
     tableUsers = 'users';
 
     createJob = async (params, currentUser) => {
@@ -29,7 +31,7 @@ class JobModel {
             ?,?,?,?,?,
             ?,?,?,?)`;
 
-        const result = await query(sql, [user_id, params.title, slug, params.description, params.deadline,
+        const result = await query(sql, [user_id, params.title, slug, params.description, new Date(params.deadline),
             params.job_sector_id, params.job_industry, params.job_apply_type, params.experience, params.salary,
             params.address, params.latitude, params.longitude, params.attachment, 0,
             0, 'approved', 0, params.expiry_date, 0,
@@ -91,7 +93,7 @@ class JobModel {
         const values = [
             params.title,
             params.description,
-            params.deadline,
+            new Date(params.deadline),
             params.job_sector_id,
             params.job_industry,
             params.job_apply_type,
@@ -118,7 +120,9 @@ class JobModel {
             meta_values.push([params.id, 'external_url', params.external_url]);
         }
 
-        await query2(meta_sql, [meta_values]);
+        if (meta_values.length) {
+            await query2(meta_sql, [meta_values]);
+        }
 
         return result;
     }
@@ -295,6 +299,45 @@ class JobModel {
 
         return await query(sql, [id]);
     }
+
+
+    createJobApplication = async (params, currentUser) => {
+        const current_date = commonfn.dateTimeNow();
+        const user_id = currentUser.id;
+        const output = {}
+
+        // insert data into listings table
+        const sql = `INSERT INTO ${this.tableJobApplications} 
+            (job_id, user_id, employer_id, cover_letter, shortlisted, rejected, created_at) 
+            VALUES (?,?,?,?,?,?,?)`;
+
+        const values = [params.job_id, user_id, params.employer_id, params.cover_letter, 0, 0, current_date];
+
+        const result = await query(sql, values);
+
+        if (result.insertId) {
+            output.status = 200
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getUserJobApplication = async (params = {}) => {
+        let sql = `SELECT * FROM ${this.tableJobApplications}`;
+
+        if (!Object.keys(params).length) {
+            return await query(sql);
+        }
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+
+        return await query(sql, [...values]);
+    }
+
 }
 
 module.exports = new JobModel;
