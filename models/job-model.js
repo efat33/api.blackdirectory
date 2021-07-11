@@ -9,6 +9,8 @@ class JobModel {
     tableSectors = 'job_sectors';
     tableJobApplications = 'job_applications';
     tableJobNotifications = 'job_notifications';
+    tableSavedCandidates = 'job_saved_candidates';
+    tableFavoriteJobs = 'job_favorites';
     tableUsers = 'users';
 
     createJob = async (params, currentUser) => {
@@ -308,10 +310,10 @@ class JobModel {
 
         // insert data into listings table
         const sql = `INSERT INTO ${this.tableJobApplications} 
-            (job_id, user_id, employer_id, cover_letter, shortlisted, rejected, created_at) 
-            VALUES (?,?,?,?,?,?,?)`;
+            (job_id, user_id, employer_id, cover_letter, shortlisted, rejected, viewed, created_at) 
+            VALUES (?,?,?,?,?,?,?,?)`;
 
-        const values = [params.job_id, user_id, params.employer_id, params.cover_letter, 0, 0, current_date];
+        const values = [params.job_id, user_id, params.employer_id, params.cover_letter, 0, 0, 0, current_date];
 
         const result = await query(sql, values);
 
@@ -403,6 +405,91 @@ class JobModel {
         const result = await query(sql, values);
 
         return result;
+    }
+    
+    saveCandidate = async (params, currentUser) => {
+        const current_date = commonfn.dateTimeNow();
+        const user_id = currentUser.id;
+        const output = {}
+
+        // insert data into listings table
+        const sql = `INSERT INTO ${this.tableSavedCandidates} 
+            (candidate_id, employer_id, created_at) 
+            VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+        const values = [params.candidate_id, user_id, current_date];
+
+        const result = await query2(sql, [[values]]);
+
+        if (result.insertId) {
+            output.status = 200
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getSavedCandidates = async (currentUser) => {
+        let sql = `SELECT Saved.*, Users.username as candidate_username, 
+            Users.display_name as candidate_display_name, Users.profile_photo as candidate_profile_photo  
+            FROM ${this.tableSavedCandidates} as Saved 
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Saved.candidate_id 
+            WHERE Saved.employer_id=${currentUser.id}`;
+
+        return await query(sql);
+    }
+
+    deleteSavedCandidate = async (candidate_id, currentUser) => {
+        const sql = `DELETE FROM ${this.tableSavedCandidates} WHERE employer_id=? AND candidate_id=?`;
+        const values = [currentUser.id, candidate_id];
+
+        return await query(sql, values);
+    }
+    
+    saveFavoriteJob = async (params, currentUser) => {
+        const current_date = commonfn.dateTimeNow();
+        const user_id = currentUser.id;
+        const output = {}
+
+        // insert data into listings table
+        const sql = `INSERT INTO ${this.tableFavoriteJobs} 
+            (user_id, job_id, created_at) 
+            VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+        const values = [user_id, params.job_id, current_date];
+
+        const result = await query2(sql, [[values]]);
+
+        if (result.insertId) {
+            output.status = 200
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getFavoriteJobs = async (currentUser) => {
+        let sql = `SELECT FavoriteJobs.*, Jobs.id as job_id, Jobs.title as job_title, 
+            Jobs.slug as job_slug, Jobs.created_at as job_created_at, 
+            Users.username as employer_username, Users.display_name as employer_display_name, 
+            Users.profile_photo as employer_profile_photo  
+            FROM ${this.tableFavoriteJobs} as FavoriteJobs 
+            LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=FavoriteJobs.job_id 
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Jobs.user_id 
+            WHERE FavoriteJobs.user_id=${currentUser.id}`;
+
+        return await query(sql);
+    }
+
+    deleteFavoriteJob = async (job_id, currentUser) => {
+        const sql = `DELETE FROM ${this.tableFavoriteJobs} WHERE user_id=? AND job_id=?`;
+        const values = [currentUser.id, job_id];
+
+        return await query(sql, values);
     }
 }
 

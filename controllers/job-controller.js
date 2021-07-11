@@ -229,6 +229,42 @@ class JobController {
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
     };
+
+    saveCandidate = async (req, res, next) => {
+        await JobModel.saveCandidate(req.body, req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful");
+    }
+
+    getSavedCandidates = async (req, res, next) => {
+        const result = await JobModel.getSavedCandidates(req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful", null, result);
+    };
+
+    deleteSavedCandidate = async (req, res, next) => {
+        await JobModel.deleteSavedCandidate(req.params.candidate_id, req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful");
+    };
+
+    saveFavoriteJob = async (req, res, next) => {
+        await JobModel.saveFavoriteJob(req.body, req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful");
+    }
+
+    getFavoriteJobs = async (req, res, next) => {
+        const result = await JobModel.getFavoriteJobs(req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful", null, result);
+    };
+
+    deleteFavoriteJob = async (req, res, next) => {
+        await JobModel.deleteFavoriteJob(req.params.job_id, req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful");
+    };
 }
 
 module.exports = new JobController();
