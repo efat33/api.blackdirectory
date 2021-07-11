@@ -236,7 +236,7 @@ class JobModel {
     }
 
     getUserJobs = async (params = {}) => {
-        let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, 
+        let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, Job.job_apply_type as job_apply_type, 
         JobSector.title as job_sector, Job.filled as filled, Job.status as status, Job.views as views, 
         Job.expiry_date as expiry_date, Job.featured as featured, Job.applicants_number as applicants_number,
         Job.created_at as created_at  
@@ -317,12 +317,57 @@ class JobModel {
 
         if (result.insertId) {
             output.status = 200
+
+            const sqlIncrementTotal = `UPDATE ${this.tableName} SET applicants_number = applicants_number + 1 WHERE id = ?`;
+            await query(sqlIncrementTotal, [params.job_id]);
         }
         else {
             output.status = 401
         }
 
         return output;
+    }
+
+    getJobApplications = async (params = {}) => {
+        let sql = `SELECT Applications.*, Jobs.title as job_title, 
+            Users.username as user_username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo  
+            FROM ${this.tableJobApplications} as Applications
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Applications.user_id 
+            LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=Applications.job_id 
+        `;
+
+        if (!Object.keys(params).length) {
+            return await query(sql);
+        }
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE Jobs.job_apply_type='internal' AND ${columnSet}`;
+
+        sql += ` ORDER BY created_at DESC`;
+
+        return await query(sql, [...values]);
+    }
+
+    getAppliedJobs = async (params = {}) => {
+        let sql = `SELECT Jobs.title as job_title, Jobs.slug as slug, JobSector.title as job_sector, 
+            Users.username as employer_username, Users.display_name as employer_display_name, Users.profile_photo as employer_profile_photo, 
+            Applications.created_at as applied_at 
+            FROM ${this.tableJobApplications} as Applications
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Applications.employer_id 
+            LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=Applications.job_id 
+            LEFT JOIN ${this.tableSectors} as JobSector ON Jobs.job_sector_id=JobSector.id 
+        `;
+
+        if (!Object.keys(params).length) {
+            return await query(sql);
+        }
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+
+        sql += ` ORDER BY applied_at DESC`;
+
+        return await query(sql, [...values]);
     }
 
     getUserJobApplication = async (params = {}) => {
@@ -338,6 +383,27 @@ class JobModel {
         return await query(sql, [...values]);
     }
 
+    updateJobApplication = async (applicationId, params) => {
+        let sql = `UPDATE ${this.tableJobApplications} SET`;
+        
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
+
+        sql += paramArray.join(', ');
+        
+        sql += ` WHERE id = ?`;
+
+        const values = [
+            ...Object.values(params),
+            applicationId
+        ];
+
+        const result = await query(sql, values);
+
+        return result;
+    }
 }
 
 module.exports = new JobModel;

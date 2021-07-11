@@ -348,20 +348,20 @@ class UserModel {
     return output;
   }
 
-  getUserDetails = async ({id, role}) => {
+  getUserDetails = async ({username}) => {
 
     const sqlUser = `SELECT u.id, u.email, u.first_name, u.last_name, u.username, u.display_name, u.dob, u.phone, u.description, u.job_sectors_id,
       u.pubic_view, u.profile_photo, u.cover_photo, u.role, u.views, u.address, u.latitude, u.longitude, u.featured, u.auth_type, u.verified, u.created_at,
-      u.updated_at, s.title AS sector
+      u.updated_at, u.role, s.title AS sector
       FROM ${this.tableName} u
       LEFT JOIN job_sectors s ON s.id = u.job_sectors_id  
-      WHERE u.id = ? LIMIT 1`;
+      WHERE u.username = ? LIMIT 1`;
 
-    const result  = await query(sqlUser, [id]);
+    const result  = await query(sqlUser, [username]);
     const { password, ...userDetails } = result[0];
 
     const sqlUserMeta = `SELECT * FROM ${this.tableNameMeta}  WHERE user_id = ?`;
-    const userMeta = await query(sqlUserMeta, [id]);
+    const userMeta = await query(sqlUserMeta, [userDetails.id]);
 
     
     const output = {
@@ -369,15 +369,15 @@ class UserModel {
       'meta_data': userMeta
     }
 
-    if(role == 'candidate'){
+    if(userDetails.role == 'candidate'){
       const sqlUserEdu = `SELECT * FROM ${this.tableNameEducation}  WHERE user_id = ? ORDER BY sequence`;
-      output.educations = await query(sqlUserEdu, [id]);
+      output.educations = await query(sqlUserEdu, [userDetails.id]);
 
       const sqlUserExp = `SELECT * FROM ${this.tableNameExperience}  WHERE user_id = ? ORDER BY sequence`;
-      output.experiences = await query(sqlUserExp, [id]);
+      output.experiences = await query(sqlUserExp, [userDetails.id]);
 
       const sqlUserPort = `SELECT * FROM ${this.tableNamePortfolio}  WHERE user_id = ? ORDER BY sequence`;
-      output.portfolios = await query(sqlUserPort, [id]);
+      output.portfolios = await query(sqlUserPort, [userDetails.id]);
     }
   
     return output;

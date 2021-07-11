@@ -336,7 +336,7 @@ class UserController {
 
   userDetails = async (req, res, next) => {
     
-    const user = await UserModel.getUserDetails({"id": req.currentUser.id, "role": req.currentUser.role});
+    const user = await UserModel.getUserDetails({username: req.params.username});
 
     new AppSuccess(res, 200, "200_detailFound", {'entity': 'entity_user'}, user );
  

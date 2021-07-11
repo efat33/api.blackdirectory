@@ -153,8 +153,79 @@ class JobController {
         new AppSuccess(res, 200, "200_added", { 'entity': 'entity_jobApplication' });
     }
 
+    getJobApplications = async (req, res, next) => {
+        let result = await JobModel.getJobApplications({ employer_id: req.currentUser.id });
+
+        if (result && result.length > 0) {
+            result = result.map((application) => {
+                const processedApplication = {};
+
+                for (const key in application) {
+                    if (key.startsWith('user_')) {
+                        const userKey = key.substring(5);
+
+                        if (!processedApplication['user']) {
+                            processedApplication['user'] = {};
+                        }
+
+                        processedApplication['user'][userKey] = application[key];
+                    } else if (key.startsWith('job_')) {
+                        const jobKey = key.substring(4);
+
+                        if (!processedApplication['job']) {
+                            processedApplication['job'] = {};
+                        }
+                        
+                        processedApplication['job'][jobKey] = application[key];
+                    } else {
+                        processedApplication[key] = application[key];
+                    }
+                }
+
+                processedApplication.rejected = !!processedApplication.rejected;
+                processedApplication.shortlisted = !!processedApplication.shortlisted;
+                processedApplication.viewed = !!processedApplication.viewed;
+
+                return processedApplication;
+            });
+        }
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
+    };
+
     getUserJobApplication = async (req, res, next) => {
         const result = await JobModel.getUserJobApplication({ job_id: req.params.job_id, user_id: req.currentUser.id });
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
+    };
+    
+    updateJobApplication = async (req, res, next) => {
+        if (req.currentUser.role === 'candidate') {
+            throw new AppError(403, "403_unknownError");
+        }
+
+        if (!req.body || Object.keys(req.body).length == 0) {
+            throw new AppError(403, "403_unknownError");
+        }
+
+        const result = await JobModel.updateJobApplication(req.params.application_id, req.body);
+
+        if (result) {
+            new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_job_application' });
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
+    }
+
+    getAppliedJobs = async (req, res, next) => {
+        const resultInternal = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type':'internal' });
+        const resultEmail = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type':'with_email' });
+
+        const result = {
+            internal: resultInternal,
+            email: resultEmail,
+        };
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
     };
