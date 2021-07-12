@@ -154,7 +154,13 @@ class JobController {
     }
 
     getJobApplications = async (req, res, next) => {
-        let result = await JobModel.getJobApplications({ employer_id: req.currentUser.id });
+        const params = {employer_id: req.currentUser.id};
+
+        if (req.params.job_id) {
+            params['job_id'] = req.params.job_id;
+        }
+
+        let result = await JobModel.getJobApplications(params);
 
         if (result && result.length > 0) {
             result = result.map((application) => {

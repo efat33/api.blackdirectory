@@ -332,7 +332,8 @@ class JobModel {
 
     getJobApplications = async (params = {}) => {
         let sql = `SELECT Applications.*, Jobs.title as job_title, 
-            Users.username as user_username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo  
+            Users.username as user_username, Users.display_name as user_display_name, 
+            Users.email as user_email, Users.profile_photo as user_profile_photo  
             FROM ${this.tableJobApplications} as Applications
             LEFT JOIN ${this.tableUsers} as Users ON Users.id=Applications.user_id 
             LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=Applications.job_id 

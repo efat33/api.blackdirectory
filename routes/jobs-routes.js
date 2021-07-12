@@ -24,6 +24,7 @@ router.post('/get-job-count', apiKey(), awaitHandlerFactory(jobController.getJob
 
 router.post('/new-application', apiKey(), auth(), awaitHandlerFactory(jobController.newJobApplication));
 router.get('/get-applications', apiKey(), auth(), awaitHandlerFactory(jobController.getJobApplications));
+router.get('/get-applications/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.getJobApplications));
 router.get('/get-application-status/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.getUserJobApplication));
 router.put('/update-job-appliation/:application_id', apiKey(), auth(), awaitHandlerFactory(jobController.updateJobApplication));
 
