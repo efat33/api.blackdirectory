@@ -30,5 +30,9 @@ router.route('/user-review/:user_id')
     .get(apiKey(), awaitHandlerFactory(userController.getUserReviews))
     .post(apiKey(), auth(), awaitHandlerFactory(userController.createUserReview));
 
+router.post('/follow/:user_id', apiKey(), auth(), awaitHandlerFactory(userController.createUserFollower));
+router.get('/get-followers', apiKey(), auth(), awaitHandlerFactory(userController.getFollowers));
+router.get('/get-followings', apiKey(), auth(), awaitHandlerFactory(userController.getFollowings));
+router.delete('/unfollow/:user_id', apiKey(), auth(), awaitHandlerFactory(userController.deleteFollowing));
 
 module.exports = router;

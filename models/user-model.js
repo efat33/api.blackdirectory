@@ -10,6 +10,7 @@ class UserModel {
     tableNameExperience = 'candidate_experience';
     tableNamePortfolio = 'candidate_portfolio';
     tableNameUserReview = 'user_reviews';
+    tableNameFollowStats = 'user_follow_stats';
 
     findOneMatchAny = async (params = {}) => {
         let sql = `SELECT * FROM ${this.tableName}`;
@@ -472,7 +473,6 @@ class UserModel {
         const user_id = currentUser.id;
         let output = {};
 
-        // insert data into listings table
         const sql = `INSERT INTO ${this.tableNameUserReview} 
             (
                 candidate_id, 
@@ -509,6 +509,61 @@ class UserModel {
         return output;
     }
 
+    createUserFollower = async (employer_id, currentUser) => {
+        const current_date = commonfn.dateTimeNow();
+        const user_id = currentUser.id;
+        let output = {};
+
+        const sql = `INSERT INTO ${this.tableNameFollowStats} 
+            (candidate_id, employer_id, created_at) 
+            VALUES (?,?,?)`;
+
+        const values = [
+            user_id, 
+            employer_id,
+            current_date
+        ];
+
+        const result = await query(sql, values);
+
+        if (result.insertId) {
+            output.status = 200;
+        }
+        else {
+            output.status = 401;
+        }
+
+        return output;
+    }
+
+    getFollowers = async (currentUser) => {
+        let sql = `SELECT Followers.*, Users.display_name as candidate_display_name, Users.email as candidate_email,
+        Users.username as candidate_username, Users.profile_photo as candidate_profile_photo  
+        FROM ${this.tableNameFollowStats} as Followers 
+        LEFT JOIN ${this.tableName} as Users ON Users.id=Followers.candidate_id  
+        WHERE Followers.employer_id=?`;
+
+        return await query(sql, [currentUser.id]);
+    }
+
+    getFollowings = async (currentUser) => {
+        let sql = `SELECT Followings.*, Users.display_name as employer_display_name, Users.email as employer_email,
+        Users.username as employer_username, Users.profile_photo as employer_profile_photo,
+        JobSectors.title as job_sector, Users.address as employer_address   
+        FROM ${this.tableNameFollowStats} as Followings 
+        LEFT JOIN ${this.tableName} as Users ON Users.id=Followings.employer_id  
+        LEFT JOIN job_sectors as JobSectors ON JobSectors.id=Users.job_sectors_id  
+        WHERE Followings.candidate_id=?`;
+
+        return await query(sql, [currentUser.id]);
+    }
+
+    deleteFollowing = async (employer_id, currentUser) => {
+        const sql = `DELETE FROM ${this.tableNameFollowStats} WHERE candidate_id=? AND employer_id=?`;
+        const values = [currentUser.id, employer_id];
+
+        return await query(sql, values);
+    }
 }
 
 module.exports = new UserModel;

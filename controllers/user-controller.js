@@ -423,6 +423,36 @@ class UserController {
     }
 
 
+    getFollowers = async (req, res, next) => {
+        const reviews = await UserModel.getFollowers(req.currentUser);
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userReview' }, reviews);
+    };
+
+
+    getFollowings = async (req, res, next) => {
+        const reviews = await UserModel.getFollowings(req.currentUser);
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userFollower' }, reviews);
+    };
+
+    createUserFollower = async (req, res, next) => {
+        const review = await UserModel.createUserFollower(req.params.user_id, req.currentUser);
+
+        if (review.status !== 200) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_userFollower' });
+    }
+
+    deleteFollowing = async (req, res, next) => {
+        await UserModel.deleteFollowing(req.params.user_id, req.currentUser);
+
+        new AppSuccess(res, 200, "200_successful");
+    };
+
+
 }
 
 module.exports = new UserController();
