@@ -237,6 +237,27 @@ class JobModel {
         return await query(sql, [...values]);
     }
 
+    updateJobProperty = async (id, params = {}) => {
+        const current_date = commonfn.dateTimeNow();
+        const sqlParamsArr = [];
+        const values = [];
+
+        Object.entries(params).forEach( ([key, val]) => {
+            sqlParamsArr.push(`${key} = ?`);
+            values.push(val);
+        });
+        
+        sqlParamsArr.push(`updated_at = ?`);
+        values.push(current_date);
+
+        const sqlParams = sqlParamsArr.join(',');
+        
+        const sql = `UPDATE ${this.tableName} SET ${sqlParams} WHERE id=?`;
+        values.push(id);
+
+        return await query(sql, values);
+    }
+
     getUserJobs = async (params = {}) => {
         let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, Job.job_apply_type as job_apply_type, 
         JobSector.title as job_sector, Job.filled as filled, Job.status as status, Job.views as views, 

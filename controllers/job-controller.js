@@ -72,6 +72,16 @@ class JobController {
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job' }, result[0]);
     };
 
+    updateJobProperty = async (req, res, next) => {
+        const result = await JobModel.updateJobProperty(req.params.job_id, req.body);
+
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_job' }, result);
+    };
+
     getUserJobs = async (req, res, next) => {
         const result = await JobModel.getUserJobs({ 'Job.user_id': req.currentUser.id });
 

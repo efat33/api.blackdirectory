@@ -12,399 +12,415 @@ dotenv.config();
 
 class UserController {
 
-  tableUsersMeta = 'users_meta';
+    tableUsersMeta = 'users_meta';
 
 
-  checkValidation = (req) => {
-    const errors = validationResult(req);
-    
-    if (!errors.isEmpty()) {
-      throw new AppError(400, "400_paramMissingGeneral", null, errors);
+    checkValidation = (req) => {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            throw new AppError(400, "400_paramMissingGeneral", null, errors);
+        }
+    };
+
+    userRegister = async (req, res, next) => {
+
+        // check primary validation set in userValidator.js
+        this.checkValidation(req);
+
+        const reg_time = commonfn.dateTimeNow();
+        const current_time = commonfn.currentTimestamp();
+        const random_string = commonfn.randomString(30);
+        const verification_key = `${current_time}:${random_string}`;
+
+        const registerInfo = {
+            "email": req.body.email,
+            "username": req.body.username,
+            "password": hasher.HashPassword(req.body.password),
+            "auth_type": "general",
+            "role": req.body.job_employer ? 'employer' : 'candidate',
+            "created_at": reg_time,
+            "updated_at": reg_time,
+            "verification_key": verification_key
+        }
+
+        // validate email and password
+
+        // check if the user already exists
+        const user = await UserModel.findOneMatchAny({ "email": req.body.email, "username": req.body.username });
+
+        if (user.length > 0) {
+            throw new AppError(403, "403_emailUsernameAlreadyExists");
+        }
+
+        const registerResult = await UserModel.register(registerInfo);
+
+        if (registerResult.status == 200) {
+
+            const secretKey = process.env.SECRET_JWT || "";
+            const token = jwt.sign({ user_id: registerResult.data.user_id.toString(), role: registerInfo.role.toString() }, secretKey, {
+                expiresIn: "24h",
+            });
+            const { password, ...userWithoutPassword } = registerInfo;
+
+            res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
+
+            new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword });
+
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
+
+    };
+
+    userLogin = async (req, res, next) => {
+
+        this.checkValidation(req);
+
+        const user = await UserModel.findOne({ email: req.body.email });
+
+        if (!user || user.auth_type != 'general') {
+            throw new AppError(403, "403_signInInvalidEmail");
+        } else {
+
+            const dbPassword = user.password;
+            const isPassMatched = hasher.CheckPassword(req.body.password, dbPassword);
+
+            if (isPassMatched) {
+
+                const secretKey = process.env.SECRET_JWT || "";
+                const token = jwt.sign({ user_id: user.id.toString(), role: user.role.toString() }, secretKey, {
+                    expiresIn: "24h",
+                });
+                const { password, ...userWithoutPassword } = user;
+
+
+                res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
+                new AppSuccess(res, 200, "200_loginSuccessful", '', { ...userWithoutPassword });
+
+            } else {
+                throw new AppError(403, "403_signInInvalidPassword");
+            }
+
+        }
+
+    };
+
+    logout = async (req, res, next) => {
+
+        res.clearCookie("BDY-authorization");
+        new AppSuccess(res, 200);
+
+    };
+
+    userLoginWithFacebook = async (req, res, next) => {
+
+        this.checkValidation(req);
+
+        const user = await UserModel.findOne({ email: req.body.email });
+
+        if (user) {
+            if (user.auth_type == 'general') {  // show error message if auth type is general
+                throw new AppError(403, "403_emailAlreadyUsed");
+            }
+
+            // sign the user in
+            const secretKey = process.env.SECRET_JWT || "";
+            const token = jwt.sign({ user_id: user.id.toString() }, secretKey, {
+                expiresIn: "24h",
+            });
+            const { password, ...userWithoutPassword } = user;
+
+            new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_account' }, { ...userWithoutPassword, token });
+
+        }
+        else {
+            const reg_time = commonfn.dateTimeNow();
+
+            const registerInfo = {
+                "email": req.body.email,
+                "username": req.body.username,
+                "password": hasher.HashPassword('Password123@'),
+                "auth_type": "facebook",
+                "role": 'candidate',
+                "created_at": reg_time,
+                "updated_at": reg_time
+            }
+
+            const registerResult = await UserModel.register(registerInfo);
+
+            if (registerResult.status == 200) {
+
+                const secretKey = process.env.SECRET_JWT || "";
+                const token = jwt.sign({ user_id: registerResult.data.user_id.toString() }, secretKey, {
+                    expiresIn: "24h",
+                });
+                const { password, ...userWithoutPassword } = registerInfo;
+
+                new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, token });
+
+            }
+            else {
+                throw new AppError(403, "403_unknownError");
+            }
+        }
+
+    };
+
+    forgotPassword = async (req, res, next) => {
+        this.checkValidation(req);
+
+        const current_time = commonfn.currentTimestamp();
+        const random_string = commonfn.randomString(30);
+        const reset_key = `${current_time}:${random_string}`;
+
+        if (req.body.email.trim() == '') {
+            throw new AppError(401, "400_paramMissing", { 'entity': 'entity_email' });
+        }
+
+        const updateInfo = {
+            "email": req.body.email,
+            "reset_key": reset_key
+        }
+
+        const result = await UserModel.userForgotPassword(updateInfo);
+
+        if (result == false) {
+            throw new AppError(403, "403_invalidEmail");
+        }
+
+        if (result.affectedRows == 1) {
+
+            //TODO: mailing stuff
+
+            new AppSuccess(res, 200, "200_successful");
+        }
     }
-  };
 
-  userRegister = async (req, res, next) => {
-    
-    // check primary validation set in userValidator.js
-    this.checkValidation(req);
+    resetPassword = async (req, res, next) => {
+        this.checkValidation(req);
 
-    const reg_time = commonfn.dateTimeNow();
-    const current_time = commonfn.currentTimestamp();
-    const random_string = commonfn.randomString(30);
-    const verification_key = `${current_time}:${random_string}`;
+        const user = await UserModel.findOne({ meta_value: req.body.reset_key, meta_key: 'reset_passwork_key' }, 'users_meta');
+        if (!user) {
+            throw new AppError(403, "403_invalidResetKey");
+        }
 
-    const registerInfo = {
-      "email": req.body.email,
-      "username": req.body.username,
-      "password": hasher.HashPassword(req.body.password),
-      "auth_type": "general",
-      "role": req.body.job_employer ? 'employer' : 'candidate',
-      "created_at" : reg_time,
-      "updated_at" : reg_time,
-      "verification_key" : verification_key
+        if (req.body.password != req.body.con_password) {
+            throw new AppError(403, "403_passwordsDontMatch");
+        }
+
+        const updateInfo = {
+            "id": user.user_id,
+            "password": hasher.HashPassword(req.body.password),
+            "updated_at": commonfn.dateTimeNow()
+        }
+
+        const result = await UserModel.updatePassword(updateInfo);
+
+        if (result) {
+            new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_password' });
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
     }
 
-    // validate email and password
+    updateUser = async (req, res, next) => {
 
-    // check if the user already exists
-    const user = await UserModel.findOneMatchAny({ "email": req.body.email, "username": req.body.username });
-    
-    if (user.length > 0) {
-      throw new AppError(403, "403_emailUsernameAlreadyExists");
+        const current_date = commonfn.dateTimeNow();
+
+        const basic_info = {
+            'first_name': req.body.first_name,
+            'last_name': req.body.last_name,
+            'display_name': req.body.display_name,
+            'dob': req.body.dob,
+            'phone': req.body.phone,
+            'description': req.body.description,
+            'profile_photo': req.body.profile_photo_name,
+            'cover_photo': req.body.cover_photo_name,
+            'address': req.body.address,
+            'latitude': req.body.latitude,
+            'longitude': req.body.longitude,
+            'job_sectors_id': req.body.job_sectors_id,
+            'pubic_view': req.body.pubic_view,
+            'updated_at': current_date
+        }
+
+        const employer_info = {};
+        const candidate_info = {};
+        const candidate_others = {};
+
+        // do password validation
+        // if(req.body.new_password != ''){
+        //   // first check if the current passwords match
+        //   if(db_hash_pass != current_hash_pass){
+        //     throw new AppError(403, "403_passwordsCurrentDontMatch");
+        //   }
+
+        //   // check if the new passwords match
+        //   if(req.body.new_password != req.body.confirm_password){
+        //     throw new AppError(403, "403_newPasswordsDontMatch");
+        //   }
+
+        //   basic_info.password = hasher.HashPassword(req.body.new_password);
+        // }
+
+        // prepare employer and candidate data
+        if (req.currentUser.role == 'employer') {
+            employer_info.facebook_link = req.body.facebook_link;
+            employer_info.twitter_link = req.body.twitter_link;
+            employer_info.linkedin_link = req.body.linkedin_link;
+            employer_info.instagram_link = req.body.instagram_link;
+            employer_info.website = req.body.website;
+            employer_info.founded_date = req.body.founded_date;
+        }
+        else if (req.currentUser.role == 'candidate') {
+            candidate_info.facebook_link = req.body.facebook_link;
+            candidate_info.twitter_link = req.body.twitter_link;
+            candidate_info.linkedin_link = req.body.linkedin_link;
+            candidate_info.instagram_link = req.body.instagram_link;
+            candidate_info.job_title = req.body.job_title;
+            candidate_info.job_industry = req.body.job_industry;
+            candidate_info.salary_type = req.body.salary_type;
+            candidate_info.salary_amount = req.body.salary_amount;
+            candidate_info.age = req.body.age;
+            candidate_info.academics = JSON.stringify(req.body.academics);
+            candidate_info.gender = req.body.gender;
+            candidate_info.availble_now = req.body.availble_now;
+            candidate_info.cover_letter = req.body.cover_letter;
+            candidate_info.candidate_cv = req.body.candidate_cv_name;
+        }
+        if (req.body.candidateEducations && req.body.candidateEducations.length > 0) {
+            candidate_others.educations = req.body.candidateEducations;
+        }
+        if (req.body.removedEducations && JSON.parse(req.body.removedEducations) && JSON.parse(req.body.removedEducations).length > 0) {
+            candidate_others.educationsTobeRemoved = JSON.parse(req.body.removedEducations);
+        }
+
+        if (req.body.candidateExperiences && req.body.candidateExperiences.length > 0) {
+            candidate_others.experiences = req.body.candidateExperiences;
+        }
+        if (req.body.removedExperiences && JSON.parse(req.body.removedExperiences) && JSON.parse(req.body.removedExperiences).length > 0) {
+            candidate_others.experiencesTobeRemoved = JSON.parse(req.body.removedExperiences);
+        }
+
+        if (req.body.candidatePortfolios && req.body.candidatePortfolios.length > 0) {
+            candidate_others.portfolios = req.body.candidatePortfolios;
+        }
+        if (req.body.removedPortfolios && JSON.parse(req.body.removedPortfolios) && JSON.parse(req.body.removedPortfolios).length > 0) {
+            candidate_others.portfoliosTobeRemoved = JSON.parse(req.body.removedPortfolios);
+        }
+
+        // it can be partial edit
+        const result = await UserModel.updateProfile(basic_info, employer_info, candidate_info, req.currentUser, candidate_others);
+
+        if (result) {
+            new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_user' });
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
+
+
+    };
+
+
+    userProfile = async (req, res, next) => {
+
+        const user = await UserModel.getUserProfile({ "id": req.currentUser.id, "role": req.currentUser.role });
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_user' }, user);
+
     }
-    
-    const registerResult = await UserModel.register(registerInfo);
 
-    if (registerResult.status == 200) {
+    userDetails = async (req, res, next) => {
 
-      const secretKey = process.env.SECRET_JWT || "";
-      const token = jwt.sign({ user_id: registerResult.data.user_id.toString(), role: registerInfo.role.toString() }, secretKey, {
-        expiresIn: "24h",
-      });
-      const { password, ...userWithoutPassword } = registerInfo;
+        const user = await UserModel.getUserDetails({ username: req.params.username });
 
-      res.cookie("BDY-authorization", `Bearer ${token}`, {httpOnly:true});
-
-      new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword });
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_user' }, user);
 
     }
-    else{
-      throw new AppError(403, "403_unknownError");
+
+    confirmAccount = async (req, res, next) => {
+
+        const userMeta = await UserModel.findOne({ "meta_value": req.body.verification_key, "meta_key": 'verification_key' }, this.tableUsersMeta);
+
+        if (userMeta) {
+            // make the user verified
+            const user_id = userMeta.user_id;
+            const result = await UserModel.verifyAccount({ 'id': user_id });
+
+            if (result.affectedRows == 1) {
+                new AppSuccess(res, 200, "200_verifiedSuccess");
+            }
+            else {
+                throw new AppError(403, "403_unknownError");
+            }
+        }
+        else {
+            throw new AppError(403, "403_invalidVerificationKey");
+        }
+
+
+
     }
- 
-  };
 
-  userLogin = async (req, res, next) => {
+    userImports = async (req, res, next) => {
 
-    this.checkValidation(req);
+        const result = await UserModel.importUsers();
 
-    const user = await UserModel.findOne({email: req.body.email});
-    
-    if (!user || user.auth_type != 'general') {
-      throw new AppError(403, "403_signInInvalidEmail");
-    } else {
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_user' }, result);
 
-      const dbPassword = user.password;
-      const isPassMatched = hasher.CheckPassword(req.body.password, dbPassword); 
+    }
 
-      if (isPassMatched) {
+    getAllUsers = async (req, res, next) => {
+        let userList = await UserModel.find();
+        if (!userList.length) {
+            throw new AppError(404, "Users not found");
+        }
 
-        const secretKey = process.env.SECRET_JWT || "";
-        const token = jwt.sign({ user_id: user.id.toString(), role: user.role.toString() }, secretKey, {
-          expiresIn: "24h",
+        userList = userList.map((user) => {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
         });
+
+        res.send(userList);
+    };
+
+    getUserById = async (req, res, next) => {
+        const user = await UserModel.findOne({ _id: req.params.id });
+        if (!user) {
+            throw new AppError(404, "User not found");
+        }
+
         const { password, ...userWithoutPassword } = user;
 
-        
-        res.cookie("BDY-authorization", `Bearer ${token}`, {httpOnly:true});
-        new AppSuccess(res, 200, "200_loginSuccessful", '', { ...userWithoutPassword });
+        res.send(userWithoutPassword);
+    };
 
-      } else {
-        throw new AppError(403, "403_signInInvalidPassword");
-      }
+    checkAuthentication = async (req, res, next) => {
 
-    }
-   
-  };
-
-  logout = async (req, res, next) => {
-
-    res.clearCookie("BDY-authorization");
-    new AppSuccess(res, 200);
-
-  };
-
-  userLoginWithFacebook = async (req, res, next) => {
-
-    this.checkValidation(req);
-
-    const user = await UserModel.findOne({email: req.body.email});
-
-    if(user){
-      if(user.auth_type == 'general'){  // show error message if auth type is general
-        throw new AppError(403, "403_emailAlreadyUsed");
-      }
-
-      // sign the user in
-      const secretKey = process.env.SECRET_JWT || "";
-      const token = jwt.sign({ user_id: user.id.toString() }, secretKey, {
-        expiresIn: "24h",
-      });
-      const { password, ...userWithoutPassword } = user;
-
-      new AppSuccess(res, 200, "200_detailFound", {'entity': 'entity_account'}, { ...userWithoutPassword, token });
+        new AppSuccess(res, 200, "200_successful");
 
     }
-    else{
-      const reg_time = commonfn.dateTimeNow();
 
-      const registerInfo = {
-        "email": req.body.email,
-        "username": req.body.username,
-        "password": hasher.HashPassword('Password123@'),
-        "auth_type": "facebook",
-        "role": 'candidate',
-        "created_at" : reg_time,
-        "updated_at" : reg_time
-      }
 
-      const registerResult = await UserModel.register(registerInfo);
+    getUserReviews = async (req, res, next) => {
+        const reviews = await UserModel.getUserReviews(req.params.user_id);
 
-      if (registerResult.status == 200) {
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userReview' }, reviews);
+    };
 
-        const secretKey = process.env.SECRET_JWT || "";
-        const token = jwt.sign({ user_id: registerResult.data.user_id.toString() }, secretKey, {
-          expiresIn: "24h",
-        });
-        const { password, ...userWithoutPassword } = registerInfo;
+    createUserReview = async (req, res, next) => {
+        const review = await UserModel.createUserReview(req.params.user_id, req.body, req.currentUser);
 
-        new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, token });
+        if (review.status !== 200) {
+            throw new AppError(403, "403_unknownError")
+        };
 
-      }
-      else{
-        throw new AppError(403, "403_unknownError");
-      }
+        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_userReview' });
     }
-   
-  };
-
-  forgotPassword = async (req, res, next) => {
-    this.checkValidation(req);
-
-    const current_time = commonfn.currentTimestamp();
-    const random_string = commonfn.randomString(30);
-    const reset_key = `${current_time}:${random_string}`;
-
-    if (req.body.email.trim() == '') {
-      throw new AppError(401, "400_paramMissing", {'entity': 'entity_email'});
-    }
-
-    const updateInfo = {
-      "email" : req.body.email,
-      "reset_key" : reset_key
-    }
-    
-    const result = await UserModel.userForgotPassword(updateInfo);
-
-    if (result == false) {
-      throw new AppError(403, "403_invalidEmail");
-    }
-
-    if (result.affectedRows == 1) {
-      
-      //TODO: mailing stuff
-
-      new AppSuccess(res, 200, "200_successful");
-    }
-  }
-
-  resetPassword = async (req, res, next) => {
-    this.checkValidation(req);
-
-    const user = await UserModel.findOne({ meta_value: req.body.reset_key, meta_key: 'reset_passwork_key' }, 'users_meta');
-    if (!user) {
-      throw new AppError(403, "403_invalidResetKey");
-    }
-
-    if (req.body.password != req.body.con_password) {
-      throw new AppError(403, "403_passwordsDontMatch");
-    }
-
-    const updateInfo = {
-      "id" : user.user_id,
-      "password" : hasher.HashPassword(req.body.password),
-      "updated_at" : commonfn.dateTimeNow()
-    }
-
-    const result = await UserModel.updatePassword(updateInfo);
-
-    if (result) {
-      new AppSuccess(res, 200, "200_updated", {'entity': 'entity_password'});
-    }
-    else{
-      throw new AppError(403, "403_unknownError");
-    }
-  }
-
-  updateUser = async (req, res, next) => {
-    
-    const current_date = commonfn.dateTimeNow();
-    
-    const basic_info = {
-      'first_name': req.body.first_name,
-      'last_name': req.body.last_name,
-      'display_name': req.body.display_name,
-      'dob': req.body.dob,
-      'phone': req.body.phone,
-      'description': req.body.description,
-      'profile_photo': req.body.profile_photo_name,
-      'cover_photo': req.body.cover_photo_name,
-      'address': req.body.address,
-      'latitude': req.body.latitude,
-      'longitude': req.body.longitude,
-      'job_sectors_id': req.body.job_sectors_id,
-      'pubic_view': req.body.pubic_view,
-      'updated_at': current_date
-    }
-
-    const employer_info = {};
-    const candidate_info = {};
-    const candidate_others = {};
-
-    // do password validation
-    // if(req.body.new_password != ''){
-    //   // first check if the current passwords match
-    //   if(db_hash_pass != current_hash_pass){
-    //     throw new AppError(403, "403_passwordsCurrentDontMatch");
-    //   }
-
-    //   // check if the new passwords match
-    //   if(req.body.new_password != req.body.confirm_password){
-    //     throw new AppError(403, "403_newPasswordsDontMatch");
-    //   }
-
-    //   basic_info.password = hasher.HashPassword(req.body.new_password);
-    // }
-
-    // prepare employer and candidate data
-    if(req.currentUser.role == 'employer'){
-      employer_info.facebook_link = req.body.facebook_link;
-      employer_info.twitter_link = req.body.twitter_link;
-      employer_info.linkedin_link = req.body.linkedin_link;
-      employer_info.instagram_link = req.body.instagram_link;
-      employer_info.website = req.body.website;
-      employer_info.founded_date = req.body.founded_date;
-    }
-    else if(req.currentUser.role == 'candidate'){
-      candidate_info.facebook_link = req.body.facebook_link;
-      candidate_info.twitter_link = req.body.twitter_link;
-      candidate_info.linkedin_link = req.body.linkedin_link;
-      candidate_info.instagram_link = req.body.instagram_link;
-      candidate_info.job_title = req.body.job_title;
-      candidate_info.job_industry = req.body.job_industry;
-      candidate_info.salary_type = req.body.salary_type;
-      candidate_info.salary_amount = req.body.salary_amount;
-      candidate_info.age = req.body.age;
-      candidate_info.academics = JSON.stringify(req.body.academics);
-      candidate_info.gender = req.body.gender;
-      candidate_info.availble_now = req.body.availble_now;
-      candidate_info.cover_letter = req.body.cover_letter;
-      candidate_info.candidate_cv = req.body.candidate_cv_name;
-    }
-    if(req.body.candidateEducations && req.body.candidateEducations.length > 0){
-      candidate_others.educations = req.body.candidateEducations;
-    }
-    if(req.body.removedEducations && JSON.parse(req.body.removedEducations) && JSON.parse(req.body.removedEducations).length > 0){
-      candidate_others.educationsTobeRemoved = JSON.parse(req.body.removedEducations);
-    }
-    
-    if(req.body.candidateExperiences && req.body.candidateExperiences.length > 0){
-      candidate_others.experiences= req.body.candidateExperiences;
-    }
-    if(req.body.removedExperiences && JSON.parse(req.body.removedExperiences) && JSON.parse(req.body.removedExperiences).length > 0){
-      candidate_others.experiencesTobeRemoved = JSON.parse(req.body.removedExperiences);
-    }
-
-    if(req.body.candidatePortfolios && req.body.candidatePortfolios.length > 0){
-      candidate_others.portfolios= req.body.candidatePortfolios;
-    }
-    if(req.body.removedPortfolios && JSON.parse(req.body.removedPortfolios) && JSON.parse(req.body.removedPortfolios).length > 0){
-      candidate_others.portfoliosTobeRemoved = JSON.parse(req.body.removedPortfolios);
-    }
-    
-    // it can be partial edit
-    const result = await UserModel.updateProfile(basic_info, employer_info, candidate_info, req.currentUser, candidate_others);
-
-    if (result) {
-      new AppSuccess(res, 200, "200_updated", {'entity': 'entity_user'});
-    }
-    else{
-      throw new AppError(403, "403_unknownError");
-    }
-
-    
-  };
-
-
-  userProfile = async (req, res, next) => {
-    
-    const user = await UserModel.getUserProfile({"id": req.currentUser.id, "role": req.currentUser.role});
-
-    new AppSuccess(res, 200, "200_detailFound", {'entity': 'entity_user'}, user );
- 
-  }
-
-  userDetails = async (req, res, next) => {
-    
-    const user = await UserModel.getUserDetails({username: req.params.username});
-
-    new AppSuccess(res, 200, "200_detailFound", {'entity': 'entity_user'}, user );
- 
-  }
-
-  confirmAccount = async (req, res, next) => {
-  
-    const userMeta = await UserModel.findOne({"meta_value": req.body.verification_key, "meta_key": 'verification_key'}, this.tableUsersMeta);
-
-    if(userMeta){
-      // make the user verified
-      const user_id = userMeta.user_id;
-      const result = await UserModel.verifyAccount({'id': user_id});
-
-      if(result.affectedRows == 1){
-        new AppSuccess(res, 200, "200_verifiedSuccess");
-      }
-      else{
-        throw new AppError(403, "403_unknownError");
-      }
-    }
-    else{
-      throw new AppError(403, "403_invalidVerificationKey");
-    }
-
-    
- 
-  }
-
-  userImports = async (req, res, next) => {
-  
-    const result = await UserModel.importUsers();
-
-    new AppSuccess(res, 200, "200_detailFound", {'entity': 'entity_user'}, result );
- 
-  }
-
-  getAllUsers = async (req, res, next) => {
-    let userList = await UserModel.find();
-    if (!userList.length) {
-      throw new AppError(404, "Users not found");
-    }
-
-    userList = userList.map((user) => {
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    });
-
-    res.send(userList);
-  };
-
-  getUserById = async (req, res, next) => {
-    const user = await UserModel.findOne({ _id: req.params.id });
-    if (!user) {
-      throw new AppError(404, "User not found");
-    }
-
-    const { password, ...userWithoutPassword } = user;
-
-    res.send(userWithoutPassword);
-  };
-
-  checkAuthentication = async (req, res, next) => {
-
-    new AppSuccess(res, 200, "200_successful" );
- 
-  }
-  
 
 
 }
