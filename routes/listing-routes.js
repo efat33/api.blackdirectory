@@ -13,6 +13,7 @@ const validation = require('../utils/listingValidator');
 
 router.post('/search-listing', apiKey(), awaitHandlerFactory(listingController.searchListing));
 router.post('/add-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.newListing));
+router.post('/update-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.updateListing));
 router.get('/:slug', apiKey(), awaitHandlerFactory(listingController.getListing));
 router.post('/publish-listing', apiKey(), authVerified(), awaitHandlerFactory(listingController.publishListing));
 
