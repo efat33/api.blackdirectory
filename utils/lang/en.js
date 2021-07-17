@@ -1,6 +1,7 @@
 exports.RESPONSE_CODES = Object.freeze({
   "415_unsupported": "Unsupported Content Type :entity",
   "401_invalidApiKey": "Invalid HTTP request",
+  "401_invalidRequest": "Invalid request",
   "415_missingHeader": "Missing Header :entity.",
   "400_paramMissing": "Please enter :entity.",
   "400_paramMissingGeneral": "Please enter the missing fields",
@@ -59,6 +60,10 @@ exports.RESPONSE_CODES = Object.freeze({
 });
 
 exports.ENTITIES = Object.freeze({
+
+  // General
+  entity_id: "ID",
+
   // Users
   entity_apiKey: "API Key",
   entity_fullname: "Full Name",
