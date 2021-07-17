@@ -34,6 +34,8 @@ exports.RESPONSE_CODES = Object.freeze({
   "403_invalidImageFormat": "Supported images are png, jpg and jpeg",
   "403_invalidFileFormat": "Supported file type are doc, docx, pdf and file size cannot be greater than 5MB",
 
+  // Mail Specific Error
+  "403_missingValue": "Email To, Subject, and Body are required",
 
 
 
@@ -48,6 +50,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "200_recorded": ":entity recorded successfully",
   "200_added": ":entity added successfully",
   "200_updated": ":entity updated successfully",
+  "200_deleted": ":entity deleted successfully",
 
   // user Specific Success
   "200_userCreated": "Account created!",
@@ -55,6 +58,8 @@ exports.RESPONSE_CODES = Object.freeze({
   // File Specific Success
   "200_uploadSuccess": "Uploaded Successfully",
 
+  // Mail Specific Success
+  "200_mailSuccess": "Email Sent Successfully",
   
 });
 
@@ -68,6 +73,8 @@ exports.ENTITIES = Object.freeze({
   entity_users: "Users",
   entity_password: "Password",
   entity_confirmPassword: "Confirm Password",
+  entity_userReview: "Review",
+  entity_userFollower: "Follower",
 
   // listing
   entity_listing: "Listing",
@@ -76,6 +83,7 @@ exports.ENTITIES = Object.freeze({
   // job
   entity_sectors: "Sectors",
   entity_job: "Job",
+  entity_jobApplication: "Job Application",
 
 
 });
