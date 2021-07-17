@@ -9,6 +9,8 @@ class JobModel {
     tableSectors = 'job_sectors';
     tableJobApplications = 'job_applications';
     tableJobNotifications = 'job_notifications';
+    tableSavedCandidates = 'job_saved_candidates';
+    tableFavoriteJobs = 'job_favorites';
     tableUsers = 'users';
 
     createJob = async (params, currentUser) => {
@@ -235,8 +237,29 @@ class JobModel {
         return await query(sql, [...values]);
     }
 
+    updateJobProperty = async (id, params = {}) => {
+        const current_date = commonfn.dateTimeNow();
+        const sqlParamsArr = [];
+        const values = [];
+
+        Object.entries(params).forEach( ([key, val]) => {
+            sqlParamsArr.push(`${key} = ?`);
+            values.push(val);
+        });
+        
+        sqlParamsArr.push(`updated_at = ?`);
+        values.push(current_date);
+
+        const sqlParams = sqlParamsArr.join(',');
+        
+        const sql = `UPDATE ${this.tableName} SET ${sqlParams} WHERE id=?`;
+        values.push(id);
+
+        return await query(sql, values);
+    }
+
     getUserJobs = async (params = {}) => {
-        let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, 
+        let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, Job.job_apply_type as job_apply_type, 
         JobSector.title as job_sector, Job.filled as filled, Job.status as status, Job.views as views, 
         Job.expiry_date as expiry_date, Job.featured as featured, Job.applicants_number as applicants_number,
         Job.created_at as created_at  
@@ -308,21 +331,67 @@ class JobModel {
 
         // insert data into listings table
         const sql = `INSERT INTO ${this.tableJobApplications} 
-            (job_id, user_id, employer_id, cover_letter, shortlisted, rejected, created_at) 
-            VALUES (?,?,?,?,?,?,?)`;
+            (job_id, user_id, employer_id, cover_letter, shortlisted, rejected, viewed, created_at) 
+            VALUES (?,?,?,?,?,?,?,?)`;
 
-        const values = [params.job_id, user_id, params.employer_id, params.cover_letter, 0, 0, current_date];
+        const values = [params.job_id, user_id, params.employer_id, params.cover_letter, 0, 0, 0, current_date];
 
         const result = await query(sql, values);
 
         if (result.insertId) {
             output.status = 200
+
+            const sqlIncrementTotal = `UPDATE ${this.tableName} SET applicants_number = applicants_number + 1 WHERE id = ?`;
+            await query(sqlIncrementTotal, [params.job_id]);
         }
         else {
             output.status = 401
         }
 
         return output;
+    }
+
+    getJobApplications = async (params = {}) => {
+        let sql = `SELECT Applications.*, Jobs.title as job_title, 
+            Users.username as user_username, Users.display_name as user_display_name, 
+            Users.email as user_email, Users.profile_photo as user_profile_photo  
+            FROM ${this.tableJobApplications} as Applications
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Applications.user_id 
+            LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=Applications.job_id 
+        `;
+
+        if (!Object.keys(params).length) {
+            return await query(sql);
+        }
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE Jobs.job_apply_type='internal' AND ${columnSet}`;
+
+        sql += ` ORDER BY created_at DESC`;
+
+        return await query(sql, [...values]);
+    }
+
+    getAppliedJobs = async (params = {}) => {
+        let sql = `SELECT Jobs.title as job_title, Jobs.slug as slug, JobSector.title as job_sector, 
+            Users.username as employer_username, Users.display_name as employer_display_name, Users.profile_photo as employer_profile_photo, 
+            Applications.created_at as applied_at 
+            FROM ${this.tableJobApplications} as Applications
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Applications.employer_id 
+            LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=Applications.job_id 
+            LEFT JOIN ${this.tableSectors} as JobSector ON Jobs.job_sector_id=JobSector.id 
+        `;
+
+        if (!Object.keys(params).length) {
+            return await query(sql);
+        }
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+
+        sql += ` ORDER BY applied_at DESC`;
+
+        return await query(sql, [...values]);
     }
 
     getUserJobApplication = async (params = {}) => {
@@ -338,6 +407,112 @@ class JobModel {
         return await query(sql, [...values]);
     }
 
+    updateJobApplication = async (applicationId, params) => {
+        let sql = `UPDATE ${this.tableJobApplications} SET`;
+        
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
+
+        sql += paramArray.join(', ');
+        
+        sql += ` WHERE id = ?`;
+
+        const values = [
+            ...Object.values(params),
+            applicationId
+        ];
+
+        const result = await query(sql, values);
+
+        return result;
+    }
+    
+    saveCandidate = async (params, currentUser) => {
+        const current_date = commonfn.dateTimeNow();
+        const user_id = currentUser.id;
+        const output = {}
+
+        // insert data into listings table
+        const sql = `INSERT INTO ${this.tableSavedCandidates} 
+            (candidate_id, employer_id, created_at) 
+            VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+        const values = [params.candidate_id, user_id, current_date];
+
+        const result = await query2(sql, [[values]]);
+
+        if (result.insertId) {
+            output.status = 200
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getSavedCandidates = async (currentUser) => {
+        let sql = `SELECT Saved.*, Users.username as candidate_username, 
+            Users.display_name as candidate_display_name, Users.profile_photo as candidate_profile_photo  
+            FROM ${this.tableSavedCandidates} as Saved 
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Saved.candidate_id 
+            WHERE Saved.employer_id=${currentUser.id}`;
+
+        return await query(sql);
+    }
+
+    deleteSavedCandidate = async (candidate_id, currentUser) => {
+        const sql = `DELETE FROM ${this.tableSavedCandidates} WHERE employer_id=? AND candidate_id=?`;
+        const values = [currentUser.id, candidate_id];
+
+        return await query(sql, values);
+    }
+    
+    saveFavoriteJob = async (params, currentUser) => {
+        const current_date = commonfn.dateTimeNow();
+        const user_id = currentUser.id;
+        const output = {}
+
+        // insert data into listings table
+        const sql = `INSERT INTO ${this.tableFavoriteJobs} 
+            (user_id, job_id, created_at) 
+            VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+        const values = [user_id, params.job_id, current_date];
+
+        const result = await query2(sql, [[values]]);
+
+        if (result.insertId) {
+            output.status = 200
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getFavoriteJobs = async (currentUser) => {
+        let sql = `SELECT FavoriteJobs.*, Jobs.id as job_id, Jobs.title as job_title, 
+            Jobs.slug as job_slug, Jobs.created_at as job_created_at, 
+            Users.username as employer_username, Users.display_name as employer_display_name, 
+            Users.profile_photo as employer_profile_photo  
+            FROM ${this.tableFavoriteJobs} as FavoriteJobs 
+            LEFT JOIN ${this.tableName} as Jobs ON Jobs.id=FavoriteJobs.job_id 
+            LEFT JOIN ${this.tableUsers} as Users ON Users.id=Jobs.user_id 
+            WHERE FavoriteJobs.user_id=${currentUser.id}`;
+
+        return await query(sql);
+    }
+
+    deleteFavoriteJob = async (job_id, currentUser) => {
+        const sql = `DELETE FROM ${this.tableFavoriteJobs} WHERE user_id=? AND job_id=?`;
+        const values = [currentUser.id, job_id];
+
+        return await query(sql, values);
+    }
 }
 
 module.exports = new JobModel;

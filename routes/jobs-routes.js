@@ -21,8 +21,23 @@ router.get('/get-user-job/:job_id', apiKey(), auth(), isEmployer(), awaitHandler
 router.get('/get-job/:job_slug', apiKey(), awaitHandlerFactory(jobController.getJob));
 router.post('/get-jobs', apiKey(), awaitHandlerFactory(jobController.getJobs));
 router.post('/get-job-count', apiKey(), awaitHandlerFactory(jobController.getJobCount));
+router.put('/update-job-property/:job_id', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.updateJobProperty));
 
 router.post('/new-application', apiKey(), auth(), awaitHandlerFactory(jobController.newJobApplication));
+router.get('/get-applications', apiKey(), auth(), awaitHandlerFactory(jobController.getJobApplications));
+router.get('/get-applications/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.getJobApplications));
 router.get('/get-application-status/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.getUserJobApplication));
+router.put('/update-job-appliation/:application_id', apiKey(), auth(), awaitHandlerFactory(jobController.updateJobApplication));
+
+router.get('/get-applied-jobs', apiKey(), auth(), awaitHandlerFactory(jobController.getAppliedJobs));
+
+router.post('/save-candidate', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.saveCandidate));
+router.get('/get-saved-candidates', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getSavedCandidates));
+router.delete('/delete-saved-candidate/:candidate_id', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.deleteSavedCandidate));
+
+router.post('/save-favorite-job', apiKey(), auth(), awaitHandlerFactory(jobController.saveFavoriteJob));
+router.get('/get-favorite-jobs', apiKey(), auth(), awaitHandlerFactory(jobController.getFavoriteJobs));
+router.delete('/delete-favorite-job/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.deleteFavoriteJob));
+
 
 module.exports = router;

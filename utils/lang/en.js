@@ -73,6 +73,8 @@ exports.ENTITIES = Object.freeze({
   entity_users: "Users",
   entity_password: "Password",
   entity_confirmPassword: "Confirm Password",
+  entity_userReview: "Review",
+  entity_userFollower: "Follower",
 
   // listing
   entity_listing: "Listing",
