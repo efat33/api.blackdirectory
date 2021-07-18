@@ -5,6 +5,7 @@ const commonfn = require('../utils/common');
 const nodemailer = require('nodemailer');
 const JobModel = require('../models/job-model');
 const UserModel = require('../models/user-model');
+const UserController = require('../controllers/user-controller');
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -17,6 +18,22 @@ class JobController {
 
     newJob = async (req, res, next) => {
         const job = await JobModel.createJob(req.body, req.currentUser);
+
+        if (job.status === 200) {
+            const followers = await UserModel.getFollowers(req.currentUser);
+
+            for (let follower of followers) {
+                const notificationBody = {
+                    user_id: follower.candidate_id,
+                    acted_user_id: req.currentUser.id,
+                    notification_trigger: 'new job',
+                    notification_type: 'job',
+                    notification_type_id: job.data.job_id
+                };
+    
+                await UserController.createNotification(notificationBody);
+            }
+        }
 
         new AppSuccess(res, 200, "200_added", { 'entity': 'entity_job' }, job);
     }
@@ -33,7 +50,7 @@ class JobController {
         };
 
         const job = getJobResult[0];
-        
+
         if (!job) {
             throw new AppError(403, "403_unknownError");
         }
@@ -110,10 +127,10 @@ class JobController {
         job.filled = !!job.filled;
         job.urgent = !!job.urgent;
 
-        const user = await UserModel.findOne({id: job.user_id});
+        const user = await UserModel.findOne({ id: job.user_id });
         const { password, ...userDetails } = user;
 
-        const sector = await JobModel.getSector({id: job.job_sector_id});
+        const sector = await JobModel.getSector({ id: job.job_sector_id });
 
         job['user'] = userDetails;
         job['job_sector'] = sector[0].title;
@@ -160,11 +177,21 @@ class JobController {
             throw new AppError(403, "403_unknownError")
         };
 
+        const notificationBody = {
+            user_id: req.body.employer_id,
+            acted_user_id: req.currentUser.id,
+            notification_trigger: 'new job application',
+            notification_type: 'job',
+            notification_type_id: req.body.job_id
+        };
+
+        await UserController.createNotification(notificationBody);
+
         new AppSuccess(res, 200, "200_added", { 'entity': 'entity_jobApplication' });
     }
 
     getJobApplications = async (req, res, next) => {
-        const params = {employer_id: req.currentUser.id};
+        const params = { employer_id: req.currentUser.id };
 
         if (req.params.job_id) {
             params['job_id'] = req.params.job_id;
@@ -191,7 +218,7 @@ class JobController {
                         if (!processedApplication['job']) {
                             processedApplication['job'] = {};
                         }
-                        
+
                         processedApplication['job'][jobKey] = application[key];
                     } else {
                         processedApplication[key] = application[key];
@@ -214,7 +241,7 @@ class JobController {
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
     };
-    
+
     updateJobApplication = async (req, res, next) => {
         if (req.currentUser.role === 'candidate') {
             throw new AppError(403, "403_unknownError");
@@ -227,6 +254,20 @@ class JobController {
         const result = await JobModel.updateJobApplication(req.params.application_id, req.body);
 
         if (result) {
+            if (req.body.shortlisted || req.body.rejected) {
+                const application = await JobModel.getJobApplication(req.params.application_id);
+
+                const notificationBody = {
+                    user_id: application[0].user_id,
+                    acted_user_id: application[0].employer_id,
+                    notification_trigger: req.body.shortlisted ? 'shortlisted' : 'rejected',
+                    notification_type: 'job',
+                    notification_type_id: application[0].job_id
+                };
+
+                await UserController.createNotification(notificationBody);
+            }
+
             new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_job_application' });
         }
         else {
@@ -235,8 +276,8 @@ class JobController {
     }
 
     getAppliedJobs = async (req, res, next) => {
-        const resultInternal = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type':'internal' });
-        const resultEmail = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type':'with_email' });
+        const resultInternal = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type': 'internal' });
+        const resultEmail = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type': 'with_email' });
 
         const result = {
             internal: resultInternal,

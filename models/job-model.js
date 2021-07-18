@@ -297,6 +297,12 @@ class JobModel {
         return result;
     }
 
+    getJobsByIds = async (jobIds) => {
+        const sql = `SELECT * FROM ${this.tableName} WHERE id IN (?)`;
+
+        return await query2(sql, [jobIds]);
+    }
+
     getSectors = async () => {
         const sql = `SELECT * FROM ${this.tableSectors} ORDER BY title`;
         const result = await query(sql);
@@ -370,6 +376,15 @@ class JobModel {
         sql += ` ORDER BY created_at DESC`;
 
         return await query(sql, [...values]);
+    }
+
+    getJobApplication = async (application_id) => {
+        let sql = `SELECT * 
+            FROM ${this.tableJobApplications} 
+            WHERE id=?
+        `;
+
+        return await query(sql, [application_id]);
     }
 
     getAppliedJobs = async (params = {}) => {

@@ -11,6 +11,7 @@ class UserModel {
     tableNamePortfolio = 'candidate_portfolio';
     tableNameUserReview = 'user_reviews';
     tableNameFollowStats = 'user_follow_stats';
+    tableNameNotifications = 'user_notifications';
 
     findOneMatchAny = async (params = {}) => {
         let sql = `SELECT * FROM ${this.tableName}`;
@@ -561,6 +562,74 @@ class UserModel {
     deleteFollowing = async (employer_id, currentUser) => {
         const sql = `DELETE FROM ${this.tableNameFollowStats} WHERE candidate_id=? AND employer_id=?`;
         const values = [currentUser.id, employer_id];
+
+        return await query(sql, values);
+    }
+
+    createNotification = async (params = {}) => {
+        let output = {};
+
+        const sql = `INSERT INTO ${this.tableNameNotifications} 
+            (user_id, acted_user_id, notification_trigger, notification_type, notification_type_id) 
+            VALUES (?,?,?,?,?)`;
+
+        const values = [
+            params.user_id, 
+            params.acted_user_id,
+            params.notification_trigger,
+            params.notification_type,
+            params.notification_type_id
+        ];
+
+        const result = await query(sql, values);
+
+        if (result.insertId) {
+            output.status = 200;
+        }
+        else {
+            output.status = 401;
+        }
+
+        return output;
+    }
+
+    getNotifications = async (currentUser) => {
+        let sql = `SELECT Notifications.*, 
+        ActedUser.display_name as user_display_name, ActedUser.username as user_username 
+        FROM ${this.tableNameNotifications} as Notifications 
+        LEFT JOIN ${this.tableName} as User ON User.id=Notifications.user_id 
+        LEFT JOIN ${this.tableName} as ActedUser ON ActedUser.id=Notifications.acted_user_id
+        WHERE Notifications.user_id=?
+        ORDER BY Notifications.created_at DESC`;
+
+        return await query(sql, [currentUser.id]);
+    }
+
+    updateNotification = async (notificationId, params) => {
+        let sql = `UPDATE ${this.tableNameNotifications} SET`;
+        
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
+
+        sql += paramArray.join(', ');
+        
+        sql += ` WHERE id = ?`;
+
+        const values = [
+            ...Object.values(params),
+            notificationId
+        ];
+
+        const result = await query(sql, values);
+
+        return result;
+    }
+
+    deleteNotification = async (notification_id) => {
+        const sql = `DELETE FROM ${this.tableNameNotifications} WHERE id=?`;
+        const values = [notification_id];
 
         return await query(sql, values);
     }
