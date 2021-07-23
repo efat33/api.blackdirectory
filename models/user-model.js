@@ -322,6 +322,19 @@ class UserModel {
         return true;
     }
 
+    updateUserPostMeta = async (userId, meta) => {
+        const sql = `INSERT INTO ${this.tableNameMeta} (user_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value)`;
+        const meta_values = [];
+
+        for (let [meta_key, meta_value] of Object.entries(meta)) {
+            meta_values.push([parseInt(userId), meta_key, meta_value])
+        }
+
+        if (meta_values.length) {
+            return await query2(sql, [meta_values]);
+        }
+    }
+
     getUserProfile = async ({ id, role }) => {
 
         const sqlUser = `SELECT * FROM ${this.tableName}  WHERE id = ? LIMIT 1`;
@@ -488,13 +501,13 @@ class UserModel {
             VALUES (?,?,?,?,?,?,?,?)`;
 
         const values = [
-            user_id, 
-            employer_id, 
-            params.rating_quality, 
+            user_id,
+            employer_id,
+            params.rating_quality,
             params.rating_communication,
-            params.rating_goodwill, 
-            params.rating_overall, 
-            params.review, 
+            params.rating_goodwill,
+            params.rating_overall,
+            params.review,
             current_date
         ];
 
@@ -520,7 +533,7 @@ class UserModel {
             VALUES (?,?,?)`;
 
         const values = [
-            user_id, 
+            user_id,
             employer_id,
             current_date
         ];
@@ -574,7 +587,7 @@ class UserModel {
             VALUES (?,?,?,?,?)`;
 
         const values = [
-            params.user_id, 
+            params.user_id,
             params.acted_user_id,
             params.notification_trigger,
             params.notification_type,
@@ -607,14 +620,14 @@ class UserModel {
 
     updateNotification = async (notificationId, params) => {
         let sql = `UPDATE ${this.tableNameNotifications} SET`;
-        
+
         const paramArray = [];
         for (let param in params) {
             paramArray.push(` ${param} = ?`);
         }
 
         sql += paramArray.join(', ');
-        
+
         sql += ` WHERE id = ?`;
 
         const values = [
