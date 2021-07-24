@@ -124,6 +124,10 @@ class JobController {
         };
 
         const job = result[0];
+        
+        if (!req.currentUser || (req.currentUser && req.currentUser.id != job.user_id)) {
+            await JobModel.updateJobProperty(job.id, {views: job.views + 1});
+        }
 
         job.featured = !!job.featured;
         job.filled = !!job.filled;

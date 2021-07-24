@@ -21,6 +21,11 @@ class JobModel {
         const user_id = currentUser.id;
         const output = {}
 
+        const currentPackage = await this.getCurrentPackage(currentUser);
+
+        const date = new Date();
+        const expiry_date = commonfn.dateTime(new Date(date.setDate(date.getDate() + parseInt(currentPackage.currentPackage.job_expiry || 14))));
+
         let slug = await commonfn.generateSlug(params.title, this.tableName);
 
         // insert data into listings table
@@ -39,7 +44,7 @@ class JobModel {
         const result = await query(sql, [user_id, params.title, slug, params.description, new Date(params.deadline),
             params.job_sector_id, params.job_industry, params.job_apply_type, params.experience, params.salary,
             params.address, params.latitude, params.longitude, params.attachment, 0,
-            0, 'approved', 0, params.expiry_date, 0,
+            0, 'approved', 0, expiry_date, 0,
             0, params.job_type, current_date, current_date]);
 
 
@@ -178,6 +183,9 @@ class JobModel {
 
         const values = [];
         const conditions = [];
+
+        conditions.push('Job.expiry_date > CURDATE()');
+        conditions.push('Job.filled = 0');
 
         if (status) {
             conditions.push('Job.status = ?');
