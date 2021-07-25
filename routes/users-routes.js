@@ -40,4 +40,6 @@ router.get('/get-notifications', apiKey(), auth(), awaitHandlerFactory(userContr
 router.put('/update-notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.updateNotification));
 router.delete('/notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.deleteNotification));
 
+router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.getUsersByIds));
+
 module.exports = router;

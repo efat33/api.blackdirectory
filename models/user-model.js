@@ -646,6 +646,12 @@ class UserModel {
 
         return await query(sql, values);
     }
+
+    getUsersByIds = async (userIds) => {
+        const sql = `SELECT * FROM ${this.tableName} WHERE id IN (?)`;
+
+        return await query2(sql, [userIds]);
+    }
 }
 
 module.exports = new UserModel;

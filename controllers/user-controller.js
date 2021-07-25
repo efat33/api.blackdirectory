@@ -66,7 +66,7 @@ class UserController {
 
             res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
 
-            new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword });
+            new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
         }
         else {
@@ -398,6 +398,20 @@ class UserController {
         const { password, ...userWithoutPassword } = user;
 
         res.send(userWithoutPassword);
+    };
+
+    getUsersByIds = async (req, res, next) => {
+        const result = await UserModel.getUsersByIds(req.body.userIds);
+
+        const users = [];
+
+        for (const user of result) {
+            const { password, ...userWithoutPassword } = user;
+
+            users.push(userWithoutPassword);
+        }
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_users' }, users);
     };
 
     checkAuthentication = async (req, res, next) => {
