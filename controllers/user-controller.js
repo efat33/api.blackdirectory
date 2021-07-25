@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require('nodemailer');
 const dotenv = require("dotenv");
 const hasher = require('wordpress-hash-node');
+const jobModel = require("../models/job-model");
 dotenv.config();
 
 class UserController {
@@ -65,7 +66,7 @@ class UserController {
 
             res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
 
-            new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword });
+            new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
         }
         else {
@@ -399,6 +400,20 @@ class UserController {
         res.send(userWithoutPassword);
     };
 
+    getUsersByIds = async (req, res, next) => {
+        const result = await UserModel.getUsersByIds(req.body.userIds);
+
+        const users = [];
+
+        for (const user of result) {
+            const { password, ...userWithoutPassword } = user;
+
+            users.push(userWithoutPassword);
+        }
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_users' }, users);
+    };
+
     checkAuthentication = async (req, res, next) => {
 
         new AppSuccess(res, 200, "200_successful");
@@ -424,16 +439,16 @@ class UserController {
 
 
     getFollowers = async (req, res, next) => {
-        const reviews = await UserModel.getFollowers(req.currentUser);
+        const followers = await UserModel.getFollowers(req.currentUser);
 
-        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userReview' }, reviews);
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userReview' }, followers);
     };
 
 
     getFollowings = async (req, res, next) => {
-        const reviews = await UserModel.getFollowings(req.currentUser);
+        const followings = await UserModel.getFollowings(req.currentUser);
 
-        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userFollower' }, reviews);
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_userFollower' }, followings);
     };
 
     createUserFollower = async (req, res, next) => {
@@ -452,7 +467,49 @@ class UserController {
         new AppSuccess(res, 200, "200_successful");
     };
 
+    createNotification = async (notificationBody) => {
+        await UserModel.createNotification(notificationBody);
+    }
 
+    getNotifications = async (req, res, next) => {
+        const notifications = await UserModel.getNotifications(req.currentUser);
+
+        const jobIds = notifications
+            .filter((notification) => notification.notification_type === 'job')
+            .map(notification => notification.notification_type_id);
+
+        const jobs = await jobModel.getJobsByIds(jobIds);
+
+        for (let notification of notifications) {
+            if (notification.notification_type === 'job') {
+                const job = jobs.find(job => job.id == notification.notification_type_id);
+                notification.job = job;
+            }
+        }
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_notification' }, notifications);
+    };
+
+    updateNotification = async (req, res, next) => {
+        if (!req.body || Object.keys(req.body).length == 0) {
+            throw new AppError(403, "403_unknownError");
+        }
+
+        const result = await UserModel.updateNotification(req.params.notification_id, req.body);
+
+        if (result) {
+            new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_notification' });
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
+    }
+
+    deleteNotification = async (req, res, next) => {
+        await UserModel.deleteNotification(req.params.notification_id);
+
+        new AppSuccess(res, 200, "200_successful");
+    };
 }
 
 module.exports = new UserController();

@@ -138,9 +138,12 @@ const HttpStatusCodes = Object.freeze({
   ER_DUP_ENTRY: 409,
 });
 
-exports.query = new DBConnection().query;
-exports.query2 = new DBConnection().query2;
-exports.query3 = new DBConnection().query3;
+
+const dbConnection = new DBConnection();
+
+exports.query = dbConnection.query;
+exports.query2 = dbConnection.query2;
+exports.query3 = dbConnection.query3;
 
 
 

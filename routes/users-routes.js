@@ -35,4 +35,11 @@ router.get('/get-followers', apiKey(), auth(), awaitHandlerFactory(userControlle
 router.get('/get-followings', apiKey(), auth(), awaitHandlerFactory(userController.getFollowings));
 router.delete('/unfollow/:user_id', apiKey(), auth(), awaitHandlerFactory(userController.deleteFollowing));
 
+router.post('/notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.createNotification));
+router.get('/get-notifications', apiKey(), auth(), awaitHandlerFactory(userController.getNotifications));
+router.put('/update-notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.updateNotification));
+router.delete('/notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.deleteNotification));
+
+router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.getUsersByIds));
+
 module.exports = router;

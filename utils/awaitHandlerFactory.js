@@ -3,6 +3,7 @@ const awaitHandlerFactory = (middleware) => {
     try {
       await middleware(req, res, next);
     } catch (err) {
+      console.log("🚀 ~ file: awaitHandlerFactory.js ~ line 6 ~ return ~ err", err)
       next(err);
     }
   };

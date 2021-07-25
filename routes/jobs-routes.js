@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jobController = require('../controllers/job-controller');
 const auth = require('../utils/auth');
+const currentUser = require('../utils/currentUser');
 const authVerified = require('../utils/authVerified');
 const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
@@ -18,7 +19,7 @@ router.delete('/delete-job/:job_id', apiKey(), auth(), awaitHandlerFactory(jobCo
 router.get('/get-user-jobs', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getUserJobs));
 router.get('/get-user-job/:job_id', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getUserJob));
 
-router.get('/get-job/:job_slug', apiKey(), awaitHandlerFactory(jobController.getJob));
+router.get('/get-job/:job_slug', apiKey(), currentUser(), awaitHandlerFactory(jobController.getJob));
 router.post('/get-jobs', apiKey(), awaitHandlerFactory(jobController.getJobs));
 router.post('/get-job-count', apiKey(), awaitHandlerFactory(jobController.getJobCount));
 router.put('/update-job-property/:job_id', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.updateJobProperty));
@@ -39,5 +40,10 @@ router.post('/save-favorite-job', apiKey(), auth(), awaitHandlerFactory(jobContr
 router.get('/get-favorite-jobs', apiKey(), auth(), awaitHandlerFactory(jobController.getFavoriteJobs));
 router.delete('/delete-favorite-job/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.deleteFavoriteJob));
 
+router.get('/get-job-packages', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getJobPackages));
+router.get('/get-current-package', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getCurrentPackage));
+
+router.post('/create-checkout-session', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.createStripeCheckoutSession));
+router.post('/stripe-webhook', express.raw({ type: 'application/json' }), awaitHandlerFactory(jobController.stripeWebhook));
 
 module.exports = router;

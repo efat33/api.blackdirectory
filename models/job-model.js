@@ -11,12 +11,20 @@ class JobModel {
     tableJobNotifications = 'job_notifications';
     tableSavedCandidates = 'job_saved_candidates';
     tableFavoriteJobs = 'job_favorites';
+    tableJobPackages = 'job_packages';
+    tableJobPackagePrices = 'job_package_prices';
     tableUsers = 'users';
+    tableUsersMeta = 'users_meta';
 
     createJob = async (params, currentUser) => {
         const current_date = commonfn.dateTimeNow();
         const user_id = currentUser.id;
         const output = {}
+
+        const currentPackage = await this.getCurrentPackage(currentUser);
+
+        const date = new Date();
+        const expiry_date = commonfn.dateTime(new Date(date.setDate(date.getDate() + parseInt(currentPackage.currentPackage.job_expiry || 14))));
 
         let slug = await commonfn.generateSlug(params.title, this.tableName);
 
@@ -36,7 +44,7 @@ class JobModel {
         const result = await query(sql, [user_id, params.title, slug, params.description, new Date(params.deadline),
             params.job_sector_id, params.job_industry, params.job_apply_type, params.experience, params.salary,
             params.address, params.latitude, params.longitude, params.attachment, 0,
-            0, 'approved', 0, params.expiry_date, 0,
+            0, 'approved', 0, expiry_date, 0,
             0, params.job_type, current_date, current_date]);
 
 
@@ -176,6 +184,9 @@ class JobModel {
         const values = [];
         const conditions = [];
 
+        conditions.push('Job.expiry_date > CURDATE()');
+        conditions.push('Job.filled = 0');
+
         if (status) {
             conditions.push('Job.status = ?');
             values.push(status)
@@ -297,6 +308,12 @@ class JobModel {
         return result;
     }
 
+    getJobsByIds = async (jobIds) => {
+        const sql = `SELECT * FROM ${this.tableName} WHERE id IN (?)`;
+
+        return await query2(sql, [jobIds]);
+    }
+
     getSectors = async () => {
         const sql = `SELECT * FROM ${this.tableSectors} ORDER BY title`;
         const result = await query(sql);
@@ -370,6 +387,15 @@ class JobModel {
         sql += ` ORDER BY created_at DESC`;
 
         return await query(sql, [...values]);
+    }
+
+    getJobApplication = async (application_id) => {
+        let sql = `SELECT * 
+            FROM ${this.tableJobApplications} 
+            WHERE id=?
+        `;
+
+        return await query(sql, [application_id]);
     }
 
     getAppliedJobs = async (params = {}) => {
@@ -512,6 +538,76 @@ class JobModel {
         const values = [currentUser.id, job_id];
 
         return await query(sql, values);
+    }
+
+    getJobPackages = async () => {
+        let sql = `SELECT * FROM ${this.tableJobPackages} as Packages ORDER BY Packages.order`;
+
+        return await query(sql);
+    }
+
+    getJobPackage = async (id) => {
+        let sql = `SELECT * FROM ${this.tableJobPackages} WHERE id=?`;
+
+        const result = await query(sql, [id]);
+
+        return result[0];
+    }
+
+    getJobPackagePrices = async () => {
+        let sql = `SELECT * FROM ${this.tableJobPackagePrices}`;
+
+        return await query(sql);
+    }
+
+    getJobPackagePrice = async (id) => {
+        let sql = `SELECT * FROM ${this.tableJobPackagePrices} WHERE id=?`;
+
+        const result = await query(sql, [id]);
+
+        return result[0];
+    }
+
+    getCurrentPackage = async (currentUser) => {
+        let output = {};
+
+        let sql = `SELECT * FROM ${this.tableUsersMeta} WHERE user_id=? AND meta_key in ('package', 'package_price', 'package_purchase_date', 'package_expire_date')`;
+
+        const meta_values = await query(sql, [currentUser.id]);
+
+        output.meta_values = meta_values;
+
+        if (meta_values.length > 0) {
+            const packageId = meta_values.find(value => value.meta_key === 'package').meta_value;
+
+            if (packageId) {
+                output.currentPackage = await this.getJobPackage(packageId);
+            }
+
+            const purchaseDate = meta_values.find(value => value.meta_key === 'package_purchase_date').meta_value;
+
+            const date = new Date();
+            const last30Days = commonfn.dateTime(new Date(date.setMonth(date.getMonth() - 1)));
+
+            const jobSql = `SELECT * FROM ${this.tableName} WHERE user_id=? AND created_at >= '${purchaseDate}' AND created_at >= '${last30Days}'`;
+            const jobs = await query(jobSql, [currentUser.id]);
+
+            output.jobs = jobs;
+        } else {
+            const jobSql = `SELECT * FROM ${this.tableName} WHERE user_id=?`;
+            const jobs = await query(jobSql, [currentUser.id]);
+
+            output.jobs = jobs;
+        }
+
+        if (!output.currentPackage) {
+            let freePackageSql = `SELECT * FROM ${this.tableJobPackages} WHERE title='Free'`;
+            const result = await query(freePackageSql);
+            
+            output.currentPackage = result[0];
+        }
+
+        return output;
     }
 }
 
