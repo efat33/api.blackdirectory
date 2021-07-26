@@ -387,7 +387,8 @@ class JobController {
         let event;
 
         try {
-            event = stripe.webhooks.constructEvent(payload, sig, process.env.STRIPE_WEBHOOK_SECRET_LOCALHOST);
+            const webhookSecret = process.env.NODE_ENV === "development" ? process.env.STRIPE_WEBHOOK_SECRET_LOCALHOST : process.env.STRIPE_WEBHOOK_SECRET;
+            event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
         } catch (err) {
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
