@@ -343,6 +343,14 @@ class UserController {
 
     }
 
+    userDetailsByID = async (req, res, next) => {
+
+        const user = await UserModel.getUserDetailsByID({ id: req.params.id });
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_user' }, user);
+
+    }
+
     confirmAccount = async (req, res, next) => {
 
         const userMeta = await UserModel.findOne({ "meta_value": req.body.verification_key, "meta_key": 'verification_key' }, this.tableUsersMeta);

@@ -17,7 +17,7 @@ class AppError extends Error {
   }
 
   generateErrorMessage(errorCode, variables) {
-    let error = RESPONSE_CODES[errorCode] || "";
+    let error = RESPONSE_CODES[errorCode] || errorCode;
 
     if (variables) {
       for (const [key, value] of Object.entries(variables)) {
