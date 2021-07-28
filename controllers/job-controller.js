@@ -1,3 +1,7 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const AppError = require("../utils/appError");
 const AppSuccess = require("../utils/appSuccess");
 const { validationResult } = require("express-validator");
@@ -5,8 +9,7 @@ const commonfn = require('../utils/common');
 const nodemailer = require('nodemailer');
 const JobModel = require('../models/job-model');
 const UserModel = require('../models/user-model');
-const dotenv = require("dotenv");
-dotenv.config();
+const UserController = require('../controllers/user-controller');
 
 class JobController {
     sectors = async (req, res, next) => {
@@ -17,6 +20,22 @@ class JobController {
 
     newJob = async (req, res, next) => {
         const job = await JobModel.createJob(req.body, req.currentUser);
+
+        if (job.status === 200) {
+            const followers = await UserModel.getFollowers(req.currentUser);
+
+            for (let follower of followers) {
+                const notificationBody = {
+                    user_id: follower.candidate_id,
+                    acted_user_id: req.currentUser.id,
+                    notification_trigger: 'new job',
+                    notification_type: 'job',
+                    notification_type_id: job.data.job_id
+                };
+
+                await UserController.createNotification(notificationBody);
+            }
+        }
 
         new AppSuccess(res, 200, "200_added", { 'entity': 'entity_job' }, job);
     }
@@ -33,7 +52,7 @@ class JobController {
         };
 
         const job = getJobResult[0];
-        
+
         if (!job) {
             throw new AppError(403, "403_unknownError");
         }
@@ -105,15 +124,19 @@ class JobController {
         };
 
         const job = result[0];
+        
+        if (!req.currentUser || (req.currentUser && req.currentUser.id != job.user_id)) {
+            await JobModel.updateJobProperty(job.id, {views: job.views + 1});
+        }
 
         job.featured = !!job.featured;
         job.filled = !!job.filled;
         job.urgent = !!job.urgent;
 
-        const user = await UserModel.findOne({id: job.user_id});
+        const user = await UserModel.findOne({ id: job.user_id });
         const { password, ...userDetails } = user;
 
-        const sector = await JobModel.getSector({id: job.job_sector_id});
+        const sector = await JobModel.getSector({ id: job.job_sector_id });
 
         job['user'] = userDetails;
         job['job_sector'] = sector[0].title;
@@ -160,11 +183,21 @@ class JobController {
             throw new AppError(403, "403_unknownError")
         };
 
+        const notificationBody = {
+            user_id: req.body.employer_id,
+            acted_user_id: req.currentUser.id,
+            notification_trigger: 'new job application',
+            notification_type: 'job',
+            notification_type_id: req.body.job_id
+        };
+
+        await UserController.createNotification(notificationBody);
+
         new AppSuccess(res, 200, "200_added", { 'entity': 'entity_jobApplication' });
     }
 
     getJobApplications = async (req, res, next) => {
-        const params = {employer_id: req.currentUser.id};
+        const params = { employer_id: req.currentUser.id };
 
         if (req.params.job_id) {
             params['job_id'] = req.params.job_id;
@@ -191,7 +224,7 @@ class JobController {
                         if (!processedApplication['job']) {
                             processedApplication['job'] = {};
                         }
-                        
+
                         processedApplication['job'][jobKey] = application[key];
                     } else {
                         processedApplication[key] = application[key];
@@ -214,7 +247,7 @@ class JobController {
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_job_application' }, result);
     };
-    
+
     updateJobApplication = async (req, res, next) => {
         if (req.currentUser.role === 'candidate') {
             throw new AppError(403, "403_unknownError");
@@ -227,6 +260,20 @@ class JobController {
         const result = await JobModel.updateJobApplication(req.params.application_id, req.body);
 
         if (result) {
+            if (req.body.shortlisted || req.body.rejected) {
+                const application = await JobModel.getJobApplication(req.params.application_id);
+
+                const notificationBody = {
+                    user_id: application[0].user_id,
+                    acted_user_id: application[0].employer_id,
+                    notification_trigger: req.body.shortlisted ? 'shortlisted' : 'rejected',
+                    notification_type: 'job',
+                    notification_type_id: application[0].job_id
+                };
+
+                await UserController.createNotification(notificationBody);
+            }
+
             new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_job_application' });
         }
         else {
@@ -235,8 +282,8 @@ class JobController {
     }
 
     getAppliedJobs = async (req, res, next) => {
-        const resultInternal = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type':'internal' });
-        const resultEmail = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type':'with_email' });
+        const resultInternal = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type': 'internal' });
+        const resultEmail = await JobModel.getAppliedJobs({ 'Applications.user_id': req.currentUser.id, 'Jobs.job_apply_type': 'with_email' });
 
         const result = {
             internal: resultInternal,
@@ -280,6 +327,90 @@ class JobController {
         await JobModel.deleteFavoriteJob(req.params.job_id, req.currentUser);
 
         new AppSuccess(res, 200, "200_successful");
+    };
+
+    getJobPackages = async (req, res, next) => {
+        const packages = await JobModel.getJobPackages();
+        const packagePrices = await JobModel.getJobPackagePrices();
+
+        for (const jobPackage of packages) {
+            jobPackage['prices'] = packagePrices
+                .filter((price) => price.package_id == jobPackage.id)
+                .sort((price1, price2) => price2.validity - price1.validity);
+        }
+
+        new AppSuccess(res, 200, "200_successful", null, packages);
+    };
+
+    getCurrentPackage = async (req, res, next) => {
+        const currentPackage = await JobModel.getCurrentPackage(req.currentUser);
+        
+        new AppSuccess(res, 200, "200_successful", null, currentPackage);
+    };
+
+    createStripeCheckoutSession = async (req, res, next) => {
+        const jobPackage = await JobModel.getJobPackage(req.body.packageId);
+        const packagePrice = await JobModel.getJobPackagePrice(req.body.priceId);
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'gbp',
+                        unit_amount: parseFloat(packagePrice.price) * 100,
+                        product_data: {
+                            name: `${jobPackage.title} - ${packagePrice.validity} Month`,
+                        },
+                    },
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            success_url: `${req.body.returnUrl}?success=true`,
+            cancel_url: `${req.body.returnUrl}?success=false`,
+            metadata: {
+                'packageId': jobPackage.id,
+                'priceId': packagePrice.id,
+                'validity': packagePrice.validity,
+                'userId': req.currentUser.id
+            }
+        });
+
+        new AppSuccess(res, 200, "200_successful", null, session);
+    };
+
+    stripeWebhook = async (req, res, next) => {
+        const payload = req.body;
+        const sig = req.headers['stripe-signature'];
+
+        let event;
+
+        try {
+            const webhookSecret = process.env.NODE_ENV === "development" ? process.env.STRIPE_WEBHOOK_SECRET_LOCALHOST : process.env.STRIPE_WEBHOOK_SECRET;
+            event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+        } catch (err) {
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data.object;
+
+            const date = new Date();
+            const purchaseDate = commonfn.dateTimeNow();
+            const expireDate = commonfn.dateTime(new Date(date.setMonth(date.getMonth() + parseInt(session.metadata.validity))));
+
+            const meta = {
+                package: session.metadata.packageId,
+                package_price: session.metadata.priceId,
+                package_purchase_date: purchaseDate,
+                package_expire_date: expireDate,
+            }
+
+            await UserModel.updateUserPostMeta(session.metadata.userId, meta);
+        }
+
+        res.status(200).send();
     };
 }
 

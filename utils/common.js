@@ -38,6 +38,19 @@ exports.dateTimeNow = () => {
   return datetime;
 };
 
+exports.dateTime = (date) => {
+  const year = date.getUTCFullYear();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = date.getUTCDate().toString().padStart(2, '0');
+  const hour = date.getUTCHours().toString().padStart(2, '0');
+  const min = date.getUTCMinutes().toString().padStart(2, '0');
+  const sec = date.getUTCSeconds().toString().padStart(2, '0');
+
+  const datetime = `${year}-${month}-${day} ${hour}:${min}:${sec}`;
+
+  return datetime;
+};
+
 exports.currentTimestamp = () => {
   const currentdate = new Date().getTime();
 
@@ -111,6 +124,21 @@ exports.isEmployer = () => {
         next();
       } else {
         throw new AppError(401, "401_notEmployer");
+      }
+    } catch (e) {
+      e.status = 401;
+      next(e);
+    }
+  };
+};
+
+exports.isAdmin = () => {
+  return async function (req, res, next) {
+    try {
+      if (req.currentUser.role === 'admin') {
+        next();
+      } else {
+        throw new AppError(401, "401_notAdmin");
       }
     } catch (e) {
       e.status = 401;

@@ -11,6 +11,7 @@ class UserModel {
     tableNamePortfolio = 'candidate_portfolio';
     tableNameUserReview = 'user_reviews';
     tableNameFollowStats = 'user_follow_stats';
+    tableNameNotifications = 'user_notifications';
 
     findOneMatchAny = async (params = {}) => {
         let sql = `SELECT * FROM ${this.tableName}`;
@@ -321,6 +322,19 @@ class UserModel {
         return true;
     }
 
+    updateUserPostMeta = async (userId, meta) => {
+        const sql = `INSERT INTO ${this.tableNameMeta} (user_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value)`;
+        const meta_values = [];
+
+        for (let [meta_key, meta_value] of Object.entries(meta)) {
+            meta_values.push([parseInt(userId), meta_key, meta_value])
+        }
+
+        if (meta_values.length) {
+            return await query2(sql, [meta_values]);
+        }
+    }
+
     getUserProfile = async ({ id, role }) => {
 
         const sqlUser = `SELECT * FROM ${this.tableName}  WHERE id = ? LIMIT 1`;
@@ -487,13 +501,13 @@ class UserModel {
             VALUES (?,?,?,?,?,?,?,?)`;
 
         const values = [
-            user_id, 
-            employer_id, 
-            params.rating_quality, 
+            user_id,
+            employer_id,
+            params.rating_quality,
             params.rating_communication,
-            params.rating_goodwill, 
-            params.rating_overall, 
-            params.review, 
+            params.rating_goodwill,
+            params.rating_overall,
+            params.review,
             current_date
         ];
 
@@ -519,7 +533,7 @@ class UserModel {
             VALUES (?,?,?)`;
 
         const values = [
-            user_id, 
+            user_id,
             employer_id,
             current_date
         ];
@@ -563,6 +577,80 @@ class UserModel {
         const values = [currentUser.id, employer_id];
 
         return await query(sql, values);
+    }
+
+    createNotification = async (params = {}) => {
+        let output = {};
+
+        const sql = `INSERT INTO ${this.tableNameNotifications} 
+            (user_id, acted_user_id, notification_trigger, notification_type, notification_type_id) 
+            VALUES (?,?,?,?,?)`;
+
+        const values = [
+            params.user_id,
+            params.acted_user_id,
+            params.notification_trigger,
+            params.notification_type,
+            params.notification_type_id
+        ];
+
+        const result = await query(sql, values);
+
+        if (result.insertId) {
+            output.status = 200;
+        }
+        else {
+            output.status = 401;
+        }
+
+        return output;
+    }
+
+    getNotifications = async (currentUser) => {
+        let sql = `SELECT Notifications.*, 
+        ActedUser.display_name as user_display_name, ActedUser.username as user_username 
+        FROM ${this.tableNameNotifications} as Notifications 
+        LEFT JOIN ${this.tableName} as User ON User.id=Notifications.user_id 
+        LEFT JOIN ${this.tableName} as ActedUser ON ActedUser.id=Notifications.acted_user_id
+        WHERE Notifications.user_id=?
+        ORDER BY Notifications.created_at DESC`;
+
+        return await query(sql, [currentUser.id]);
+    }
+
+    updateNotification = async (notificationId, params) => {
+        let sql = `UPDATE ${this.tableNameNotifications} SET`;
+
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
+
+        sql += paramArray.join(', ');
+
+        sql += ` WHERE id = ?`;
+
+        const values = [
+            ...Object.values(params),
+            notificationId
+        ];
+
+        const result = await query(sql, values);
+
+        return result;
+    }
+
+    deleteNotification = async (notification_id) => {
+        const sql = `DELETE FROM ${this.tableNameNotifications} WHERE id=?`;
+        const values = [notification_id];
+
+        return await query(sql, values);
+    }
+
+    getUsersByIds = async (userIds) => {
+        const sql = `SELECT * FROM ${this.tableName} WHERE id IN (?)`;
+
+        return await query2(sql, [userIds]);
     }
 }
 
