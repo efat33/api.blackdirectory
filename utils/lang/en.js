@@ -68,6 +68,7 @@ exports.ENTITIES = Object.freeze({
 
   // General
   entity_id: "ID",
+  entity_reviews: "Reviews",
 
   // Users
   entity_apiKey: "API Key",
@@ -83,6 +84,7 @@ exports.ENTITIES = Object.freeze({
 
   // listing
   entity_listing: "Listing",
+  entity_listingID: "Listing ID",
 
 
   // job

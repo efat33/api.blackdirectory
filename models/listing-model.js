@@ -1,9 +1,11 @@
 const {query, query2, query3} = require('../server');
 const { multipleColumnSet } = require('../utils/common');
 const commonfn = require('../utils/common');
+const {DBTables} = require('../utils/common');
 
 class ListingModel {
   tableName = 'listings';
+  tableUsers = 'users';
   tableListingHours = 'listing_business_hours';
   tableCategories = 'listing_categories';
   tableListingCategories = 'listing_categories_listing';
@@ -11,6 +13,8 @@ class ListingModel {
   tableListingCoupon = 'listing_coupons';
   tableListingRestaurant = 'listing_restaurant';
   tableListingRestaurantItems = 'listing_restaurant_items';
+  tableReview = 'listing_reviews';
+  tableReviewLike = 'listing_review_likes';
 
   
   findOne = async (params, table = `${this.tableName}`) => {
@@ -26,8 +30,8 @@ class ListingModel {
 
   }
 
-  find = async (params = {}) => {
-      let sql = `SELECT * FROM ${this.tableName}`;
+  find = async (params = {}, table = `${this.tableName}`, orderby = '') => {
+      let sql = `SELECT * FROM ${table}`;
 
       if (!Object.keys(params).length) {
           return await query(sql);
@@ -36,11 +40,13 @@ class ListingModel {
       const { columnSet, values } = multipleColumnSet(params)
       sql += ` WHERE ${columnSet}`;
 
+      if(orderby != '') sql += ` ${orderby}`;
+
       return await query(sql, [...values]);
   }
 
-  findMatchAny = async (params = {}) => {
-    let sql = `SELECT * FROM ${this.tableName}`;
+  findMatchAny = async (params = {}, table = `${this.tableName}`) => {
+    let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
         return await query(sql);
@@ -652,8 +658,264 @@ class ListingModel {
     
   }
 
+  newReview = async (params) => {
+
+    const current_date = commonfn.dateTimeNow();
+
+    const sql = `INSERT INTO ${this.tableReview} (listing_id, user_id, rating, title, description, created_at) VALUES (?,?,?,?,?,?)`;
+    const values = [params.listing_id, params.user_id, params.rating, params.title, params.description, current_date];
+    
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+
+      const resultUpdate = await this.updateListingReview(params.listing_id);
+
+      if (resultUpdate.affectedRows == 1) {
+        return true;
+      }
+    }
+    
+    return false;
+    
+  }
+
+  editReview = async (params) => {
+
+    const current_date = commonfn.dateTimeNow();
+
+    const basic_info = {
+      'rating': params.rating,
+      'title': params.title,
+      'description': params.description,
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
+    const result = await query(sql, [...basic_colset.values, params.id]);
+    
+    
+    if (result.affectedRows == 1) {
+
+      const resultUpdate = await this.updateListingReview(params.listing_id);
+      
+      if (resultUpdate.affectedRows == 1) {
+        return true;
+      }
+      
+    }
+    
+    return false;
+    
+  }
+
+  // update review columns in listing table
+  updateListingReview = async (listing_id) => {
+
+    const sql = `SELECT COUNT(*) AS no_of_rating,
+    AVG(rating) AS avg_rating 
+    FROM ${this.tableReview} WHERE listing_id = ? AND parent_id IS NULL`;
+
+    const update_review_data = await query(sql, [listing_id]);
+
+    // update listing table - avg_rating and no_of_rating 
+    const basic_info = {
+      'no_of_rating': update_review_data[0].no_of_rating,
+      'avg_rating': update_review_data[0].avg_rating
+    }
+
+    const basic_colset = multipleColumnSet(basic_info, ',');
+
+    const sqlUpdate = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+
+    const resultUpdate = await query(sqlUpdate, [...basic_colset.values, listing_id]);
+
+    return resultUpdate;
+  }
+
+  getReviews = async ({id}) => {
+
+    const sqlReview = `SELECT r.*, u.username, u.display_name, u.profile_photo, u.role 
+                          FROM ${this.tableReview} r
+                          JOIN ${this.tableUsers} u ON r.user_id = u.id  
+                          WHERE r.listing_id = ? ORDER BY r.id DESC`;
+    const review_list = await query(sqlReview, [id]);
+
+    const likes_list = await this.find({'listing_id': id}, this.tableReviewLike);
+
+    const reviews = [];
+
+    for (const item of review_list) {
+      if (!item.parent_id) {
+        const comments = review_list.filter(review => review.parent_id == item.id);
+        const likes = likes_list.filter(like => like.listing_review_id == item.id);
+        
+        // sort comment list - order by ID ASC
+        comments.sort( (a,b) =>  a['id']-b['id'] );
+
+        item.comment_list = comments;
+        item.like_list = likes;
+        reviews.push(item);
+      }
+    }
+
+    return reviews;
+  }
+
+  deleteReview = async (params) => {
+
+    // delete review
+    const sql = `DELETE FROM ${this.tableReview} WHERE id IN (?)`;
+    const result = await query(sql, [params.id]);
+
+    // delete comment
+    const sqlComment = `DELETE FROM ${DBTables.listing_reviews} WHERE parent_id IN (?)`;
+    await query(sqlComment, [params.id]);
+
+    const resultUpdate = await this.updateListingReview(params.listing_id);
+
+    return result;
+  }
+
+  updateReviewLike = async (params) => {
+
+    const review_id = params.review_id;
+    const user_id = params.user_id;
+
+    const data = {'listing_review_id': review_id, 'user_id': user_id}
+    const likeExist = await this.findOne(data, this.tableReviewLike);
+    
+    if (Object.keys(likeExist).length > 0) {
+
+      // delete like
+      const sql = `DELETE FROM ${this.tableReviewLike} WHERE id = ?`;
+      await query(sql, [likeExist.id]);
+
+      // update like count; first get the existing like count
+      const data = {'id': review_id}
+      const review = await this.findOne(data, this.tableReview);
+
+      const updated_like_count = review.likes - 1;
+
+      // now update with final count
+      const update_data = {
+        'likes': updated_like_count
+      }
+      
+      const basic_colset = multipleColumnSet(update_data, ',');
+      
+      const sql_update = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
+      
+      await query(sql_update, [...basic_colset.values, review_id]);
+      
+
+    }
+    else{
+      // add like
+      const sql = `INSERT INTO ${this.tableReviewLike} (listing_review_id, listing_id, user_id) VALUES (?,?,?)`;
+      const values = [review_id, params.listing_id, user_id];
+      
+      await query(sql, values);
+
+      // update like count; first get the existing like count
+      const data = {'id': review_id}
+      const review = await this.findOne(data, this.tableReview);
+
+      const updated_like_count = review.likes + 1;
+
+      // now update with final count
+      const update_data = {
+        'likes': updated_like_count
+      }
+      
+      const basic_colset = multipleColumnSet(update_data, ',');
+      
+      const sql_update = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
+      
+      await query(sql_update, [...basic_colset.values, review_id]);
+    }
+
+    const updated_reviews = this.getReviews({'id': params.listing_id});
+    
+    return updated_reviews;
+    
+  }
+
+  addOrEditComment = async (params) => {
+
+    const current_date = commonfn.dateTimeNow();
+
+    if(params.comment_id != ''){
+      // edit comment
+      const basic_info = {
+        'description': params.comment,
+      }
+      
+      const basic_colset = multipleColumnSet(basic_info, ',');
+      
+      const sql = `UPDATE ${DBTables.listing_reviews} SET ${basic_colset.columnSet} WHERE id = ?`;
+      
+      const result = await query(sql, [...basic_colset.values, params.comment_id]);
+      
+      
+      if (result.affectedRows == 1) {
+        return true;
+      }
+    }
+    else{
+      // insert comment
+      const sql = `INSERT INTO ${DBTables.listing_reviews} (listing_id, user_id, description, parent_id, created_at) VALUES (?,?,?,?,?)`;
+      const values = [params.listing_id, params.user_id, params.comment, params.review_id, current_date];
+      
+      const result = await query(sql, values);
+
+      if (result.insertId) {
+
+        await this.updateCommentNumber(params.review_id);
+
+        return true;
+      }
+    }
+
+    return false;
+    
+  }
+
+  updateCommentNumber = async (review_id) => {
+
+    const sql = `SELECT COUNT(*) AS no_of_comment 
+      FROM ${this.tableReview} WHERE parent_id = ?`;
+
+    const data = await query(sql, [review_id]);
+
+    // update listing table - avg_rating and no_of_rating 
+    const basic_info = {
+      'comments': data[0].no_of_comment
+    }
+
+    const basic_colset = multipleColumnSet(basic_info, ',');
+
+    const sqlUpdate = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
+
+    const resultUpdate = await query(sqlUpdate, [...basic_colset.values, review_id]);
+
+    return resultUpdate;
+
+  }
+
+  deleteComment = async (params) => {
+
+    // delete comment
+    const sql = `DELETE FROM ${this.tableReview} WHERE id IN (?)`;
+    const result = await query(sql, [params.id]);
+
+    // delete comment
+    await this.updateCommentNumber(params.review_id);
+
+    return result;
+  }
 
 }
 
 module.exports = new ListingModel;
-

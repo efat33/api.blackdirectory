@@ -1,6 +1,11 @@
 const { query, query2, query3 } = require('../server');
 const AppError = require("../utils/appError");
 
+
+exports.DBTables = {
+  'listing_reviews': 'listing_reviews'
+};
+
 exports.multipleColumnSet = (object, joinBy = 'AND') => {
   if (typeof object !== 'object') {
     throw new Error('Invalid input');
@@ -128,3 +133,5 @@ exports.generateMetaObject = (metaValues) => {
 
   return metaObject;
 };
+
+

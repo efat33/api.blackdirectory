@@ -23,6 +23,7 @@ router.get('/authenticated', apiKey(), auth(), awaitHandlerFactory(userControlle
 router.get('/logout', apiKey(), awaitHandlerFactory(userController.logout));
 router.get('/user-profile', apiKey(), auth(), awaitHandlerFactory(userController.userProfile));
 router.get('/user-details/:username', apiKey(), awaitHandlerFactory(userController.userDetails));
+router.get('/user-details-by-id/:id', apiKey(), awaitHandlerFactory(userController.userDetailsByID));
 
 router.get('/user-imports', apiKey(), awaitHandlerFactory(userController.userImports));
 

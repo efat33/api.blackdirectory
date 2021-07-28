@@ -16,6 +16,12 @@ router.post('/add-listing', apiKey(), authVerified(), validation.validateNewList
 router.post('/update-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.updateListing));
 router.get('/:slug', apiKey(), awaitHandlerFactory(listingController.getListing));
 router.post('/publish-listing', apiKey(), authVerified(), awaitHandlerFactory(listingController.publishListing));
-
+router.post('/new-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.newReview));
+router.post('/edit-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.editReview));
+router.delete('/delete-review/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteReview));
+router.get('/get-reviews/:id', apiKey(), awaitHandlerFactory(listingController.getReviews));
+router.post('/update-review-like', apiKey(), awaitHandlerFactory(listingController.updateReviewLike));
+router.post('/submit-comment', apiKey(), authVerified(), awaitHandlerFactory(listingController.addOrEditComment));
+router.delete('/delete-comment/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteComment));
 
 module.exports = router;
