@@ -132,6 +132,21 @@ exports.isEmployer = () => {
   };
 };
 
+exports.isAdmin = () => {
+  return async function (req, res, next) {
+    try {
+      if (req.currentUser.role === 'admin') {
+        next();
+      } else {
+        throw new AppError(401, "401_notAdmin");
+      }
+    } catch (e) {
+      e.status = 401;
+      next(e);
+    }
+  };
+};
+
 exports.generateMetaObject = (metaValues) => {
   const metaObject = {};
   

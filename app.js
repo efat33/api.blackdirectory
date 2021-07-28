@@ -10,6 +10,7 @@ const userRouter = require('./routes/users-routes');
 const listingRouter = require('./routes/listing-routes');
 const uploadRouter = require('./routes/upload-routes');
 const jobRouter = require('./routes/jobs-routes');
+const newsRouter = require('./routes/news-routes');
 const mailRouter = require('./routes/mail-routes');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/users', userRouter);
 app.use('/listings', listingRouter);
 app.use('/upload', uploadRouter);
 app.use('/jobs', jobRouter);
+app.use('/news', newsRouter);
 app.use('/mail', mailRouter);
 
 app.get("/", (req, res) => {
