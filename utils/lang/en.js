@@ -10,6 +10,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "401_accountNotVerified": "Account is not verified",
   "401_invalidAge": "You must be 18 to register",
   "401_notEmployer": "You must be an employer",
+  "401_notAdmin": "You must be an admin",
   "403_unknownError": "Something went wrong. Please try again.",
 
   // Errors
@@ -91,5 +92,7 @@ exports.ENTITIES = Object.freeze({
   entity_job: "Job",
   entity_jobApplication: "Job Application",
 
-
+  // news
+  entity_news: "News",
+  entity_category: "Category",
 });
