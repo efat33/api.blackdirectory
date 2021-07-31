@@ -9,142 +9,118 @@ class NewsModel {
     tableNameCategories = 'news_categories';
     tableNameTopNews = 'news_top_news';
 
-    // createNews = async (params, currentUser) => {
-    //     const current_date = commonfn.dateTimeNow();
-    //     const user_id = currentUser.id;
-    //     const output = {}
+    createNews = async (params) => {
+        let slug = await commonfn.generateSlug(params.title, this.tableName);
+        let output = {};
 
-    //     const currentPackage = await this.getCurrentPackage(currentUser);
+        const sql = `INSERT INTO ${this.tableName} 
+            (title, slug, content, short_content, featured_image, category_id, featured) 
+            VALUES (?,?,?,?,?,?,?)`;
 
-    //     const date = new Date();
-    //     const expiry_date = commonfn.dateTime(new Date(date.setDate(date.getDate() + parseInt(currentPackage.currentPackage.news_expiry || 14))));
-
-    //     let slug = await commonfn.generateSlug(params.title, this.tableName);
-
-    //     // insert data into listings table
-    //     const sql = `INSERT INTO ${this.tableName} 
-    //         (user_id, title, slug, description, deadline, 
-    //         news_sector_id, news_industry, news_apply_type, experience, salary, 
-    //         address, latitude, longitude, attachment, urgent, 
-    //         filled, status, views, expiry_date, featured, 
-    //         applicants_number, news_type, created_at, updated_at) 
-    //         VALUES (?,?,?,?,?,
-    //         ?,?,?,?,?,
-    //         ?,?,?,?,?,
-    //         ?,?,?,?,?,
-    //         ?,?,?,?)`;
-
-    //     const result = await query(sql, [user_id, params.title, slug, params.description, new Date(params.deadline),
-    //         params.news_sector_id, params.news_industry, params.news_apply_type, params.experience, params.salary,
-    //         params.address, params.latitude, params.longitude, params.attachment, 0,
-    //         0, 'approved', 0, expiry_date, 0,
-    //         0, params.news_type, current_date, current_date]);
+        const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.category_id, params.featured];
+        
+        const result = await query(sql, values);
 
 
-    //     if (result.insertId) {
-    //         const news_id = result.insertId;
+        if (result.insertId) {
+            const news_id = result.insertId;
 
-    //         // insert data into listings table
-    //         const meta_sql = `INSERT INTO ${this.tableNameMeta} 
-    //             (news_id, meta_key, meta_value)
-    //             VALUES ?`;
+            output.status = 200
+            output.data = { news_id, slug }
+        }
+        else {
+            output.status = 401
+        }
 
-    //         const meta_values = [];
+        return output;
+    }
+    
+    updateNews = async (id, params) => {
+        const current_date = commonfn.dateTimeNow();
+        let sql = `UPDATE ${this.tableName} SET`;
 
-    //         if (params.news_apply_email) {
-    //             meta_values.push([news_id, 'news_apply_email', params.news_apply_email]);
-    //         }
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
+        
+        paramArray.push(` updated_at = ?`);
 
-    //         if (params.external_url) {
-    //             meta_values.push([news_id, 'external_url', params.external_url]);
-    //         }
+        sql += paramArray.join(', ');
+        
+        sql += ` WHERE id = ?`;
 
-    //         if (meta_values.length > 0) {
-    //             await query2(meta_sql, [meta_values]);
-    //         }
+        const values = [
+            ...Object.values(params),
+            current_date,
+            id
+        ];
 
-    //         output.status = 200
-    //         output.data = { 'news_id': news_id, 'slug': slug }
-    //     }
-    //     else {
-    //         output.status = 401
-    //     }
+        const result = await query(sql, values);
 
-    //     return output;
-    // }
+        return result;
+    }
 
-    // updateNews = async (params) => {
-    //     const current_date = commonfn.dateTimeNow();
+    getNews = async (params = {}, page = 1, limit = -1) => {
+        let sql = `SELECT News.*, NewsCategories.name as category 
+            FROM ${this.tableName} as News
+            LEFT JOIN ${this.tableNameCategories} as NewsCategories ON NewsCategories.id=News.category_id
+            `;
 
-    //     const sql = `UPDATE ${this.tableName} 
-    //         SET title = ?, 
-    //             description = ?, 
-    //             deadline = ?, 
-    //             news_sector_id = ?, 
-    //             news_industry = ?, 
-    //             news_apply_type = ?, 
-    //             experience = ?, 
-    //             salary = ?, 
-    //             address = ?, 
-    //             latitude = ?, 
-    //             longitude = ?, 
-    //             attachment = ?, 
-    //             news_type = ?, 
-    //             updated_at = ? 
-    //         WHERE id = ${params.id}`;
+        const paramArray = [];
+        const values = [];
 
-    //     const values = [
-    //         params.title,
-    //         params.description,
-    //         new Date(params.deadline),
-    //         params.news_sector_id,
-    //         params.news_industry,
-    //         params.news_apply_type,
-    //         params.experience,
-    //         params.salary,
-    //         params.address,
-    //         params.latitude,
-    //         params.longitude,
-    //         params.attachment,
-    //         params.news_type,
-    //         current_date,
-    //     ];
+        for (let param in params) {
+            if (param === 'exclude') {
+                const ids = encodeURI(params.exclude.join(','));
+                paramArray.push(`News.id NOT IN (${ids})`);
+            } else {
+                paramArray.push(`News.${param} = ?`);
+                values.push(params[param])
+            }
+        }
 
-    //     const result = await query(sql, values);
-
-    //     const meta_sql = `INSERT INTO ${this.tableNameMeta} (news_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value)`;
-    //     const meta_values = [];
-
-    //     if (params.news_apply_email) {
-    //         meta_values.push([params.id, 'news_apply_email', params.news_apply_email]);
-    //     }
-
-    //     if (params.external_url) {
-    //         meta_values.push([params.id, 'external_url', params.external_url]);
-    //     }
-
-    //     if (meta_values.length) {
-    //         await query2(meta_sql, [meta_values]);
-    //     }
-
-    //     return result;
-    // }
-
-    getNews = async (params, page = 1, limit = 10) => {
-        let { sql, values } = this.getNewsSqlGenerate(params);
-
+        if (paramArray.length) {
+            sql += ` WHERE ${paramArray.join(' AND ')}`;
+        }
+        
         sql += ` ORDER BY News.created_at DESC`;
+        
+        if (limit > 0) {
+            sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+        }
+        
+        console.log("🚀 ~ file: news-model.js ~ line 85 ~ NewsModel ~ getNews= ~ sql", sql)
+        console.log("🚀 ~ file: news-model.js ~ line 85 ~ NewsModel ~ getNews= ~ values", values)
 
-        sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+        return await query(sql, values);
+    }
 
-        return await query(sql, [...values]);
+    getSingleNews = async (params = {}) => {
+        let sql = `SELECT News.*, NewsCategories.name as category 
+            FROM ${this.tableName} as News
+            LEFT JOIN ${this.tableNameCategories} as NewsCategories ON NewsCategories.id=News.category_id
+            `;
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+
+        const result = await query(sql, [...values]);
+
+        return result;
+    }
+
+    deleteNews = async (id) => {
+        const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
+        const values = [id];
+
+        return await query(sql, values);
     }
 
     createNewsCategory = async (params) => {
         let slug = await commonfn.generateSlug(params.name, this.tableNameCategories);
         let output = {};
 
-        // insert data into listings table
         const sql = `INSERT INTO ${this.tableNameCategories} 
             (name, slug, category_order) 
             VALUES (?,?,?)`;
@@ -206,6 +182,25 @@ class NewsModel {
         const values = [categoryId];
 
         return await query(sql, values);
+    }
+
+    getTopNews = async () => {
+        let sql = `SELECT * FROM ${this.tableNameTopNews}`;
+
+        return await query(sql);
+    }
+
+    updateTopNews = async (params) => {
+        const sql = `INSERT INTO ${this.tableNameTopNews} (category_id, news_id) VALUES ? ON DUPLICATE KEY UPDATE news_id=VALUES(news_id)`;
+        const values = [];
+
+        for (const categoryId in params) {
+            values.push([categoryId, params[categoryId]]);
+        }
+
+        if (values.length) {
+            await query2(sql, [values]);
+        }
     }
 }
 
