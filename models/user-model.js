@@ -399,6 +399,35 @@ class UserModel {
         return output;
     }
 
+    getUserDetailsByID = async ({ id }) => {
+
+        const sqlUser = `SELECT * FROM ${this.tableName}  WHERE id = ? LIMIT 1`;
+        const result = await query(sqlUser, [id]);
+        const { password, ...userDetails } = result[0];
+
+        const sqlUserMeta = `SELECT * FROM ${this.tableNameMeta}  WHERE user_id = ?`;
+        const userMeta = await query(sqlUserMeta, [id]);
+
+
+        const output = {
+            'data': userDetails,
+            'meta_data': userMeta
+        }
+
+        if (userDetails.role == 'candidate') {
+            const sqlUserEdu = `SELECT * FROM ${this.tableNameEducation}  WHERE user_id = ? ORDER BY sequence`;
+            output.educations = await query(sqlUserEdu, [id]);
+
+            const sqlUserExp = `SELECT * FROM ${this.tableNameExperience}  WHERE user_id = ? ORDER BY sequence`;
+            output.experiences = await query(sqlUserExp, [id]);
+
+            const sqlUserPort = `SELECT * FROM ${this.tableNamePortfolio}  WHERE user_id = ? ORDER BY sequence`;
+            output.portfolios = await query(sqlUserPort, [id]);
+        }
+
+        return output;
+    }
+
     verifyAccount = async ({ id }) => {
 
         const result = await this.updateRow({ 'verified': 1 }, { 'id': id }, this.tableName);

@@ -6,6 +6,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "400_paramMissing": "Please enter :entity.",
   "400_paramMissingGeneral": "Please enter the missing fields",
 
+  "401_unauthorised": "Uauthorized",
   "401_invalidCredentials": "uauthorized",
   "401_accountNotVerified": "Account is not verified",
   "401_invalidAge": "You must be 18 to register",
@@ -50,6 +51,9 @@ exports.RESPONSE_CODES = Object.freeze({
   "200_registerSuccess": "Registered successfully",
   "200_verifiedSuccess": "Account is verified successfully",
   "200_recorded": ":entity recorded successfully",
+  "200_added_successfully": "Added successfully",
+  "200_updated_successfully": "Updated successfully",
+  "200_deleted_successfully": "Deleted successfully",
   "200_added": ":entity added successfully",
   "200_updated": ":entity updated successfully",
   "200_deleted": ":entity deleted successfully",
@@ -69,6 +73,7 @@ exports.ENTITIES = Object.freeze({
 
   // General
   entity_id: "ID",
+  entity_reviews: "Reviews",
 
   // Users
   entity_apiKey: "API Key",
@@ -85,6 +90,11 @@ exports.ENTITIES = Object.freeze({
 
   // listing
   entity_listing: "Listing",
+  entity_listingID: "Listing ID",
+
+  // product
+  entity_product: "Product",
+  entity_productID: "Product ID",
 
 
   // job
