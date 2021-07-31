@@ -15,6 +15,7 @@ class ListingModel {
   tableListingRestaurantItems = 'listing_restaurant_items';
   tableReview = 'listing_reviews';
   tableReviewLike = 'listing_review_likes';
+  tableFavorites = 'listing_favorites';
 
   
   findOne = async (params, table = `${this.tableName}`) => {
@@ -579,7 +580,61 @@ class ListingModel {
     return output;
   }
 
+  // get all the listings
+  getListings = async (params) => {
+    const limit = params.limit;
+    const offset = params.offset;
+    const orderby = params.orderby;
+    const allParams = params.all ? params.all.split('&') : [];
 
+    let sql = `SELECT * FROM ${this.tableName} `;
+
+    let queryParams = `WHERE status = 'publish'`
+
+    for (const item of allParams) {
+      const param = item.split('=');
+
+      switch (param[0]) {
+        case 'featured':
+          queryParams += ` AND featured = 1`;
+          break;
+      }
+
+    }
+
+    sql += queryParams;
+
+    let queryOrderby = ` ORDER BY ${orderby} DESC`;
+    sql += `${queryOrderby} LIMIT ${offset}, ${limit}`;
+    
+    const listings = await query3(sql);
+
+    const listing_ids = listings.map((l) => l['id']);
+    
+    // get categories
+    const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
+                          FROM ${this.tableListingCategories} lc
+                          JOIN ${this.tableCategories} c ON lc.listing_categories_id = c.id  
+                          WHERE lc.listing_id IN (${listing_ids.join()})`;
+    const categories = await query3(sqlListCat);
+
+    // get likes
+    const sqlLikes = `SELECT f.listing_id, f.user_id, u.username, u.display_name 
+                          FROM ${this.tableFavorites} f
+                          JOIN ${this.tableUsers} u ON f.user_id = u.id  
+                          WHERE f.listing_id IN (${listing_ids.join()})`;
+    const favorites =  await query3(sqlLikes);
+
+    for (const item of listings) {
+      item.categories = categories.filter((c) => c.listing_id == item.id);
+      item.favorites = favorites.filter((f) => f.listing_id == item.id);
+    }
+  
+    return listings;
+
+  }
+
+  // get single listing
   getListing = async ({slug}) => {
     const output = {};
     
