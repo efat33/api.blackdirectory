@@ -9,33 +9,17 @@ const NewsModel = require('../models/news-model');
 
 class NewsController {
     newNews = async (req, res, next) => {
-        const news = await NewsModel.createNews(req.body, req.currentUser);
-
-        if (news.status === 200) {
-            const followers = await UserModel.getFollowers(req.currentUser);
-
-            for (let follower of followers) {
-                const notificationBody = {
-                    user_id: follower.candidate_id,
-                    acted_user_id: req.currentUser.id,
-                    notification_trigger: 'new news',
-                    notification_type: 'news',
-                    notification_type_id: news.data.news_id
-                };
-
-                await UserController.createNotification(notificationBody);
-            }
-        }
+        const news = await NewsModel.createNews(req.body);
+        
+        if (news.status !== 200) {
+            throw new AppError(403, "403_unknownError")
+        };
 
         new AppSuccess(res, 200, "200_added", { 'entity': 'entity_news' }, news);
     }
 
     updateNews = async (req, res, next) => {
-        if (req.currentUser.role === 'candidate') {
-            throw new AppError(403, "403_unknownError");
-        }
-
-        const getNewsResult = await NewsModel.getNews({ id: req.params.news_id });
+        const getNewsResult = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
 
         if (Object.keys(getNewsResult).length === 0) {
             throw new AppError(403, "403_unknownError")
@@ -47,15 +31,7 @@ class NewsController {
             throw new AppError(403, "403_unknownError");
         }
 
-        if (req.currentUser.role === 'employer' && news.user_id != req.currentUser.id) {
-            throw new AppError(403, "403_unknownError");
-        }
-
-        if (req.params.news_id != req.body.id) {
-            throw new AppError(403, "403_unknownError");
-        }
-
-        const result = await NewsModel.updateNews(req.body);
+        const result = await NewsModel.updateNews(req.params.news_id, req.body);
 
         if (result) {
             new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_news' }, result);
@@ -69,6 +45,24 @@ class NewsController {
         const result = await NewsModel.getNews(req.body, req.query.page, req.query.limit);
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_news' }, result);
+    };
+
+    getSingleNews = async (req, res, next) => {
+        const result = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_news' }, result);
+    };
+
+    deleteNews = async (req, res, next) => {
+        const result = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
+
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        await NewsModel.deleteNews(req.params.news_id);
+
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
     };
 
     getNewsCategories = async (req, res, next) => {
@@ -107,6 +101,22 @@ class NewsController {
         await NewsModel.deleteNewsCategory(req.params.category_id);
 
         new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
+    };
+
+    getTopNews = async (req, res, next) => {
+        const result = await NewsModel.getTopNews();
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_news' }, result);
+    };
+
+    updateTopNews = async (req, res, next) => {
+        if (!req.body) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        const result = await NewsModel.updateTopNews(req.body);
+
+        new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_news' }, result);
     };
 }
 
