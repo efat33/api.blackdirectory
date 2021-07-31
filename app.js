@@ -12,6 +12,7 @@ const uploadRouter = require('./routes/upload-routes');
 const jobRouter = require('./routes/jobs-routes');
 const newsRouter = require('./routes/news-routes');
 const mailRouter = require('./routes/mail-routes');
+const shopRouter = require('./routes/shop-routes');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/upload', uploadRouter);
 app.use('/jobs', jobRouter);
 app.use('/news', newsRouter);
 app.use('/mail', mailRouter);
+app.use('/shop', shopRouter);
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Blackdirectory!!!" });

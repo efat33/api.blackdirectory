@@ -85,6 +85,19 @@ class ListingController {
  
   };
 
+  // get all the listings
+  getListings = async (req, res, next) => {
+    
+
+    const result = await ListingModel.getListings(req.params);
+
+  
+    new AppSuccess(res, 200, "200_detailFound", {'entity': 'entity_listing'}, result);
+
+ 
+  };
+
+  // get single listing details
   getListing = async (req, res, next) => {
     
     const result = await ListingModel.getListing(req.params);
@@ -131,19 +144,19 @@ class ListingController {
 
     // validation
     if(req.body.listing_id == ''){
-      throw new AppError(401, "Listing ID is required");
+      throw new AppError(403, "Listing ID is required");
     }
     if(req.body.user_id == ''){
-      throw new AppError(401, "User ID is required");
+      throw new AppError(403, "User ID is required");
     }
     if(req.body.rating == ''){
-      throw new AppError(401, "Rating is required");
+      throw new AppError(403, "Rating is required");
     }
     if(req.body.title == ''){
-      throw new AppError(401, "Title is required");
+      throw new AppError(403, "Title is required");
     }
     if(req.body.description == ''){
-      throw new AppError(401, "Description is required");
+      throw new AppError(403, "Description is required");
     }
 
 

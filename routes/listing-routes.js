@@ -11,6 +11,7 @@ const validation = require('../utils/listingValidator');
 // router.get('/', auth(), userController.getAllUsers);
 // router.get('/:id', auth(), awaitHandlerFactory(userController.getUserById));
 
+router.get('/get-listings/:limit/:offset/:orderby/:all?', apiKey(), awaitHandlerFactory(listingController.getListings));
 router.post('/search-listing', apiKey(), awaitHandlerFactory(listingController.searchListing));
 router.post('/add-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.newListing));
 router.post('/update-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.updateListing));
