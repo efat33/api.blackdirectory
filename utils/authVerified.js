@@ -39,7 +39,7 @@ const authVerified = () => {
 
       // if the user has permissions
       req.currentUser = {
-        id: decoded.user_id,
+        id: parseInt(decoded.user_id),
         role: decoded.role,
       };
 

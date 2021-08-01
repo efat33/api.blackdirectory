@@ -23,4 +23,11 @@ router.delete('/delete-category/:category_id', apiKey(), authVerified(), isAdmin
 router.get('/get-top-news', apiKey(), awaitHandlerFactory(newsController.getTopNews));
 router.put('/update-top-news', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(newsController.updateTopNews));
 
+router.post('/add-comment', apiKey(), authVerified(), awaitHandlerFactory(newsController.newNewsComment));
+router.delete('/delete-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(newsController.deleteNewsComment));
+router.put('/update-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(newsController.updateNewsComment));
+
+router.get('/get-comment-likes/:user_id', apiKey(), awaitHandlerFactory(newsController.getUserCommentLikes));
+router.put('/update-comment-like', apiKey(), awaitHandlerFactory(newsController.updateNewsCommentLike));
+
 module.exports = router;

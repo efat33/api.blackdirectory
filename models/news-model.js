@@ -8,6 +8,23 @@ class NewsModel {
     tableNameComments = 'news_comments';
     tableNameCategories = 'news_categories';
     tableNameTopNews = 'news_top_news';
+    tableNameComments = 'news_comments';
+    tableNameCommentLikes = 'news_comment_likes';
+
+    tableNameUsers = 'users';
+
+    findOne = async (params, table = `${this.tableName}`) => {
+        const { columnSet, values } = multipleColumnSet(params)
+
+        const sql = `SELECT * FROM ${table}
+      WHERE ${columnSet} LIMIT 1`;
+
+        const result = await query(sql, [...values]);
+
+        // return back the first row
+        return result[0] ? result[0] : {};
+
+    }
 
     createNews = async (params) => {
         let slug = await commonfn.generateSlug(params.title, this.tableName);
@@ -18,7 +35,7 @@ class NewsModel {
             VALUES (?,?,?,?,?,?,?)`;
 
         const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.category_id, params.featured];
-        
+
         const result = await query(sql, values);
 
 
@@ -34,7 +51,7 @@ class NewsModel {
 
         return output;
     }
-    
+
     updateNews = async (id, params) => {
         const current_date = commonfn.dateTimeNow();
         let sql = `UPDATE ${this.tableName} SET`;
@@ -43,11 +60,11 @@ class NewsModel {
         for (let param in params) {
             paramArray.push(` ${param} = ?`);
         }
-        
+
         paramArray.push(` updated_at = ?`);
 
         sql += paramArray.join(', ');
-        
+
         sql += ` WHERE id = ?`;
 
         const values = [
@@ -83,9 +100,9 @@ class NewsModel {
         if (paramArray.length) {
             sql += ` WHERE ${paramArray.join(' AND ')}`;
         }
-        
+
         sql += ` ORDER BY News.created_at DESC`;
-        
+
         if (limit > 0) {
             sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
         }
@@ -103,6 +120,10 @@ class NewsModel {
         sql += ` WHERE ${columnSet}`;
 
         const result = await query(sql, [...values]);
+
+        if (result.length) {
+            result[0].comments = await this.getNewsComments(result[0].id);
+        }
 
         return result;
     }
@@ -147,7 +168,7 @@ class NewsModel {
         }
 
         sql += paramArray.join(', ');
-        
+
         sql += ` WHERE id = ?`;
 
         const values = [
@@ -198,6 +219,130 @@ class NewsModel {
         if (values.length) {
             await query2(sql, [values]);
         }
+    }
+
+    createNewsComment = async (params, currentUser) => {
+        let output = {};
+
+        const sql = `INSERT INTO ${this.tableNameComments} 
+            (news_id, user_id, comment, parent_id) 
+            VALUES (?,?,?,?)`;
+
+        const values = [params.news_id, currentUser.id, params.comment, params.parent_id || null];
+
+        const result = await query(sql, values);
+
+        if (result.insertId) {
+            output.status = 200
+
+            await this.updateNewsCommentCount(params.news_id);
+
+            const comment = await this.getNewsComment(result.insertId);
+            output.data = comment[0];
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getNewsComments = async (newsId) => {
+        let sql = `SELECT Comment.*, User.username as username, User.display_name as display_name, User.profile_photo as profile_photo 
+        FROM ${this.tableNameComments} as Comment
+        LEFT JOIN ${this.tableNameUsers} as User ON User.id=Comment.user_id
+        WHERE Comment.news_id=?
+        ORDER BY Comment.created_at ASC
+        `;
+
+        return await query(sql, [newsId]);
+    }
+
+    getNewsComment = async (commentId) => {
+        let sql = `SELECT Comment.*, User.username as username, User.display_name as display_name, User.profile_photo as profile_photo 
+        FROM ${this.tableNameComments} as Comment
+        LEFT JOIN ${this.tableNameUsers} as User ON User.id=Comment.user_id
+        WHERE Comment.id=?
+        `;
+
+        return await query(sql, [commentId]);
+    }
+
+    updateNewsComment = async (commentId, comment) => {
+        let sql = `UPDATE ${this.tableNameComments} 
+            SET comment = ?
+            WHERE id = ?`;
+
+        const result = await query(sql, [comment, commentId]);
+
+        return result;
+    }
+
+    updateNewsCommentCount = async (newsId) => {
+        let sql = `UPDATE ${this.tableName} 
+            SET total_comments = (
+                SELECT count(*) FROM ${this.tableNameComments} WHERE news_id = ?
+            ) 
+            WHERE id = ?`;
+
+
+        const result = await query(sql, [newsId, newsId]);
+
+        return result;
+    }
+
+    updateNewsCommentLikeCount = async (newsCommentId) => {
+        let sql = `UPDATE ${this.tableNameComments} 
+            SET likes = (
+                SELECT count(*) FROM ${this.tableNameCommentLikes} WHERE news_comment_id = ?
+            ) 
+            WHERE id = ?`;
+
+
+        const result = await query(sql, [newsCommentId, newsCommentId]);
+
+        return result;
+    }
+
+    deleteNewsComment = async (commentId, newsId) => {
+        const sql = `DELETE FROM ${this.tableNameComments} WHERE id=? OR parent_id=?`;
+        const values = [commentId, commentId];
+
+        await query(sql, values);
+        await this.updateNewsCommentCount(newsId);
+    }
+
+    updateNewsCommentLike = async (params = {}) => {
+        const news_comment_id = params.news_comment_id;
+        const user_id = params.user_id;
+
+        const data = { news_comment_id, user_id }
+        const likeExist = await this.findOne(data, this.tableNameCommentLikes);
+
+        if (Object.keys(likeExist).length > 0) {
+            // delete like
+            const sql = `DELETE FROM ${this.tableNameCommentLikes} WHERE id = ?`;
+            await query(sql, [likeExist.id]);
+
+            this.updateNewsCommentLikeCount(news_comment_id);
+        }
+        else {
+            // add like
+            const sql = `INSERT INTO ${this.tableNameCommentLikes} (news_comment_id, news_id, user_id) VALUES (?,?,?)`;
+            const values = [news_comment_id, params.news_id, user_id];
+
+            await query(sql, values);
+
+            this.updateNewsCommentLikeCount(news_comment_id);
+        }
+
+        return;
+    }
+
+    getUserCommentLikes = async (userId = '') => {
+        let sql = `SELECT * FROM ${this.tableNameCommentLikes} WHERE user_id = ?`;
+
+        return await query(sql, [userId]);
     }
 }
 

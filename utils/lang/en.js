@@ -74,6 +74,7 @@ exports.ENTITIES = Object.freeze({
   // General
   entity_id: "ID",
   entity_reviews: "Reviews",
+  entity_comment: "Comment",
 
   // Users
   entity_apiKey: "API Key",
