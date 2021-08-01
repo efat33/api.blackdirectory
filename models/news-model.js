@@ -89,9 +89,6 @@ class NewsModel {
         if (limit > 0) {
             sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
         }
-        
-        console.log("🚀 ~ file: news-model.js ~ line 85 ~ NewsModel ~ getNews= ~ sql", sql)
-        console.log("🚀 ~ file: news-model.js ~ line 85 ~ NewsModel ~ getNews= ~ values", values)
 
         return await query(sql, values);
     }
