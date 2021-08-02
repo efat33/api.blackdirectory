@@ -100,6 +100,7 @@ exports.ENTITIES = Object.freeze({
 
   // job
   entity_sectors: "Sectors",
+  entity_sector: "Sector",
   entity_job: "Job",
   entity_jobApplication: "Job Application",
 
