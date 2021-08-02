@@ -3,6 +3,15 @@ const AppError = require("../utils/appError");
 
 
 exports.DBTables = {
+  'listings': 'listings',
+  'listing_business_hours': 'listing_business_hours',
+  'listing_categories': 'listing_categories',
+  'listing_categories_listing': 'listing_categories_listing',
+  'listing_contact': 'listing_contact',
+  'listing_favorites': 'listing_favorites',
+  'listing_restaurant': 'listing_restaurant',
+  'listing_restaurant_items': 'listing_restaurant_items',
+  'listing_review_likes': 'listing_review_likes',
   'listing_reviews': 'listing_reviews',
   'products': 'products',
   'products_meta': 'products_meta',

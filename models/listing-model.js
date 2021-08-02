@@ -589,7 +589,8 @@ class ListingModel {
 
     let sql = `SELECT * FROM ${this.tableName} `;
 
-    let queryParams = `WHERE status = 'publish'`
+    let queryParams = `WHERE status = 'publish'`;
+    let values = [];
 
     for (const item of allParams) {
       const param = item.split('=');
@@ -604,28 +605,37 @@ class ListingModel {
 
     sql += queryParams;
 
+    // TODO: do javascript validation
     let queryOrderby = ` ORDER BY ${orderby} DESC`;
-    sql += `${queryOrderby} LIMIT ${offset}, ${limit}`;
     
-    const listings = await query3(sql);
+    sql += `${queryOrderby} LIMIT ?, ?`;
+    values.push(offset);
+    values.push(limit);
+    
+    const listings = await query(sql, values);
 
     const listing_ids = listings.map((l) => l['id']);
+
+    // get contacts
+    const sqlContacts = `SELECT * FROM ${DBTables.listing_contact} WHERE listing_id IN (${listing_ids.join()})`;
+    const contacts = await query(sqlContacts);
     
     // get categories
     const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
                           FROM ${this.tableListingCategories} lc
                           JOIN ${this.tableCategories} c ON lc.listing_categories_id = c.id  
                           WHERE lc.listing_id IN (${listing_ids.join()})`;
-    const categories = await query3(sqlListCat);
+    const categories = await query(sqlListCat);
 
     // get likes
     const sqlLikes = `SELECT f.listing_id, f.user_id, u.username, u.display_name 
                           FROM ${this.tableFavorites} f
                           JOIN ${this.tableUsers} u ON f.user_id = u.id  
                           WHERE f.listing_id IN (${listing_ids.join()})`;
-    const favorites =  await query3(sqlLikes);
+    const favorites =  await query(sqlLikes);
 
     for (const item of listings) {
+      item.contact = contacts.find((c) => c.listing_id == item.id);
       item.categories = categories.filter((c) => c.listing_id == item.id);
       item.favorites = favorites.filter((f) => f.listing_id == item.id);
     }

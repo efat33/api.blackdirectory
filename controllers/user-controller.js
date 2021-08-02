@@ -424,7 +424,10 @@ class UserController {
 
     checkAuthentication = async (req, res, next) => {
 
-        new AppSuccess(res, 200, "200_successful");
+        let user = '';
+        if(req.currentUser) user = await UserModel.findOne({'id': req.currentUser.id});
+        
+        new AppSuccess(res, 200, "200_successful", "", user);
 
     }
 
