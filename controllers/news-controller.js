@@ -48,7 +48,26 @@ class NewsController {
     };
 
     getSingleNews = async (req, res, next) => {
-        const result = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
+        let body = {};
+
+        if (isNaN(req.params.news_id)) {
+            body = { 'News.slug': req.params.news_id }
+        } else {
+            body = { 'News.id': req.params.news_id }
+        }
+
+        const result = await NewsModel.getSingleNews(body);
+
+        if (result.length) {
+            // process comments and replies
+
+            const comments = result[0].comments;
+            for (let comment of comments) {
+                comment.replies = comments.filter(com => com.parent_id === comment.id);
+            }
+
+            result[0].comments = comments.filter(com => com.parent_id == null);
+        }
 
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_news' }, result);
     };
@@ -117,6 +136,58 @@ class NewsController {
         const result = await NewsModel.updateTopNews(req.body);
 
         new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_news' }, result);
+    };
+
+    newNewsComment = async (req, res, next) => {
+        const newsComment = await NewsModel.createNewsComment(req.body, req.currentUser);
+
+        if (newsComment.status !== 200) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_comment' }, newsComment.data);
+    }
+
+    deleteNewsComment = async (req, res, next) => {
+        const result = await NewsModel.getNewsComment(req.params.comment_id);
+
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        if (result[0].user_id !== req.currentUser.id) {
+            throw new AppError(403, "403_unknownError")
+        }
+
+        await NewsModel.deleteNewsComment(req.params.comment_id, result[0].news_id);
+
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_comment' });
+    };
+
+    updateNewsComment = async (req, res, next) => {
+        if (!req.body) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        const result = await NewsModel.updateNewsComment(req.params.comment_id, req.body.comment);
+
+        new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_comment' }, result);
+    };
+
+    getUserCommentLikes = async (req, res, next) => {
+        const result = await NewsModel.getUserCommentLikes(req.params.user_id);
+
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_comment' }, result);
+    };
+
+    updateNewsCommentLike = async (req, res, next) => {
+        if (!req.body) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        await NewsModel.updateNewsCommentLike(req.body);
+
+        new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_comment' });
     };
 }
 
