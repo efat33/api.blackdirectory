@@ -6,18 +6,19 @@ const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
 const {storageFileUser, storageFileJob} = require('../utils/storage/storage-file');
-const {storageImageUser, storageImageListing} = require('../utils/storage/storage-image');
+const storageImage = require('../utils/storage/storage-image');
 
 const validation = require('../utils/listingValidator');
 
 
 router.post('/file-user', storageFileUser, awaitHandlerFactory(UploadController.uploadFile));
-router.post('/image-user', storageImageUser,  awaitHandlerFactory(UploadController.uploadImage));
+router.post('/image-user', storageImage.storageImageUser,  awaitHandlerFactory(UploadController.uploadImage));
 
-router.post('/image-listing', storageImageListing,  awaitHandlerFactory(UploadController.uploadImage));
+router.post('/image-listing', storageImage.storageImageListing,  awaitHandlerFactory(UploadController.uploadImage));
 
 router.post('/file-job', storageFileJob, awaitHandlerFactory(UploadController.uploadFile));
 
-
+router.post('/image-news', storageImage.storageImageNews, awaitHandlerFactory(UploadController.uploadImage));
+router.post('/image-news-ckeditor', storageImage.storageImageNewsCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
 
 module.exports = router;
