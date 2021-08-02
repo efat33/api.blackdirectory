@@ -9,7 +9,6 @@ dotenv.config();
 class UploadController {
 
     uploadImage = async (req, res, next) => {
-
         if (!req.file) {
             new AppSuccess(res, 200, "200_uploadSuccess", '', {fileValidationError: req.fileValidationError});
             return;
@@ -76,6 +75,22 @@ class UploadController {
         }
         new AppSuccess(res, 200, "200_uploadSuccess", '', {filename: req.file.filename});
     
+    };
+    
+    uploadImageCkeditor = async (req, res, next) => {
+        if (!req.file) {
+            res.send({
+                error: {
+                    message: req.fileValidationError
+                }
+            });
+
+            return;
+        }
+
+        res.send({
+            url: req.file.filename
+        });
     };
 
 }

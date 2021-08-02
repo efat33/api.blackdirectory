@@ -8,143 +8,137 @@ class NewsModel {
     tableNameComments = 'news_comments';
     tableNameCategories = 'news_categories';
     tableNameTopNews = 'news_top_news';
+    tableNameComments = 'news_comments';
+    tableNameCommentLikes = 'news_comment_likes';
 
-    // createNews = async (params, currentUser) => {
-    //     const current_date = commonfn.dateTimeNow();
-    //     const user_id = currentUser.id;
-    //     const output = {}
+    tableNameUsers = 'users';
 
-    //     const currentPackage = await this.getCurrentPackage(currentUser);
+    findOne = async (params, table = `${this.tableName}`) => {
+        const { columnSet, values } = multipleColumnSet(params)
 
-    //     const date = new Date();
-    //     const expiry_date = commonfn.dateTime(new Date(date.setDate(date.getDate() + parseInt(currentPackage.currentPackage.news_expiry || 14))));
+        const sql = `SELECT * FROM ${table}
+      WHERE ${columnSet} LIMIT 1`;
 
-    //     let slug = await commonfn.generateSlug(params.title, this.tableName);
+        const result = await query(sql, [...values]);
 
-    //     // insert data into listings table
-    //     const sql = `INSERT INTO ${this.tableName} 
-    //         (user_id, title, slug, description, deadline, 
-    //         news_sector_id, news_industry, news_apply_type, experience, salary, 
-    //         address, latitude, longitude, attachment, urgent, 
-    //         filled, status, views, expiry_date, featured, 
-    //         applicants_number, news_type, created_at, updated_at) 
-    //         VALUES (?,?,?,?,?,
-    //         ?,?,?,?,?,
-    //         ?,?,?,?,?,
-    //         ?,?,?,?,?,
-    //         ?,?,?,?)`;
+        // return back the first row
+        return result[0] ? result[0] : {};
 
-    //     const result = await query(sql, [user_id, params.title, slug, params.description, new Date(params.deadline),
-    //         params.news_sector_id, params.news_industry, params.news_apply_type, params.experience, params.salary,
-    //         params.address, params.latitude, params.longitude, params.attachment, 0,
-    //         0, 'approved', 0, expiry_date, 0,
-    //         0, params.news_type, current_date, current_date]);
+    }
+
+    createNews = async (params) => {
+        let slug = await commonfn.generateSlug(params.title, this.tableName);
+        let output = {};
+
+        const sql = `INSERT INTO ${this.tableName} 
+            (title, slug, content, short_content, featured_image, category_id, featured) 
+            VALUES (?,?,?,?,?,?,?)`;
+
+        const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.category_id, params.featured];
+
+        const result = await query(sql, values);
 
 
-    //     if (result.insertId) {
-    //         const news_id = result.insertId;
+        if (result.insertId) {
+            const news_id = result.insertId;
 
-    //         // insert data into listings table
-    //         const meta_sql = `INSERT INTO ${this.tableNameMeta} 
-    //             (news_id, meta_key, meta_value)
-    //             VALUES ?`;
+            output.status = 200
+            output.data = { news_id, slug }
+        }
+        else {
+            output.status = 401
+        }
 
-    //         const meta_values = [];
+        return output;
+    }
 
-    //         if (params.news_apply_email) {
-    //             meta_values.push([news_id, 'news_apply_email', params.news_apply_email]);
-    //         }
+    updateNews = async (id, params) => {
+        const current_date = commonfn.dateTimeNow();
+        let sql = `UPDATE ${this.tableName} SET`;
 
-    //         if (params.external_url) {
-    //             meta_values.push([news_id, 'external_url', params.external_url]);
-    //         }
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
 
-    //         if (meta_values.length > 0) {
-    //             await query2(meta_sql, [meta_values]);
-    //         }
+        paramArray.push(` updated_at = ?`);
 
-    //         output.status = 200
-    //         output.data = { 'news_id': news_id, 'slug': slug }
-    //     }
-    //     else {
-    //         output.status = 401
-    //     }
+        sql += paramArray.join(', ');
 
-    //     return output;
-    // }
+        sql += ` WHERE id = ?`;
 
-    // updateNews = async (params) => {
-    //     const current_date = commonfn.dateTimeNow();
+        const values = [
+            ...Object.values(params),
+            current_date,
+            id
+        ];
 
-    //     const sql = `UPDATE ${this.tableName} 
-    //         SET title = ?, 
-    //             description = ?, 
-    //             deadline = ?, 
-    //             news_sector_id = ?, 
-    //             news_industry = ?, 
-    //             news_apply_type = ?, 
-    //             experience = ?, 
-    //             salary = ?, 
-    //             address = ?, 
-    //             latitude = ?, 
-    //             longitude = ?, 
-    //             attachment = ?, 
-    //             news_type = ?, 
-    //             updated_at = ? 
-    //         WHERE id = ${params.id}`;
+        const result = await query(sql, values);
 
-    //     const values = [
-    //         params.title,
-    //         params.description,
-    //         new Date(params.deadline),
-    //         params.news_sector_id,
-    //         params.news_industry,
-    //         params.news_apply_type,
-    //         params.experience,
-    //         params.salary,
-    //         params.address,
-    //         params.latitude,
-    //         params.longitude,
-    //         params.attachment,
-    //         params.news_type,
-    //         current_date,
-    //     ];
+        return result;
+    }
 
-    //     const result = await query(sql, values);
+    getNews = async (params = {}, page = 1, limit = -1) => {
+        let sql = `SELECT News.*, NewsCategories.name as category 
+            FROM ${this.tableName} as News
+            LEFT JOIN ${this.tableNameCategories} as NewsCategories ON NewsCategories.id=News.category_id
+            `;
 
-    //     const meta_sql = `INSERT INTO ${this.tableNameMeta} (news_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value)`;
-    //     const meta_values = [];
+        const paramArray = [];
+        const values = [];
 
-    //     if (params.news_apply_email) {
-    //         meta_values.push([params.id, 'news_apply_email', params.news_apply_email]);
-    //     }
+        for (let param in params) {
+            if (param === 'exclude') {
+                const ids = encodeURI(params.exclude.join(','));
+                paramArray.push(`News.id NOT IN (${ids})`);
+            } else {
+                paramArray.push(`News.${param} = ?`);
+                values.push(params[param])
+            }
+        }
 
-    //     if (params.external_url) {
-    //         meta_values.push([params.id, 'external_url', params.external_url]);
-    //     }
-
-    //     if (meta_values.length) {
-    //         await query2(meta_sql, [meta_values]);
-    //     }
-
-    //     return result;
-    // }
-
-    getNews = async (params, page = 1, limit = 10) => {
-        let { sql, values } = this.getNewsSqlGenerate(params);
+        if (paramArray.length) {
+            sql += ` WHERE ${paramArray.join(' AND ')}`;
+        }
 
         sql += ` ORDER BY News.created_at DESC`;
 
-        sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+        if (limit > 0) {
+            sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+        }
 
-        return await query(sql, [...values]);
+        return await query(sql, values);
+    }
+
+    getSingleNews = async (params = {}) => {
+        let sql = `SELECT News.*, NewsCategories.name as category 
+            FROM ${this.tableName} as News
+            LEFT JOIN ${this.tableNameCategories} as NewsCategories ON NewsCategories.id=News.category_id
+            `;
+
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+
+        const result = await query(sql, [...values]);
+
+        if (result.length) {
+            result[0].comments = await this.getNewsComments(result[0].id);
+        }
+
+        return result;
+    }
+
+    deleteNews = async (id) => {
+        const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
+        const values = [id];
+
+        return await query(sql, values);
     }
 
     createNewsCategory = async (params) => {
         let slug = await commonfn.generateSlug(params.name, this.tableNameCategories);
         let output = {};
 
-        // insert data into listings table
         const sql = `INSERT INTO ${this.tableNameCategories} 
             (name, slug, category_order) 
             VALUES (?,?,?)`;
@@ -174,7 +168,7 @@ class NewsModel {
         }
 
         sql += paramArray.join(', ');
-        
+
         sql += ` WHERE id = ?`;
 
         const values = [
@@ -206,6 +200,149 @@ class NewsModel {
         const values = [categoryId];
 
         return await query(sql, values);
+    }
+
+    getTopNews = async () => {
+        let sql = `SELECT * FROM ${this.tableNameTopNews}`;
+
+        return await query(sql);
+    }
+
+    updateTopNews = async (params) => {
+        const sql = `INSERT INTO ${this.tableNameTopNews} (category_id, news_id) VALUES ? ON DUPLICATE KEY UPDATE news_id=VALUES(news_id)`;
+        const values = [];
+
+        for (const categoryId in params) {
+            values.push([categoryId, params[categoryId]]);
+        }
+
+        if (values.length) {
+            await query2(sql, [values]);
+        }
+    }
+
+    createNewsComment = async (params, currentUser) => {
+        let output = {};
+
+        const sql = `INSERT INTO ${this.tableNameComments} 
+            (news_id, user_id, comment, parent_id) 
+            VALUES (?,?,?,?)`;
+
+        const values = [params.news_id, currentUser.id, params.comment, params.parent_id || null];
+
+        const result = await query(sql, values);
+
+        if (result.insertId) {
+            output.status = 200
+
+            await this.updateNewsCommentCount(params.news_id);
+
+            const comment = await this.getNewsComment(result.insertId);
+            output.data = comment[0];
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    getNewsComments = async (newsId) => {
+        let sql = `SELECT Comment.*, User.username as username, User.display_name as display_name, User.profile_photo as profile_photo 
+        FROM ${this.tableNameComments} as Comment
+        LEFT JOIN ${this.tableNameUsers} as User ON User.id=Comment.user_id
+        WHERE Comment.news_id=?
+        ORDER BY Comment.created_at ASC
+        `;
+
+        return await query(sql, [newsId]);
+    }
+
+    getNewsComment = async (commentId) => {
+        let sql = `SELECT Comment.*, User.username as username, User.display_name as display_name, User.profile_photo as profile_photo 
+        FROM ${this.tableNameComments} as Comment
+        LEFT JOIN ${this.tableNameUsers} as User ON User.id=Comment.user_id
+        WHERE Comment.id=?
+        `;
+
+        return await query(sql, [commentId]);
+    }
+
+    updateNewsComment = async (commentId, comment) => {
+        let sql = `UPDATE ${this.tableNameComments} 
+            SET comment = ?
+            WHERE id = ?`;
+
+        const result = await query(sql, [comment, commentId]);
+
+        return result;
+    }
+
+    updateNewsCommentCount = async (newsId) => {
+        let sql = `UPDATE ${this.tableName} 
+            SET total_comments = (
+                SELECT count(*) FROM ${this.tableNameComments} WHERE news_id = ?
+            ) 
+            WHERE id = ?`;
+
+
+        const result = await query(sql, [newsId, newsId]);
+
+        return result;
+    }
+
+    updateNewsCommentLikeCount = async (newsCommentId) => {
+        let sql = `UPDATE ${this.tableNameComments} 
+            SET likes = (
+                SELECT count(*) FROM ${this.tableNameCommentLikes} WHERE news_comment_id = ?
+            ) 
+            WHERE id = ?`;
+
+
+        const result = await query(sql, [newsCommentId, newsCommentId]);
+
+        return result;
+    }
+
+    deleteNewsComment = async (commentId, newsId) => {
+        const sql = `DELETE FROM ${this.tableNameComments} WHERE id=? OR parent_id=?`;
+        const values = [commentId, commentId];
+
+        await query(sql, values);
+        await this.updateNewsCommentCount(newsId);
+    }
+
+    updateNewsCommentLike = async (params = {}) => {
+        const news_comment_id = params.news_comment_id;
+        const user_id = params.user_id;
+
+        const data = { news_comment_id, user_id }
+        const likeExist = await this.findOne(data, this.tableNameCommentLikes);
+
+        if (Object.keys(likeExist).length > 0) {
+            // delete like
+            const sql = `DELETE FROM ${this.tableNameCommentLikes} WHERE id = ?`;
+            await query(sql, [likeExist.id]);
+
+            this.updateNewsCommentLikeCount(news_comment_id);
+        }
+        else {
+            // add like
+            const sql = `INSERT INTO ${this.tableNameCommentLikes} (news_comment_id, news_id, user_id) VALUES (?,?,?)`;
+            const values = [news_comment_id, params.news_id, user_id];
+
+            await query(sql, values);
+
+            this.updateNewsCommentLikeCount(news_comment_id);
+        }
+
+        return;
+    }
+
+    getUserCommentLikes = async (userId = '') => {
+        let sql = `SELECT * FROM ${this.tableNameCommentLikes} WHERE user_id = ?`;
+
+        return await query(sql, [userId]);
     }
 }
 
