@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user-controller');
 const auth = require('../utils/auth');
+const currentUser = require('../utils/currentUser');
 const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
@@ -18,7 +19,7 @@ router.post('/reset-password', apiKey(), validation.validateResetPassword, await
 router.post('/change-password', apiKey(), validation.validateChangePassword, auth(), awaitHandlerFactory(userController.changePassword));
 router.post('/confirm-account', apiKey(), awaitHandlerFactory(userController.confirmAccount));
 router.post('/user-update', apiKey(), auth(), awaitHandlerFactory(userController.updateUser));
-router.get('/authenticated', apiKey(), auth(), awaitHandlerFactory(userController.checkAuthentication));
+router.get('/authenticated', apiKey(), currentUser(), awaitHandlerFactory(userController.checkAuthentication));
 
 router.get('/logout', apiKey(), awaitHandlerFactory(userController.logout));
 router.get('/user-profile', apiKey(), auth(), awaitHandlerFactory(userController.userProfile));
