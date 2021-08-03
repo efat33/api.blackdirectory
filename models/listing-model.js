@@ -1,7 +1,7 @@
-const {query, query2, query3} = require('../server');
+const { query, query2, query3 } = require('../server');
 const { multipleColumnSet } = require('../utils/common');
 const commonfn = require('../utils/common');
-const {DBTables} = require('../utils/common');
+const { DBTables } = require('../utils/common');
 
 class ListingModel {
   tableName = 'listings';
@@ -17,7 +17,7 @@ class ListingModel {
   tableReviewLike = 'listing_review_likes';
   tableFavorites = 'listing_favorites';
 
-  
+
   findOne = async (params, table = `${this.tableName}`) => {
     const { columnSet, values } = multipleColumnSet(params)
 
@@ -32,25 +32,25 @@ class ListingModel {
   }
 
   find = async (params = {}, table = `${this.tableName}`, orderby = '') => {
-      let sql = `SELECT * FROM ${table}`;
+    let sql = `SELECT * FROM ${table}`;
 
-      if (!Object.keys(params).length) {
-          return await query(sql);
-      }
+    if (!Object.keys(params).length) {
+      return await query(sql);
+    }
 
-      const { columnSet, values } = multipleColumnSet(params)
-      sql += ` WHERE ${columnSet}`;
+    const { columnSet, values } = multipleColumnSet(params)
+    sql += ` WHERE ${columnSet}`;
 
-      if(orderby != '') sql += ` ${orderby}`;
+    if (orderby != '') sql += ` ${orderby}`;
 
-      return await query(sql, [...values]);
+    return await query(sql, [...values]);
   }
 
   findMatchAny = async (params = {}, table = `${this.tableName}`) => {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
-        return await query(sql);
+      return await query(sql);
     }
 
     const { columnSet, values } = multipleColumnSet(params, 'OR')
@@ -62,17 +62,17 @@ class ListingModel {
 
   createListing = async (params, currentUser) => {
 
-    
-    
+
+
     const current_date = commonfn.dateTimeNow();
     const user_id = currentUser.id;
     const user_role = currentUser.role;
     let claimer_id = '';
     const output = {}
 
-   
 
-    if(user_role == 'candidate' || user_role == 'employer') claimer_id = user_id;
+
+    if (user_role == 'candidate' || user_role == 'employer') claimer_id = user_id;
     // console.log(params.galleries);
     // return output;
 
@@ -80,13 +80,13 @@ class ListingModel {
 
     // process galleries data
     const galleries = [];
-    if(params.galleries.length > 0){
+    if (params.galleries.length > 0) {
       for (const item of params.galleries) {
-        if(item.image != '') galleries.push(item.image);
+        if (item.image != '') galleries.push(item.image);
       }
     }
 
-    
+
     // insert data into listings table
     const sql = `INSERT INTO ${this.tableName}
     (user_id, claimer_id, title, slug, tagline, logo, 
@@ -102,31 +102,31 @@ class ListingModel {
         ?,?,?,?,?,?,?
         ?,?,?,?)`;
 
-    const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo, 
+    const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo,
       params.cover_img, params.description, params.address, params.lat, params.lng,
-      params.price_range, params.price_min, params.price_max,  params.featured_img, JSON.stringify(galleries),
-      params.business_hour, JSON.stringify(params.video_urls), JSON.stringify(params.products), params.button_icon, params.button_link, 
+      params.price_range, params.price_min, params.price_max, params.featured_img, JSON.stringify(galleries),
+      params.business_hour, JSON.stringify(params.video_urls), JSON.stringify(params.products), params.button_icon, params.button_link,
       params.coupon_title, params.coupon_description, params.coupon_image, params.coupon_code, params.coupon_popup_desc, params.coupon_link, params.coupon_expiry_date,
       params.button_name, 'draft', current_date, current_date]);
 
-  
-    if(regResult.insertId){
-      
+
+    if (regResult.insertId) {
+
       const listing_id = regResult.insertId;
 
       // insert data to listing business hours table
-      if(params.business_hour == 'open_for_selected_hours'){
+      if (params.business_hour == 'open_for_selected_hours') {
         const sql_meta = `INSERT INTO ${this.tableListingHours} (listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ?`;
         const valuesHours = [];
 
         // Monday business hour
         const mondayHour = params.businsessHourMonday;
         const tmpMonday = [listing_id, 'monday', mondayHour.is_open, mondayHour.times[0].open, mondayHour.times[0].closes];
-        if(mondayHour.times.length > 1){
+        if (mondayHour.times.length > 1) {
           tmpMonday.push(mondayHour.times[1].open);
           tmpMonday.push(mondayHour.times[1].closes);
         }
-        else{
+        else {
           tmpMonday.push(null);
           tmpMonday.push(null);
         }
@@ -135,11 +135,11 @@ class ListingModel {
         // Tuesday business hour
         const tuesdayHour = params.businsessHourTuesday;
         const tmpTuesday = [listing_id, 'tuesday', tuesdayHour.is_open, tuesdayHour.times[0].open, tuesdayHour.times[0].closes];
-        if(tuesdayHour.times.length > 1){
+        if (tuesdayHour.times.length > 1) {
           tmpTuesday.push(tuesdayHour.times[1].open);
           tmpTuesday.push(tuesdayHour.times[1].closes);
         }
-        else{
+        else {
           tmpTuesday.push(null);
           tmpTuesday.push(null);
         }
@@ -148,11 +148,11 @@ class ListingModel {
         // Wednesday business hour
         const wednesdayHour = params.businsessHourWednesday;
         const tmpWednesday = [listing_id, 'wednesday', wednesdayHour.is_open, wednesdayHour.times[0].open, wednesdayHour.times[0].closes];
-        if(wednesdayHour.times.length > 1){
+        if (wednesdayHour.times.length > 1) {
           tmpWednesday.push(wednesdayHour.times[1].open);
           tmpWednesday.push(wednesdayHour.times[1].closes);
         }
-        else{
+        else {
           tmpWednesday.push(null);
           tmpWednesday.push(null);
         }
@@ -161,11 +161,11 @@ class ListingModel {
         // Thursday business hour
         const thursdayHour = params.businsessHourThursday;
         const tmpThursday = [listing_id, 'thursday', thursdayHour.is_open, thursdayHour.times[0].open, thursdayHour.times[0].closes];
-        if(thursdayHour.times.length > 1){
+        if (thursdayHour.times.length > 1) {
           tmpThursday.push(thursdayHour.times[1].open);
           tmpThursday.push(thursdayHour.times[1].closes);
         }
-        else{
+        else {
           tmpThursday.push(null);
           tmpThursday.push(null);
         }
@@ -174,11 +174,11 @@ class ListingModel {
         // Friday business hour
         const fridayHour = params.businsessHourFriday;
         const tmpFriday = [listing_id, 'friday', fridayHour.is_open, fridayHour.times[0].open, fridayHour.times[0].closes];
-        if(fridayHour.times.length > 1){
+        if (fridayHour.times.length > 1) {
           tmpFriday.push(fridayHour.times[1].open);
           tmpFriday.push(fridayHour.times[1].closes);
         }
-        else{
+        else {
           tmpFriday.push(null);
           tmpFriday.push(null);
         }
@@ -187,11 +187,11 @@ class ListingModel {
         // Saturday business hour
         const saturdayHour = params.businsessHourSaturday;
         const tmpSaturday = [listing_id, 'saturday', saturdayHour.is_open, saturdayHour.times[0].open, saturdayHour.times[0].closes];
-        if(saturdayHour.times.length > 1){
+        if (saturdayHour.times.length > 1) {
           tmpSaturday.push(saturdayHour.times[1].open);
           tmpSaturday.push(saturdayHour.times[1].closes);
         }
-        else{
+        else {
           tmpSaturday.push(null);
           tmpSaturday.push(null);
         }
@@ -200,22 +200,22 @@ class ListingModel {
         // Sunday business hour
         const sundayHour = params.businsessHourSunday;
         const tmpSunday = [listing_id, 'sunday', sundayHour.is_open, sundayHour.times[0].open, sundayHour.times[0].closes];
-        if(sundayHour.times.length > 1){
+        if (sundayHour.times.length > 1) {
           tmpSunday.push(sundayHour.times[1].open);
           tmpSunday.push(sundayHour.times[1].closes);
         }
-        else{
+        else {
           tmpSunday.push(null);
           tmpSunday.push(null);
         }
         valuesHours.push(tmpSunday);
-        
+
         const resultListingHours = await query2(sql_meta, [valuesHours]);
 
       }
-     
+
       // insert data to listing categories table
-      if(params.categories.length > 0){
+      if (params.categories.length > 0) {
         const sql_meta = `INSERT INTO ${this.tableListingCategories} (listing_id, listing_categories_id) VALUES ?`;
         const values = [];
 
@@ -227,7 +227,7 @@ class ListingModel {
         const resultListingCategories = await query2(sql_meta, [values]);
 
       }
-     
+
       // insert contacts
       const sql_meta = `INSERT INTO ${this.tableListingContact} (listing_id, email, phone, website, facebook, tiktok, twitter, linkedin) VALUES (?,?,?,?,?,?,?,?)`;
       const values = [listing_id, params.email, params.phone, params.website, params.facebook, params.tiktok, params.twitter, params.linkedin];
@@ -235,28 +235,28 @@ class ListingModel {
       const resultListingContact = await query(sql_meta, values);
 
 
-      
+
       // insert restaurants
-      if(params.restaurants.length > 0){
-        
+      if (params.restaurants.length > 0) {
+
         for (let restaurant of params.restaurants) {
           const sql_res = `INSERT INTO ${this.tableListingRestaurant} (listing_id, title, description, icon) VALUES (?,?,?,?)`;
           const valuesRes = [listing_id, restaurant.title, restaurant.description, restaurant.icon];
 
           const resultRestaurant = await query(sql_res, valuesRes);
-          
-          if(resultRestaurant.insertId && restaurant.items.length > 0){
-            
+
+          if (resultRestaurant.insertId && restaurant.items.length > 0) {
+
             const listing_res_id = resultRestaurant.insertId;
-            
+
             const sql_item = `INSERT INTO ${this.tableListingRestaurantItems} (listing_restaurant_id, listing_id, title, description, image, price, link, open_new_window) VALUES ?`;
             const valuesItem = [];
-            
+
             for (let item of restaurant.items) {
               const tmp = [listing_res_id, listing_id, item.title, item.description, item.image, item.price, item.link, item.is_new_window];
               valuesItem.push(tmp);
             }
-            
+
             const resultRestaurantItem = await query2(sql_item, [valuesItem]);
           }
 
@@ -265,9 +265,9 @@ class ListingModel {
       }
 
       output.status = 200
-      output.data = {'listing_id': listing_id, 'slug': slug}
+      output.data = { 'listing_id': listing_id, 'slug': slug }
     }
-    else{
+    else {
       output.status = 401
     }
 
@@ -283,9 +283,9 @@ class ListingModel {
 
     // process galleries data
     const galleries = [];
-    if(params.galleries.length > 0){
+    if (params.galleries.length > 0) {
       for (const item of params.galleries) {
-        if(item.image != '') galleries.push(item.image);
+        if (item.image != '') galleries.push(item.image);
       }
     }
 
@@ -321,19 +321,19 @@ class ListingModel {
       'status': 'draft',
       'updated_at': current_date
     }
-    
+
     const basic_colset = multipleColumnSet(basic_info, ',');
 
     const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
-    
+
     const result = await query(sql, [...basic_colset.values, listing_id]);
 
 
     if (result.affectedRows == 1) {
 
       // insert data to listing business hours table
-      if(params.business_hour == 'open_for_selected_hours'){
-        
+      if (params.business_hour == 'open_for_selected_hours') {
+
         // Monday business hour
         const mondayHour = params.businsessHourMonday;
 
@@ -344,11 +344,11 @@ class ListingModel {
           [mondayHour.id, mondayHour.is_open, mondayHour.times[0].open, mondayHour.times[0].closes]
         ];
 
-        if(mondayHour.times.length > 1){
+        if (mondayHour.times.length > 1) {
           valuesMonday[0].push(mondayHour.times[1].open);
           valuesMonday[0].push(mondayHour.times[1].closes);
         }
-        else{
+        else {
           valuesMonday[0].push(null);
           valuesMonday[0].push(null);
         }
@@ -364,11 +364,11 @@ class ListingModel {
           [tuesdayHour.id, tuesdayHour.is_open, tuesdayHour.times[0].open, tuesdayHour.times[0].closes]
         ];
 
-        if(tuesdayHour.times.length > 1){
+        if (tuesdayHour.times.length > 1) {
           valuesTuesday[0].push(tuesdayHour.times[1].open);
           valuesTuesday[0].push(tuesdayHour.times[1].closes);
         }
-        else{
+        else {
           valuesTuesday[0].push(null);
           valuesTuesday[0].push(null);
         }
@@ -384,11 +384,11 @@ class ListingModel {
           [wednesdayHour.id, wednesdayHour.is_open, wednesdayHour.times[0].open, wednesdayHour.times[0].closes]
         ];
 
-        if(wednesdayHour.times.length > 1){
+        if (wednesdayHour.times.length > 1) {
           valuesWednesday[0].push(wednesdayHour.times[1].open);
           valuesWednesday[0].push(wednesdayHour.times[1].closes);
         }
-        else{
+        else {
           valuesWednesday[0].push(null);
           valuesWednesday[0].push(null);
         }
@@ -404,11 +404,11 @@ class ListingModel {
           [thursdayHour.id, thursdayHour.is_open, thursdayHour.times[0].open, thursdayHour.times[0].closes]
         ];
 
-        if(thursdayHour.times.length > 1){
+        if (thursdayHour.times.length > 1) {
           valuesThursday[0].push(thursdayHour.times[1].open);
           valuesThursday[0].push(thursdayHour.times[1].closes);
         }
-        else{
+        else {
           valuesThursday[0].push(null);
           valuesThursday[0].push(null);
         }
@@ -424,11 +424,11 @@ class ListingModel {
           [fridayHour.id, fridayHour.is_open, fridayHour.times[0].open, fridayHour.times[0].closes]
         ];
 
-        if(fridayHour.times.length > 1){
+        if (fridayHour.times.length > 1) {
           valuesFriday[0].push(fridayHour.times[1].open);
           valuesFriday[0].push(fridayHour.times[1].closes);
         }
-        else{
+        else {
           valuesFriday[0].push(null);
           valuesFriday[0].push(null);
         }
@@ -444,11 +444,11 @@ class ListingModel {
           [saturdayHour.id, saturdayHour.is_open, saturdayHour.times[0].open, saturdayHour.times[0].closes]
         ];
 
-        if(saturdayHour.times.length > 1){
+        if (saturdayHour.times.length > 1) {
           valuesSaturday[0].push(saturdayHour.times[1].open);
           valuesSaturday[0].push(saturdayHour.times[1].closes);
         }
-        else{
+        else {
           valuesSaturday[0].push(null);
           valuesSaturday[0].push(null);
         }
@@ -464,22 +464,22 @@ class ListingModel {
           [sundayHour.id, sundayHour.is_open, sundayHour.times[0].open, sundayHour.times[0].closes]
         ];
 
-        if(sundayHour.times.length > 1){
+        if (sundayHour.times.length > 1) {
           valuesSunday[0].push(sundayHour.times[1].open);
           valuesSunday[0].push(sundayHour.times[1].closes);
         }
-        else{
+        else {
           valuesSunday[0].push(null);
           valuesSunday[0].push(null);
         }
 
         await query2(sqlHmSunday, [valuesSunday]);
-      
+
 
       }
-      
+
       // insert data to listing categories table
-      if(params.categories.length > 0){
+      if (params.categories.length > 0) {
 
         // first delete the existing categories
         const sql_cat_del = `DELETE FROM ${this.tableListingCategories} WHERE listing_id = ?`;
@@ -496,7 +496,7 @@ class ListingModel {
         const resultListingCategories = await query2(sql_meta, [values]);
 
       }
-     
+
       // update contacts
       const sql_contact = `INSERT INTO ${this.tableListingContact} (listing_id, email, phone, website, facebook, tiktok, twitter, linkedin) VALUES ? ON DUPLICATE KEY 
                         UPDATE email=VALUES(email), phone=VALUES(phone), website=VALUES(website), facebook=VALUES(facebook), tiktok=VALUES(tiktok), twitter=VALUES(twitter), linkedin=VALUES(linkedin)`;
@@ -504,7 +504,7 @@ class ListingModel {
 
       const resultListingContact = await query2(sql_contact, [values_contact]);
 
-      
+
       // update restaurants
       // first delete the existing restaurants
       const sql_menu_del = `DELETE FROM ${this.tableListingRestaurant} WHERE listing_id = ?`;
@@ -513,26 +513,26 @@ class ListingModel {
       const sql_item_del = `DELETE FROM ${this.tableListingRestaurantItems} WHERE listing_id = ?`;
       await query(sql_item_del, [listing_id]);
 
-      if(params.restaurants.length > 0){
+      if (params.restaurants.length > 0) {
 
         for (let restaurant of params.restaurants) {
           const sql_res = `INSERT INTO ${this.tableListingRestaurant} (listing_id, title, description, icon) VALUES (?,?,?,?)`;
           const valuesRes = [listing_id, restaurant.title, restaurant.description, restaurant.icon];
 
           const resultRestaurant = await query(sql_res, valuesRes);
-          
-          if(resultRestaurant.insertId && restaurant.items.length > 0){
-            
+
+          if (resultRestaurant.insertId && restaurant.items.length > 0) {
+
             const listing_res_id = resultRestaurant.insertId;
-            
+
             const sql_item = `INSERT INTO ${this.tableListingRestaurantItems} (listing_restaurant_id, listing_id, title, description, image, price, link, open_new_window) VALUES ?`;
             const valuesItem = [];
-            
+
             for (let item of restaurant.items) {
               const tmp = [listing_res_id, listing_id, item.title, item.description, item.image, item.price, item.link, item.is_new_window];
               valuesItem.push(tmp);
             }
-            
+
             const resultRestaurantItem = await query2(sql_item, [valuesItem]);
           }
 
@@ -541,9 +541,9 @@ class ListingModel {
       }
 
       output.status = 200
-      output.data = {'listing_id': listing_id}
+      output.data = { 'listing_id': listing_id }
     }
-    else{
+    else {
       output.status = 401
     }
 
@@ -562,18 +562,18 @@ class ListingModel {
 
     let condition = ``;
 
-    if(keyword != ''){
+    if (keyword != '') {
       condition += ` AND ( ${this.tableName}.title LIKE '%${keyword}%' OR ${this.tableName}.description LIKE '%${keyword}%' )`;
     }
- 
+
     sql += ` ${condition} HAVING listing_distance < 10 ORDER BY listing_distance LIMIT 0, 12`
 
     const result = await query3(sql);
-    if(result.length > 0){
+    if (result.length > 0) {
       output.status = 200;
       output.data = result;
     }
-    else{
+    else {
       output.status = 401
     }
 
@@ -607,11 +607,11 @@ class ListingModel {
 
     // TODO: do javascript validation
     let queryOrderby = ` ORDER BY ${orderby} DESC`;
-    
+
     sql += `${queryOrderby} LIMIT ?, ?`;
     values.push(offset);
     values.push(limit);
-    
+
     const listings = await query(sql, values);
 
     const listing_ids = listings.map((l) => l['id']);
@@ -619,7 +619,7 @@ class ListingModel {
     // get contacts
     const sqlContacts = `SELECT * FROM ${DBTables.listing_contact} WHERE listing_id IN (${listing_ids.join()})`;
     const contacts = await query(sqlContacts);
-    
+
     // get categories
     const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
                           FROM ${this.tableListingCategories} lc
@@ -632,31 +632,31 @@ class ListingModel {
                           FROM ${this.tableFavorites} f
                           JOIN ${this.tableUsers} u ON f.user_id = u.id  
                           WHERE f.listing_id IN (${listing_ids.join()})`;
-    const favorites =  await query(sqlLikes);
+    const favorites = await query(sqlLikes);
 
     for (const item of listings) {
       item.contact = contacts.find((c) => c.listing_id == item.id);
       item.categories = categories.filter((c) => c.listing_id == item.id);
       item.favorites = favorites.filter((f) => f.listing_id == item.id);
     }
-  
+
     return listings;
 
   }
 
   // get single listing
-  getListing = async ({slug}) => {
+  getListing = async ({ slug }) => {
     const output = {};
-    
+
     const sql = `SELECT * FROM ${this.tableName} WHERE slug=? LIMIT 1`;
 
-    const result  = await query(sql, [slug]);
-    
-    if(result.length > 0){
-      
+    const result = await query(sql, [slug]);
+
+    if (result.length > 0) {
+
       output.listing = result[0];
       const listing_id = result[0].id;
-      
+
       // fetch categories
       const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
                           FROM ${this.tableListingCategories} lc
@@ -668,8 +668,8 @@ class ListingModel {
       // fetch contacts
       const sqlContact = `SELECT * FROM ${this.tableListingContact} WHERE listing_id=? LIMIT 1`;
       const contacts = await query(sqlContact, [listing_id]);
-      if(contacts.length > 0) output.contacts = contacts[0];
-      
+      if (contacts.length > 0) output.contacts = contacts[0];
+
 
       // fetch hours
       const sqlHour = `SELECT id, listing_id, day_of_week, is_open, TIME_FORMAT(first_hour_start,'%H:%i') as first_hour_start, TIME_FORMAT(first_hour_end,'%H:%i') as first_hour_end, 
@@ -682,16 +682,16 @@ class ListingModel {
       const menu = await query(sqlmenus, [listing_id]);
       const menu_ids = [];
 
-      if(menu.length > 0){
+      if (menu.length > 0) {
         for (const item of menu) {
           menu_ids.push(item.id);
         }
         const menu_ids_str = menu_ids.join(',');
-        
+
         // fetch menu items
         const sqlitems = `SELECT * FROM ${this.tableListingRestaurantItems} WHERE listing_restaurant_id IN (?)`;
         const items = await query(sqlitems, [menu_ids_str]);
-        
+
         if (items.length > 0) {
           for (const item of menu) {
             const restaurant_id = item.id;
@@ -702,25 +702,25 @@ class ListingModel {
       }
 
       output.menus = menu;
-      
+
     }
 
     return output;
 
   }
 
-  publishListing = async ({id}) => {
+  publishListing = async ({ id }) => {
 
     const sql = `UPDATE ${this.tableName} SET status = ? WHERE id = ?`;
     const result = await query(sql, ['publish', id]);
 
-    if(result.affectedRows > 0){
+    if (result.affectedRows > 0) {
       return true;
     }
-    else{
+    else {
       return false;
     }
-    
+
   }
 
   newReview = async (params) => {
@@ -729,7 +729,7 @@ class ListingModel {
 
     const sql = `INSERT INTO ${this.tableReview} (listing_id, user_id, rating, title, description, created_at) VALUES (?,?,?,?,?,?)`;
     const values = [params.listing_id, params.user_id, params.rating, params.title, params.description, current_date];
-    
+
     const result = await query(sql, values);
 
     if (result.insertId) {
@@ -740,9 +740,9 @@ class ListingModel {
         return true;
       }
     }
-    
+
     return false;
-    
+
   }
 
   editReview = async (params) => {
@@ -754,25 +754,25 @@ class ListingModel {
       'title': params.title,
       'description': params.description,
     }
-    
+
     const basic_colset = multipleColumnSet(basic_info, ',');
-    
+
     const sql = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
     const result = await query(sql, [...basic_colset.values, params.id]);
-    
-    
+
+
     if (result.affectedRows == 1) {
 
       const resultUpdate = await this.updateListingReview(params.listing_id);
-      
+
       if (resultUpdate.affectedRows == 1) {
         return true;
       }
-      
+
     }
-    
+
     return false;
-    
+
   }
 
   // update review columns in listing table
@@ -799,7 +799,7 @@ class ListingModel {
     return resultUpdate;
   }
 
-  getReviews = async ({id}) => {
+  getReviews = async ({ id }) => {
 
     const sqlReview = `SELECT r.*, u.username, u.display_name, u.profile_photo, u.role 
                           FROM ${this.tableReview} r
@@ -807,7 +807,7 @@ class ListingModel {
                           WHERE r.listing_id = ? ORDER BY r.id DESC`;
     const review_list = await query(sqlReview, [id]);
 
-    const likes_list = await this.find({'listing_id': id}, this.tableReviewLike);
+    const likes_list = await this.find({ 'listing_id': id }, this.tableReviewLike);
 
     const reviews = [];
 
@@ -815,9 +815,9 @@ class ListingModel {
       if (!item.parent_id) {
         const comments = review_list.filter(review => review.parent_id == item.id);
         const likes = likes_list.filter(like => like.listing_review_id == item.id);
-        
+
         // sort comment list - order by ID ASC
-        comments.sort( (a,b) =>  a['id']-b['id'] );
+        comments.sort((a, b) => a['id'] - b['id']);
 
         item.comment_list = comments;
         item.like_list = likes;
@@ -848,9 +848,9 @@ class ListingModel {
     const review_id = params.review_id;
     const user_id = params.user_id;
 
-    const data = {'listing_review_id': review_id, 'user_id': user_id}
+    const data = { 'listing_review_id': review_id, 'user_id': user_id }
     const likeExist = await this.findOne(data, this.tableReviewLike);
-    
+
     if (Object.keys(likeExist).length > 0) {
 
       // delete like
@@ -858,7 +858,7 @@ class ListingModel {
       await query(sql, [likeExist.id]);
 
       // update like count; first get the existing like count
-      const data = {'id': review_id}
+      const data = { 'id': review_id }
       const review = await this.findOne(data, this.tableReview);
 
       const updated_like_count = review.likes - 1;
@@ -867,24 +867,24 @@ class ListingModel {
       const update_data = {
         'likes': updated_like_count
       }
-      
+
       const basic_colset = multipleColumnSet(update_data, ',');
-      
+
       const sql_update = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
-      
+
       await query(sql_update, [...basic_colset.values, review_id]);
-      
+
 
     }
-    else{
+    else {
       // add like
       const sql = `INSERT INTO ${this.tableReviewLike} (listing_review_id, listing_id, user_id) VALUES (?,?,?)`;
       const values = [review_id, params.listing_id, user_id];
-      
+
       await query(sql, values);
 
       // update like count; first get the existing like count
-      const data = {'id': review_id}
+      const data = { 'id': review_id }
       const review = await this.findOne(data, this.tableReview);
 
       const updated_like_count = review.likes + 1;
@@ -893,46 +893,46 @@ class ListingModel {
       const update_data = {
         'likes': updated_like_count
       }
-      
+
       const basic_colset = multipleColumnSet(update_data, ',');
-      
+
       const sql_update = `UPDATE ${this.tableReview} SET ${basic_colset.columnSet} WHERE id = ?`;
-      
+
       await query(sql_update, [...basic_colset.values, review_id]);
     }
 
-    const updated_reviews = this.getReviews({'id': params.listing_id});
-    
+    const updated_reviews = this.getReviews({ 'id': params.listing_id });
+
     return updated_reviews;
-    
+
   }
 
   addOrEditComment = async (params) => {
 
     const current_date = commonfn.dateTimeNow();
 
-    if(params.comment_id != ''){
+    if (params.comment_id != '') {
       // edit comment
       const basic_info = {
         'description': params.comment,
       }
-      
+
       const basic_colset = multipleColumnSet(basic_info, ',');
-      
+
       const sql = `UPDATE ${DBTables.listing_reviews} SET ${basic_colset.columnSet} WHERE id = ?`;
-      
+
       const result = await query(sql, [...basic_colset.values, params.comment_id]);
-      
-      
+
+
       if (result.affectedRows == 1) {
         return true;
       }
     }
-    else{
+    else {
       // insert comment
       const sql = `INSERT INTO ${DBTables.listing_reviews} (listing_id, user_id, description, parent_id, created_at) VALUES (?,?,?,?,?)`;
       const values = [params.listing_id, params.user_id, params.comment, params.review_id, current_date];
-      
+
       const result = await query(sql, values);
 
       if (result.insertId) {
@@ -944,7 +944,7 @@ class ListingModel {
     }
 
     return false;
-    
+
   }
 
   updateCommentNumber = async (review_id) => {
@@ -980,6 +980,71 @@ class ListingModel {
 
     return result;
   }
+
+
+  createListingCategory = async (params) => {
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableCategories} 
+      (title, image) 
+      VALUES (?,?)`;
+
+    const result = await query(sql, [params.title, params.image]);
+
+    if (result.insertId) {
+      const listing_category_id = result.insertId;
+
+      output.status = 200
+      output.data = { 'listing_category_id': listing_category_id }
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  updateListingCategory = async (categoryId, params) => {
+    let sql = `UPDATE ${this.tableCategories} SET`;
+
+    const paramArray = [];
+    for (let param in params) {
+      paramArray.push(` ${param} = ?`);
+    }
+
+    sql += paramArray.join(', ');
+
+    sql += ` WHERE id = ?`;
+
+    const values = [
+      ...Object.values(params),
+      categoryId
+    ];
+
+    const result = await query(sql, values);
+
+    return result;
+  }
+
+  getListingCategories = async () => {
+    let sql = `SELECT * FROM ${this.tableCategories}`;
+
+    return await query(sql);
+  }
+
+  getListingCategory = async (categoryId) => {
+    let sql = `SELECT * FROM ${this.tableCategories} WHERE id=?`;
+
+    return await query(sql, [categoryId]);
+  }
+
+  deleteListingCategory = async (categoryId) => {
+    const sql = `DELETE FROM ${this.tableCategories} WHERE id=?`;
+    const values = [categoryId];
+
+    return await query(sql, values);
+  }
+
 
 }
 
