@@ -17,12 +17,7 @@ router.get('/product-categories', apiKey(), awaitHandlerFactory(ShopController.g
 router.get('/product-tags', apiKey(), awaitHandlerFactory(ShopController.getProductTags));
 router.post('/products', apiKey(), awaitHandlerFactory(ShopController.getProducts));
 
-// router.post('/new-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.newReview));
-// router.post('/edit-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.editReview));
-// router.delete('/delete-review/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteReview));
-// router.get('/get-reviews/:id', apiKey(), awaitHandlerFactory(listingController.getReviews));
-// router.post('/update-review-like', apiKey(), awaitHandlerFactory(listingController.updateReviewLike));
-// router.post('/submit-comment', apiKey(), authVerified(), awaitHandlerFactory(listingController.addOrEditComment));
-// router.delete('/delete-comment/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteComment));
+router.get('/product/:product_id/reviews', apiKey(), awaitHandlerFactory(ShopController.getProductReviews));
+router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandlerFactory(ShopController.createProductReview));
 
 module.exports = router;

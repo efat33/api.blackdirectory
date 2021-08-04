@@ -85,6 +85,24 @@ const storageImageNewsCkeditor = multer({ storage: diskStorageNewsCkeditor, file
     'upload'
 );
 
+const diskStorageProduct = multer.diskStorage({
+    destination: (reqm, file, cb) => {
+        cb(null, `uploads/product`);
+    },
+    filename: (reqm, file, cb) => {
+        const mimeType = file.mimetype.split('/');
+        const fileType = mimeType[1];
+        const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        cb(null, fileName);
+    },
+});
+
+
+const storageImageProduct = multer({ storage: diskStorageProduct, fileFilter: fileFilter }).single(
+    'image'
+);
+
 // exports.storageImageUser = storageImageUser;
 // exports.storageImageListing = storageImageListing;
 // exports.storageImageNews = storageImageNews;
@@ -94,5 +112,6 @@ module.exports = {
     storageImageUser,
     storageImageListing,
     storageImageNews,
-    storageImageNewsCkeditor
+    storageImageNewsCkeditor,
+    storageImageProduct
 }
