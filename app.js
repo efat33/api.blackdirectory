@@ -19,7 +19,7 @@ const app = express();
 
 // enabling cors for all requests by using cors middleware
 app.use(cors({
-    credentials: true, origin: 'http://localhost:4200', optionsSuccessStatus: 200,
+    credentials: true, origin: ['http://localhost:4200', 'http://localhost:4200/', 'https://localhost:4200'], optionsSuccessStatus: 200,
     methods: "POST, GET, PUT, DELETE",
     // allowedHeaders: 'X-Api-Key, Content-Type, Authorization, Accept, multipart/form-data'
 }));
