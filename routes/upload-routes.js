@@ -22,5 +22,6 @@ router.post('/image-news', storageImage.storageImageNews, awaitHandlerFactory(Up
 router.post('/image-news-ckeditor', storageImage.storageImageNewsCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
 
 router.post('/image-product', storageImage.storageImageProduct, awaitHandlerFactory(UploadController.uploadImage));
+router.post('/image-store', storageImage.storageImageShop, awaitHandlerFactory(UploadController.uploadImage));
 
 module.exports = router;

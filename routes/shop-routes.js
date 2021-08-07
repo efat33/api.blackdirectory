@@ -20,4 +20,12 @@ router.post('/products', apiKey(), awaitHandlerFactory(ShopController.getProduct
 router.get('/product/:product_id/reviews', apiKey(), awaitHandlerFactory(ShopController.getProductReviews));
 router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandlerFactory(ShopController.createProductReview));
 
+router.get('/details/:user_id', apiKey(), awaitHandlerFactory(ShopController.getShopDetails));
+router.post('/details', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateShopDetails));
+
+router.get('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getCartItems));
+router.post('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateCartItems));
+router.delete('/cart/:item_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteCartItem));
+router.delete('/cart-clear', apiKey(), authVerified(), awaitHandlerFactory(ShopController.clearCartItems));
+
 module.exports = router;
