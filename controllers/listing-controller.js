@@ -71,7 +71,10 @@ class ListingController {
 
   searchListing = async (req, res, next) => {
 
-    
+    // if(!req.body.lat || !req.body.lng){
+    //   throw new AppError(401, "Location is required");
+    // }
+
     const result = await ListingModel.searchListing(req.body);
   
     if (result.status && result.status == 200) {
@@ -109,6 +112,26 @@ class ListingController {
  
   };
 
+  // get current users favorite listings
+  getFavorites = async (req, res, next) => {
+
+    let favorites = [];
+    if(req.currentUser){
+      favorites = await ListingModel.getFavorites(req.currentUser.id);
+    }
+
+    new AppSuccess(res, 200, "200_successful", '', favorites);
+  };
+
+  // get current users favorite listings
+  updateFavorite = async (req, res, next) => {
+
+    const result = await ListingModel.updateFavorite(req.params.id, req.currentUser.id);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
+
+
   publishListing = async (req, res, next) => {
 
     
@@ -137,6 +160,22 @@ class ListingController {
     else{
       throw new AppError(403, "403_unknownError");
     }
+ 
+  };
+
+  // get listing categories
+  getCategories = async (req, res, next) => {
+    
+    const result = await ListingModel.find('', DBTables.listing_categories);
+    new AppSuccess(res, 200, "200_successful", '', result);
+ 
+  };
+
+  // update view of a listing
+  updateView = async (req, res, next) => {
+    
+    const result = await ListingModel.updateView(req.params.id);
+    new AppSuccess(res, 200, "200_successful");
  
   };
 
