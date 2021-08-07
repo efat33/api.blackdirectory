@@ -552,30 +552,110 @@ class ListingModel {
 
   searchListing = async (params = {}) => {
 
-    const keyword = params.keyword;
-    const input_lat = params.lat;
-    const input_lng = params.lng;
+    const keyword = params.keyword ? params.keyword : '';
+    const input_lat = params.lat ? params.lat : '';
+    const input_lng = params.lng ? params.lng : '';
 
     const output = {}
+    let values = [];
 
-    let sql = `SELECT ${this.tableName}.*, ( 6371 * acos( cos( radians('${input_lat}') ) * cos( radians( ${this.tableName}.lat ) ) * cos( radians( ${this.tableName}.lng ) - radians('${input_lng}') ) + sin( radians('${input_lat}') ) * sin( radians( ${this.tableName}.lat ) ) ) ) as listing_distance FROM ${this.tableName}  WHERE ${this.tableName}.status = 'publish'`;
+    let sql = '';
+    let queryDistance = ''
 
-    let condition = ``;
+    if(params.lat && params.lng){
+      sql = `SELECT l.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( l.lat ) ) * cos( radians( l.lng ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( l.lat ) ) ) ) as listing_distance 
+      FROM ${this.tableName} AS l`;
 
-    if (keyword != '') {
-      condition += ` AND ( ${this.tableName}.title LIKE '%${keyword}%' OR ${this.tableName}.description LIKE '%${keyword}%' )`;
+      queryDistance = ` HAVING listing_distance < 10`;
+    }
+    else{
+      sql = `SELECT l.* FROM ${this.tableName} AS l`;
+    }
+    
+
+    let queryParams = ` WHERE l.status = 'publish'`;
+
+    let queryJoinCat = '';
+    if(params.category && params.category != ''){
+      queryJoinCat += ` JOIN ${DBTables.listing_categories_listing} lc ON lc.listing_id = l.id`;
+      queryParams += ` AND lc.listing_categories_id IN (${encodeURI(params.category)})`;
     }
 
-    sql += ` ${condition} HAVING listing_distance < 10 ORDER BY listing_distance LIMIT 0, 12`
+    if(keyword != ''){
+      queryParams += ` AND ( l.title LIKE '%${encodeURI(keyword)}%' OR l.description LIKE '%${encodeURI(keyword)}%' )`;
+    }
+    if(params.recommended){
+      queryParams += ` AND l.recommended = 1`;
+    }
+    if(params.price && params.price != ''){
+      queryParams += ` AND l.price_range = ?`;
+      values.push(params.price);
+    }
+ 
+    if(params.discount){
+      queryParams += ' AND l.coupon_code != "" AND l.coupon_expiry_date > NOW()';
+    }
+    
+    
+    // set order by
+    let queryOrderby = '';
+    if(params.orderby && params.orderby != ''){
+      queryOrderby = ` ORDER BY ${encodeURI(params.orderby)}`;
 
-    const result = await query3(sql);
-    if (result.length > 0) {
-      output.status = 200;
-      output.data = result;
+      if(params.order && params.order != ''){
+        queryOrderby += ` ${encodeURI(params.order)}`;
+      }
     }
-    else {
-      output.status = 401
+
+    // set limit 
+    let queryLimit = '';
+    if(params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')){
+      queryLimit = ` LIMIT ?, ?`;
+      values.push(params.offset);
+      values.push(params.limit);
     }
+    else{
+      queryLimit = ` LIMIT 0, 12`;
+    }
+
+    const count_sql = `${sql}${queryJoinCat}${queryParams}${queryDistance}${queryOrderby}`;
+    sql += `${queryJoinCat}${queryParams}${queryDistance}${queryOrderby}${queryLimit}`;
+
+    const listings = await query(sql, values);
+    let total_listings = 0;
+
+    if(listings.length > 0){
+
+      const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;
+      const resultCount = await query(count_sql_final, values);
+      
+      total_listings = resultCount[0].count;
+
+      const listing_ids = listings.map((l) => l['id']);
+      
+      // get contacts
+      const sqlContacts = `SELECT * FROM ${DBTables.listing_contact} WHERE listing_id IN (${listing_ids.join()})`;
+      const contacts = await query(sqlContacts);
+      
+      // get categories
+      const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
+                            FROM ${this.tableListingCategories} lc
+                            JOIN ${this.tableCategories} c ON lc.listing_categories_id = c.id  
+                            WHERE lc.listing_id IN (${listing_ids.join()})`;
+      const categories = await query(sqlListCat);
+
+
+      for (const item of listings) {
+        item.contact = contacts.find((c) => c.listing_id == item.id);
+        item.categories = categories.filter((c) => c.listing_id == item.id);
+      }
+    }
+    output.status = 200;
+    const data = {
+      listings: listings,
+      total_listings: total_listings
+    }
+    output.data = data;
 
     return output;
   }
@@ -605,9 +685,8 @@ class ListingModel {
 
     sql += queryParams;
 
-    // TODO: do javascript validation
-    let queryOrderby = ` ORDER BY ${orderby} DESC`;
-
+    let queryOrderby = ` ORDER BY ${encodeURI(orderby)} DESC`;
+    
     sql += `${queryOrderby} LIMIT ?, ?`;
     values.push(offset);
     values.push(limit);
@@ -627,17 +706,10 @@ class ListingModel {
                           WHERE lc.listing_id IN (${listing_ids.join()})`;
     const categories = await query(sqlListCat);
 
-    // get likes
-    const sqlLikes = `SELECT f.listing_id, f.user_id, u.username, u.display_name 
-                          FROM ${this.tableFavorites} f
-                          JOIN ${this.tableUsers} u ON f.user_id = u.id  
-                          WHERE f.listing_id IN (${listing_ids.join()})`;
-    const favorites = await query(sqlLikes);
 
     for (const item of listings) {
       item.contact = contacts.find((c) => c.listing_id == item.id);
       item.categories = categories.filter((c) => c.listing_id == item.id);
-      item.favorites = favorites.filter((f) => f.listing_id == item.id);
     }
 
     return listings;
@@ -721,6 +793,98 @@ class ListingModel {
       return false;
     }
 
+  }
+
+  // get current user favorites 
+  getFavorites = async (user_id) => {
+    const sql = `SELECT listing_id FROM ${DBTables.listing_favorites} WHERE user_id = ?`;
+    const result = await query(sql, [user_id]);
+    const favorites = result.map(l => l.listing_id);
+    return favorites;
+  }
+
+  // get current user favorites 
+  updateFavorite = async (listing_id, user_id) => {
+
+    const data = {'listing_id': listing_id, 'user_id': user_id}
+    const likeExist = await this.findOne(data, DBTables.listing_favorites);
+    
+    if (Object.keys(likeExist).length > 0) {
+
+      // delete like
+      const sql = `DELETE FROM ${DBTables.listing_favorites} WHERE id = ?`;
+      await query(sql, [likeExist.id]);
+
+      // update like count; first get the existing like count
+      const sqlCount = `SELECT COUNT(*) AS no_of_favorite
+        FROM ${DBTables.listing_favorites} WHERE listing_id = ?`;
+
+      const data = await query(sqlCount, [listing_id]);
+
+      // now update with final count
+      const update_data = {
+        'favorites': data[0].no_of_favorite
+      }
+      
+      const basic_colset = multipleColumnSet(update_data, ',');
+      
+      const sql_update = `UPDATE ${DBTables.listings} SET ${basic_colset.columnSet} WHERE id = ?`;
+      
+      await query(sql_update, [...basic_colset.values, listing_id]);
+      
+
+    }
+    else{
+      // add like
+      const sql = `INSERT INTO ${DBTables.listing_favorites} (listing_id, user_id) VALUES (?,?)`;
+      const values = [listing_id, user_id];
+      
+      await query(sql, values);
+
+      // update like count; first get the existing like count
+      const sqlCount = `SELECT COUNT(*) AS no_of_favorite
+        FROM ${DBTables.listing_favorites} WHERE listing_id = ?`;
+
+      const data = await query(sqlCount, [listing_id]);
+
+      // now update with final count
+      const update_data = {
+        'favorites': data[0].no_of_favorite
+      }
+      
+      const basic_colset = multipleColumnSet(update_data, ',');
+      
+      const sql_update = `UPDATE ${DBTables.listings} SET ${basic_colset.columnSet} WHERE id = ?`;
+      
+      await query(sql_update, [...basic_colset.values, listing_id]);
+    }
+    
+    return true;
+    
+  }
+
+  // update view of a listing
+  updateView =  async (id) => {
+    const current_date = commonfn.dateTimeNow();
+
+    // first get the current view
+    const sql = `SELECT view FROM ${DBTables.listings} WHERE id = ? LIMIT 1`
+    const result = await query(sql, [id]);
+    const current_view = result[0].view;
+
+    // update the view
+    const updated_view = current_view + 1;
+    const basic_info = {
+      'view': updated_view,
+      'updated_at': current_date
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sqlUPdate = `UPDATE ${DBTables.listings} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const resultUpdate = await query(sqlUPdate, [...basic_colset.values, id]);
+    
   }
 
   newReview = async (params) => {
