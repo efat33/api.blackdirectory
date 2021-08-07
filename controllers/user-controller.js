@@ -97,7 +97,7 @@ class UserController {
                 const { password, ...userWithoutPassword } = user;
 
 
-                res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
+                res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
                 new AppSuccess(res, 200, "200_loginSuccessful", '', { ...userWithoutPassword });
 
             } else {
