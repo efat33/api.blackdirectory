@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require('nodemailer');
 const dotenv = require("dotenv");
 const shopModel = require("../models/shop-model");
+const userModel = require("../models/user-model");
 dotenv.config();
 
 class ShopController {
@@ -202,6 +203,63 @@ class ShopController {
     new AppSuccess(res, 200, "200_added", { 'entity': 'entity_userReview' });
   }
 
+  getShopDetails = async (req, res, next) => {
+    const details = await shopModel.getShopDetails(req.params.user_id);
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_details' }, details);
+  };
+
+  updateShopDetails = async (req, res, next) => {
+    const requiredFields = ['store_name'];
+
+    for (let field of requiredFields) {
+      if (req.body[field] == null) {
+        throw new AppError(403, `${field} is required.`); 
+      }
+    }
+
+    const result = await shopModel.updateShopDetails(req.body, req.currentUser);
+
+    if (result.affectedRows == 0) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_details' });
+  }
+
+  getCartItems = async (req, res, next) => {
+    const items = await shopModel.getCartItems(req.currentUser.id);
+
+    new AppSuccess(res, 200, "200_successful", null, items);
+  };
+
+  updateCartItems = async (req, res, next) => {
+    if (!req.body.items) {
+      throw new AppError(403, "'items' is required");
+    }
+
+    await shopModel.updateCartItems(req.body.items, req.currentUser);
+
+    return this.getCartItems(req, res, next);
+  }
+
+  deleteCartItem = async (req, res, next) => {
+    const item = await shopModel.findOne({id: req.params.item_id}, shopModel.tableNameCartItems);
+
+    if (Object.keys(item).length === 0) {
+      throw new AppError(403, "Item not found");
+    }
+
+    await shopModel.deleteCartItem(req.params.item_id);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
+
+  clearCartItems = async (req, res, next) => {
+    await shopModel.clearCartItems(req.currentUser.id);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
 }
 
 module.exports = new ShopController();
