@@ -314,6 +314,12 @@ class JobModel {
         return await query2(sql, [jobIds]);
     }
 
+    deleteJob = async (id) => {
+        const sql = `DELETE FROM ${this.tableName} WHERE id IN (?)`;
+
+        return await query(sql, [id]);
+    }
+
     getSectors = async () => {
         const sql = `SELECT * FROM ${this.tableSectors} ORDER BY title`;
         const result = await query(sql);
@@ -334,10 +340,56 @@ class JobModel {
         return await query(sql, [...values]);
     }
 
-    deleteJob = async (id) => {
-        const sql = `DELETE FROM ${this.tableName} WHERE id IN (?)`;
+    createJobSector = async (params) => {
+        let output = {};
 
-        return await query(sql, [id]);
+        const sql = `INSERT INTO ${this.tableSectors} 
+            (title) 
+            VALUES (?)`;
+
+        const result = await query(sql, [params.title]);
+
+
+        if (result.insertId) {
+            const job_sector_id = result.insertId;
+
+            output.status = 200
+            output.data = { 'job_sector_id': job_sector_id }
+        }
+        else {
+            output.status = 401
+        }
+
+        return output;
+    }
+
+    updateJobSector = async (sectorId, params) => {
+        let sql = `UPDATE ${this.tableSectors} SET`;
+
+        const paramArray = [];
+        for (let param in params) {
+            paramArray.push(` ${param} = ?`);
+        }
+
+        sql += paramArray.join(', ');
+
+        sql += ` WHERE id = ?`;
+
+        const values = [
+            ...Object.values(params),
+            sectorId
+        ];
+
+        const result = await query(sql, values);
+
+        return result;
+    }
+
+    deleteJobSector = async (sectorId) => {
+        const sql = `DELETE FROM ${this.tableSectors} WHERE id=?`;
+        const values = [sectorId];
+
+        return await query(sql, values);
     }
 
 

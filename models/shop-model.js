@@ -1,12 +1,15 @@
-const {query, query2, query3} = require('../server');
+const { query, query2, query3 } = require('../server');
 const { multipleColumnSet } = require('../utils/common');
 const commonfn = require('../utils/common');
-const {DBTables} = require('../utils/common');
+const { DBTables } = require('../utils/common');
 
 class ShopModel {
   tableName = 'products';
+  tableNameReviews = 'product_reviews';
 
-  
+  tableNameUsers = 'users';
+
+
   findOne = async (params, table = `${this.tableName}`) => {
     const { columnSet, values } = multipleColumnSet(params)
 
@@ -21,25 +24,25 @@ class ShopModel {
   }
 
   find = async (params = {}, table = `${this.tableName}`, orderby = '') => {
-      let sql = `SELECT * FROM ${table}`;
+    let sql = `SELECT * FROM ${table}`;
 
-      if (!Object.keys(params).length) {
-          return await query(sql);
-      }
+    if (!Object.keys(params).length) {
+      return await query(sql);
+    }
 
-      const { columnSet, values } = multipleColumnSet(params)
-      sql += ` WHERE ${columnSet}`;
+    const { columnSet, values } = multipleColumnSet(params)
+    sql += ` WHERE ${columnSet}`;
 
-      if(orderby != '') sql += ` ${orderby}`;
+    if (orderby != '') sql += ` ${orderby}`;
 
-      return await query(sql, [...values]);
+    return await query(sql, [...values]);
   }
 
   findMatchAny = async (params = {}, table = `${this.tableName}`) => {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
-        return await query(sql);
+      return await query(sql);
     }
 
     const { columnSet, values } = multipleColumnSet(params, 'OR')
@@ -68,13 +71,13 @@ class ShopModel {
                     ?,?,?,?,?,
                     ?,?,?,?)`;
     const values = [user_id, params.title, slug, params.price, params.discounted_price, params.discount_start, params.discount_end, params.category_id, params.image,
-              JSON.stringify(params.galleries), params.short_desc, params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual, 
-              current_date, current_date];
-    
+      JSON.stringify(params.galleries), params.short_desc, params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
+      current_date, current_date];
+
     const result_product = await query(sql, values);
 
-    if(result_product.insertId){
-      
+    if (result_product.insertId) {
+
       const product_id = result_product.insertId;
 
       // insert meta data
@@ -82,17 +85,17 @@ class ShopModel {
       const values = [];
 
       // insert download meta data
-      if(params.is_downloadable){
+      if (params.is_downloadable) {
         values.push([product_id, 'download_files', JSON.stringify(params.download_files)]);
       }
-      else{
+      else {
         values.push([product_id, 'download_files', '']);
       }
 
       const resultProdMeta = await query2(sql_meta, [values]);
 
       // insert product tags 
-      if(params.tags && params.tags.length > 0){
+      if (params.tags && params.tags.length > 0) {
         const sql_tags = `INSERT INTO ${DBTables.product_tag_relationships} (product_id, tag_id) VALUES ?`;
         const values = [];
 
@@ -134,14 +137,14 @@ class ShopModel {
       'is_virtual': params.is_virtual,
       'updated_at': current_date
     }
-    
+
     const basic_colset = multipleColumnSet(basic_info, ',');
-    
+
     const sql = `UPDATE ${DBTables.products} SET ${basic_colset.columnSet} WHERE id = ?`;
-    
+
     const result = await query(sql, [...basic_colset.values, params.id]);
-    
-    
+
+
     if (result.affectedRows == 1) {
       const product_id = params.id;
 
@@ -149,13 +152,13 @@ class ShopModel {
       const sqlMeta = `INSERT INTO ${DBTables.products_meta} (product_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value)`;
       const values = [];
 
-      if(params.is_downloadable){
+      if (params.is_downloadable) {
         values.push([product_id, 'download_files', JSON.stringify(params.download_files)]);
       }
-      else{
+      else {
         values.push([product_id, 'download_files', '']);
       }
-      
+
       await query2(sqlMeta, [values]);
 
 
@@ -165,7 +168,7 @@ class ShopModel {
       await query(sql, [product_id]);
 
       // insert product tags 
-      if(params.tags && params.tags.length > 0){
+      if (params.tags && params.tags.length > 0) {
         const sql_tags = `INSERT INTO ${DBTables.product_tag_relationships} (product_id, tag_id) VALUES ?`;
         const values = [];
 
@@ -184,21 +187,21 @@ class ShopModel {
   }
 
   getProduct = async (slug) => {
-    const product = await this.findOne({'slug': slug});
+    const product = await this.findOne({ 'slug': slug });
 
-    if(Object.keys(product) === 0){
+    if (Object.keys(product) === 0) {
       return product;
     }
-    
+
     const product_id = product.id;
 
     product.galleries = JSON.parse(product.galleries);
-    
+
     // process meta data
-    const metaData = await this.find({'product_id': product_id}, DBTables.products_meta);
+    const metaData = await this.find({ 'product_id': product_id }, DBTables.products_meta);
 
     for (const item of metaData) {
-      if(item.meta_key == 'download_files' && item.meta_value != '') {
+      if (item.meta_key == 'download_files' && item.meta_value != '') {
         product.download_files = JSON.parse(item.meta_value);
       }
     }
@@ -229,11 +232,11 @@ class ShopModel {
 
     // set order by
     let queryOrderby = '';
-    if(params.orderby && params.orderby != ''){
+    if (params.orderby && params.orderby != '') {
       queryOrderby = ` ORDER BY ?`;
       values.push(params.orderby);
 
-      if(params.order && params.order != ''){
+      if (params.order && params.order != '') {
         // TODO: do javascript validation
         queryOrderby += ` ${params.order}`;
       }
@@ -241,38 +244,97 @@ class ShopModel {
 
     // set limit 
     let queryLimit = '';
-    if(params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')){
+    if (params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')) {
       queryLimit = ` LIMIT ?, ?`;
       values.push(params.offset);
       values.push(params.limit);
     }
-    else{
+    else {
       queryLimit = ` LIMIT 0, 12`;
     }
 
     // set params
-    if(params.params){
+    if (params.params) {
       const p = params.params;
 
-      if(p.keyword && p.keyword != ''){
-         // TODO: do javascript validation
+      if (p.keyword && p.keyword != '') {
+        // TODO: do javascript validation
         queryParams += ` AND ( p.title LIKE '%${p.keyword}%' OR p.description LIKE '%${p.keyword}%' )`;
       }
 
-      if(p.category && p.category != ''){
+      if (p.category && p.category != '') {
         // TODO: do javascript validation
         queryParams += ` AND p.category_id = ${p.category}`;
       }
 
     }
-    
+
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
 
-    
-    
+
+
     return await query(sql, values);
   }
 
+
+  getProductReviews = async (id) => {
+    let sql = `SELECT Reviews.*, Users.display_name as user_display_name,
+    Users.username as user_username, Users.profile_photo as user_profile_photo  
+    FROM ${this.tableNameReviews} as Reviews 
+    LEFT JOIN ${this.tableNameUsers} as Users ON Users.id=Reviews.user_id  
+    WHERE Reviews.product_id=?
+    ORDER BY created_at ASC`;
+
+    return await query(sql, [id]);
+  }
+
+  createProductReview = async (product_id, params, currentUser) => {
+    const user_id = currentUser.id;
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableNameReviews} 
+      (
+        user_id, 
+        product_id, 
+        rating, 
+        review
+      ) 
+      VALUES (?,?,?,?)`;
+
+    const values = [
+      user_id,
+      product_id,
+      params.rating,
+      params.review
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      output.status = 200;
+
+      await this.updateReviewCount(product_id);
+    }
+    else {
+      output.status = 401;
+    }
+
+    return output;
+  }
+
+  updateReviewCount = async (product_id) => {
+    let sql = `UPDATE ${this.tableName} 
+        SET rating_average = (
+          SELECT avg(rating) FROM ${this.tableNameReviews} WHERE product_id = ?
+        ), rating_total = (
+          SELECT count(*) FROM ${this.tableNameReviews} WHERE product_id = ?
+        ) 
+        WHERE id = ?`;
+
+    const result = await query(sql, [product_id, product_id, product_id]);
+
+    return result;
+  }
 }
 
 module.exports = new ShopModel;

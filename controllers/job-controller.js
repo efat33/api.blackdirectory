@@ -18,6 +18,38 @@ class JobController {
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_sectors' }, sectors);
     }
 
+    newJobSector = async (req, res, next) => {
+        const newsSector = await JobModel.createJobSector(req.body);
+
+        if (newsSector.status !== 200) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_sector' });
+    }
+
+    updateJobSector = async (req, res, next) => {
+        const result = await JobModel.updateJobSector(req.params.job_sector_id, req.body);
+
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_sector' }, result);
+    };
+
+    deleteJobSector = async (req, res, next) => {
+        const result = await JobModel.getSector({ id: req.params.job_sector_id });
+
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        await JobModel.deleteJobSector(req.params.job_sector_id);
+
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_sector' });
+    };
+
     newJob = async (req, res, next) => {
         const job = await JobModel.createJob(req.body, req.currentUser);
 
@@ -124,9 +156,9 @@ class JobController {
         };
 
         const job = result[0];
-        
+
         if (!req.currentUser || (req.currentUser && req.currentUser.id != job.user_id)) {
-            await JobModel.updateJobProperty(job.id, {views: job.views + 1});
+            await JobModel.updateJobProperty(job.id, { views: job.views + 1 });
         }
 
         job.featured = !!job.featured;
@@ -344,7 +376,7 @@ class JobController {
 
     getCurrentPackage = async (req, res, next) => {
         const currentPackage = await JobModel.getCurrentPackage(req.currentUser);
-        
+
         new AppSuccess(res, 200, "200_successful", null, currentPackage);
     };
 

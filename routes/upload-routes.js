@@ -21,4 +21,6 @@ router.post('/file-job', storageFileJob, awaitHandlerFactory(UploadController.up
 router.post('/image-news', storageImage.storageImageNews, awaitHandlerFactory(UploadController.uploadImage));
 router.post('/image-news-ckeditor', storageImage.storageImageNewsCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
 
+router.post('/image-product', storageImage.storageImageProduct, awaitHandlerFactory(UploadController.uploadImage));
+
 module.exports = router;

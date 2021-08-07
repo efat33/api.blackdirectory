@@ -6,12 +6,16 @@ const currentUser = require('../utils/currentUser');
 const authVerified = require('../utils/authVerified');
 const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
-const { isEmployer } = require('../utils/common');
+const { isEmployer, isAdmin } = require('../utils/common');
 
 const validation = require('../utils/listingValidator');
 
 
 router.get('/sectors', apiKey(), awaitHandlerFactory(jobController.sectors));
+router.post('/new-job-sector', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(jobController.newJobSector));
+router.put('/update-job-sector/:job_sector_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(jobController.updateJobSector));
+router.delete('/delete-job-sector/:job_sector_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(jobController.deleteJobSector));
+
 router.post('/new-job', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.newJob));
 router.put('/update-job/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.updateJob));
 router.delete('/delete-job/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.deleteJob));

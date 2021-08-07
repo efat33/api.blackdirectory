@@ -3,6 +3,7 @@ const cookieParser = require('cookie-parser');
 const cors = require("cors");
 const morgan = require('morgan');
 const compression = require('compression');
+const path = require('path');
 
 const globalErrorHandler = require('./controllers/error-controller');
 
@@ -34,7 +35,8 @@ app.use(cookieParser());
 app.use(compression());
 
 // make images inside uploads folder accessible from browser url
-app.use(express.static(__dirname + '/uploads'));
+// app.use(express.static(__dirname + '/uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Use JSON parser for all non-webhook routes
 app.use((req, res, next) => {
