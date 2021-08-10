@@ -76,6 +76,7 @@ exports.ENTITIES = Object.freeze({
   entity_reviews: "Reviews",
   entity_comment: "Comment",
   entity_details: "Details",
+  entity_provider: "Provider",
 
   // Users
   entity_apiKey: "API Key",
@@ -108,4 +109,8 @@ exports.ENTITIES = Object.freeze({
   // news
   entity_news: "News",
   entity_category: "Category",
+
+  // mobiles
+  entity_mobile: "Mobile",
+  entity_provider: "Provider",
 });
