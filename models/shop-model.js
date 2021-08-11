@@ -1,4 +1,5 @@
 const { query, query2, query3 } = require('../server');
+const AppError = require('../utils/appError');
 const { multipleColumnSet } = require('../utils/common');
 const commonfn = require('../utils/common');
 const { DBTables } = require('../utils/common');
@@ -6,6 +7,8 @@ const { DBTables } = require('../utils/common');
 class ShopModel {
   tableName = 'products';
   tableNameReviews = 'product_reviews';
+  tableNameShopDetails = 'store_details';
+  tableNameCartItems = 'store_cart_items';
 
   tableNameUsers = 'users';
 
@@ -334,6 +337,115 @@ class ShopModel {
     const result = await query(sql, [product_id, product_id, product_id]);
 
     return result;
+  }
+
+  getShopDetails = async (id) => {
+    let sql = `SELECT Details.* 
+    FROM ${this.tableNameShopDetails} as Details  
+    WHERE Details.user_id=?`;
+
+    return await query(sql, [id]);
+  }
+
+  updateShopDetails = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    const sql = `INSERT INTO ${this.tableNameShopDetails} 
+      (user_id, store_name, product_per_page, phone, address, latitude, longitude, show_email, show_more_products, profile_picture, banner, created_at, updated_at) 
+      VALUES ? ON DUPLICATE KEY 
+      UPDATE store_name=VALUES(store_name),
+        product_per_page=VALUES(product_per_page),
+        phone=VALUES(phone),
+        address=VALUES(address),
+        latitude=VALUES(latitude),
+        longitude=VALUES(longitude),
+        show_email=VALUES(show_email),
+        show_more_products=VALUES(show_more_products),
+        profile_picture=VALUES(profile_picture),
+        banner=VALUES(banner),
+        updated_at='${current_date}'
+      `;
+
+    const values = [];
+    values.push(currentUser.id);
+
+    let availableKeys = ['store_name', 'product_per_page', 'phone', 'address', 'latitude', 'longitude', 'show_email', 'show_more_products', 'profile_picture', 'banner'];
+
+    for (const key of availableKeys) {
+      let value = params[key];
+
+      if (key === 'show_email' || key === 'show_more_products') {
+        value = value || 0;
+      }
+
+      values.push(value);
+    }
+
+    values.push(current_date);
+    values.push(current_date);
+
+    if (values.length) {
+      return await query2(sql, [[values]]);
+    }
+  }
+
+  getCartItems = async (user_id) => {
+    let sql = `SELECT Cart.*, 
+    Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image 
+    FROM ${this.tableNameCartItems} as Cart  
+    LEFT JOIN ${this.tableName} as Product ON Product.id=Cart.product_id
+    WHERE Cart.user_id=?`;
+
+    return await query(sql, [user_id]);
+  }
+
+  updateCartItems = async (items, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    const sql = `INSERT INTO ${this.tableNameCartItems} 
+      (user_id, product_id, quantity, created_at, updated_at) 
+      VALUES ? ON DUPLICATE KEY 
+      UPDATE quantity=VALUES(quantity),
+        updated_at='${current_date}'
+      `;
+
+    const values = [];
+
+    let availableKeys = ['product_id', 'quantity'];
+
+    for (const item of items) {
+      let itemValues = [];
+      itemValues.push(currentUser.id);
+
+      for (const key of availableKeys) {
+        if (item[key] == null) {
+          throw new AppError(403, `${key} is required`);
+        }
+
+        itemValues.push(item[key]);
+      }
+
+      itemValues.push(current_date);
+      itemValues.push(current_date);
+
+      values.push(itemValues);
+    }
+
+    if (values.length) {
+      return await query2(sql, [values]);
+    }
+  }
+
+  deleteCartItem = async (item_id) => {
+    const sql = `DELETE FROM ${this.tableNameCartItems} WHERE id=?`;
+    const values = [item_id];
+
+    await query(sql, values);
+  }
+
+  clearCartItems = async (user_id) => {
+    const sql = `DELETE FROM ${this.tableNameCartItems} WHERE user_id=?`;
+    const values = [user_id];
+
+    await query(sql, values);
   }
 }
 

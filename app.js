@@ -15,12 +15,13 @@ const newsRouter = require('./routes/news-routes');
 const mailRouter = require('./routes/mail-routes');
 const shopRouter = require('./routes/shop-routes');
 const eventRouter = require('./routes/event-routes');
+const mobilesRouter = require('./routes/mobiles-routes');
 
 const app = express();
 
 // enabling cors for all requests by using cors middleware
 app.use(cors({
-    credentials: true, origin: 'http://localhost:4200', optionsSuccessStatus: 200,
+    credentials: true, origin: ['http://localhost:4200', 'http://localhost:4200/', 'https://localhost:4200'], optionsSuccessStatus: 200,
     methods: "POST, GET, PUT, DELETE",
     // allowedHeaders: 'X-Api-Key, Content-Type, Authorization, Accept, multipart/form-data'
 }));
@@ -56,6 +57,7 @@ app.use('/news', newsRouter);
 app.use('/mail', mailRouter);
 app.use('/shop', shopRouter);
 app.use('/events', eventRouter);
+app.use('/mobiles', mobilesRouter);
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Blackdirectory!!!" });
