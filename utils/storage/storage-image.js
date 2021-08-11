@@ -26,11 +26,11 @@ const diskStorageUser = multer.diskStorage({
     },
 });
 
-// listing storage
 const storageImageUser = multer({ storage: diskStorageUser, fileFilter: fileFilter }).single(
     'image'
 );
 
+// listing storage
 const diskStorageListing = multer.diskStorage({
     destination: (reqm, file, cb) => {
         cb(null, `uploads/listing`);
@@ -49,6 +49,26 @@ const storageImageListing = multer({ storage: diskStorageListing, fileFilter: fi
     'image'
 );
 
+// event storage
+const diskStorageEvent = multer.diskStorage({
+    destination: (reqm, file, cb) => {
+        cb(null, `uploads/event`);
+    },
+    filename: (reqm, file, cb) => {
+        const mimeType = file.mimetype.split('/');
+        const fileType = mimeType[1];
+        const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        cb(null, fileName);
+    },
+});
+
+
+const storageImageEvent = multer({ storage: diskStorageEvent, fileFilter: fileFilter }).single(
+    'image'
+);
+
+// news storage
 const diskStorageNews = multer.diskStorage({
     destination: (reqm, file, cb) => {
         cb(null, `uploads/news`);
@@ -150,6 +170,7 @@ module.exports = {
     storageImageNews,
     storageImageNewsCkeditor,
     storageImageProduct,
+    storageImageEvent,
     storageImageShop,
     storageImageMobiles
 }

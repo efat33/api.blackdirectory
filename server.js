@@ -10,7 +10,8 @@ if (process.env.NODE_ENV === "development") {
     user: process.env.DB_LOCAL_USER,
     password: "",
     database: process.env.DB_LOCAL_NAME,
-    multipleStatements: true
+    multipleStatements: true,
+    timezone: 'Z'
   };
 } else {
   dbConfig = {
@@ -18,7 +19,8 @@ if (process.env.NODE_ENV === "development") {
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    multipleStatements: true
+    multipleStatements: true,
+    timezone: 'Z'
   };
 }
 
