@@ -16,6 +16,8 @@ router.post('/image-user', storageImage.storageImageUser,  awaitHandlerFactory(U
 
 router.post('/image-listing', storageImage.storageImageListing,  awaitHandlerFactory(UploadController.uploadImage));
 
+router.post('/image-event', storageImage.storageImageEvent,  awaitHandlerFactory(UploadController.uploadImage));
+
 router.post('/file-job', storageFileJob, awaitHandlerFactory(UploadController.uploadFile));
 
 router.post('/image-news', storageImage.storageImageNews, awaitHandlerFactory(UploadController.uploadImage));
