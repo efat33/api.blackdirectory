@@ -18,6 +18,24 @@ exports.DBTables = {
   'product_categories': 'product_categories',
   'product_tags': 'product_tags',
   'product_tag_relationships': 'product_tag_relationships',
+
+  // event tables
+  'events': 'events',
+  'event_meta': 'event_meta',
+  'event_categories': 'event_categories',
+  'event_category_relationships': 'event_category_relationships',
+  'event_tags': 'event_tags',
+  'event_tag_relationships': 'event_tag_relationships',
+  'event_organisers': 'event_organisers',
+  'event_organiser_relationships': 'event_organiser_relationships',
+  'event_rsvps': 'event_rsvps',
+  'event_rsvp_attendees': 'event_rsvp_attendees',
+  'event_tickets': 'event_tickets',
+  'event_ticket_orders': 'event_ticket_orders',
+  'event_ticket_order_meta': 'event_ticket_order_meta',
+  'event_ticket_attendees': 'event_ticket_attendees',
+  'event_reviews': 'event_reviews',
+  
 };
 
 exports.multipleColumnSet = (object, joinBy = 'AND') => {
@@ -76,9 +94,19 @@ exports.currentTimestamp = () => {
   return currentdate;
 };
 
-exports.randomString = (length) => {
+exports.randomString = (length = 8) => {
   var result = '';
   var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$&*';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
+
+exports.randomCode = (length = 8) => {
+  var result = '';
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   var charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));

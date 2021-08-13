@@ -14,6 +14,7 @@ const jobRouter = require('./routes/jobs-routes');
 const newsRouter = require('./routes/news-routes');
 const mailRouter = require('./routes/mail-routes');
 const shopRouter = require('./routes/shop-routes');
+const eventRouter = require('./routes/event-routes');
 const mobilesRouter = require('./routes/mobiles-routes');
 
 const app = express();
@@ -55,6 +56,7 @@ app.use('/jobs', jobRouter);
 app.use('/news', newsRouter);
 app.use('/mail', mailRouter);
 app.use('/shop', shopRouter);
+app.use('/events', eventRouter);
 app.use('/mobiles', mobilesRouter);
 
 app.get("/", (req, res) => {
