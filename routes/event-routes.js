@@ -11,9 +11,10 @@ const { isAdmin } = require('../utils/common');
 const validation = require('../utils/validators/eventValidator');
 
 router.post('/new', apiKey(), authVerified(), validation.validateNewEvent, awaitHandlerFactory(EventController.newEvent));
-router.get('/get-event/:slug', apiKey(),  awaitHandlerFactory(EventController.getEvent));
+router.post('/edit', apiKey(), authVerified(), validation.validateNewEvent, awaitHandlerFactory(EventController.editEvent));
+router.get('/get-event/:edit?/:slug/', apiKey(),  awaitHandlerFactory(EventController.getEvent));
 router.get('/get-related-events/:id', apiKey(),  awaitHandlerFactory(EventController.getRelatedEvents));
-
+router.post('/search-events', apiKey(), awaitHandlerFactory(EventController.searchEvents));
 
 router.post('/rsvp-apply', apiKey(), authVerified(), awaitHandlerFactory(EventController.rsvpApply));
 

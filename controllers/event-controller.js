@@ -60,14 +60,79 @@ class EventController {
 
     };
 
+    // edit event
+    editEvent = async (req, res, next) => {
+        // check primary validation set in eventValidator.js
+        this.checkValidation(req);
+
+        if (!req.body.id) {
+            throw new AppError(403, "ID is required");
+        }
+        if (!req.body.title) {
+            throw new AppError(403, "Title is required");
+        }
+        if (!req.body.description) {
+            throw new AppError(403, "Description is required");
+        }
+        if (!req.body.start_time || !req.body.end_time) {
+            throw new AppError(403, "Event Time is required");
+        }
+        if (req.body.is_virtual && req.body.youtube_url == '') {
+            throw new AppError(403, "Youtube URL is required");
+        }
+        if (!req.body.is_virtual && (req.body.address == '' || req.body.latitude == '' || req.body.longitude == '')) {
+            throw new AppError(403, "Event Address is required");
+        }
+        if (!req.body.category_id) {
+            throw new AppError(403, "Category is required");
+        }
+        if (!req.body.organizers) {
+            throw new AppError(403, "Organiser is required");
+        }
+
+        const existingEvent = await EventModel.findOne({id: req.body.id}, DBTables.events);
+        
+        // check if the user is authorised to edit this event
+        if(existingEvent.user_id && existingEvent.user_id != req.currentUser.id){
+            throw new AppError(401, "401_unauthorised");
+        }
+
+        const result = await  EventModel.editEvent(req.body, req.currentUser);
+
+        if (result.status && result.status == 200) {
+
+            new AppSuccess(res, 200, "200_updated_successfully", '', result.data);
+
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
+
+    };
+
     // get single event details
     getEvent = async (req, res, next) => {
     
-        const result = await EventModel.getEvent(req.params.slug);
+        const result = await EventModel.getEvent(req.params);
       
         new AppSuccess(res, 200, "200_retrieved", '', result);
       
     };
+
+    searchEvents = async (req, res, next) => {
+
+        const result = await EventModel.searchEvents(req.body);
+    
+        if (result.status && result.status == 200) {
+    
+          new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_event' }, result.data);
+    
+        }
+        else {
+          throw new AppError(403, "403_unknownError");
+        }
+    
+      };
 
     // get related events
     getRelatedEvents = async (req, res, next) => {

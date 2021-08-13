@@ -111,7 +111,7 @@ exports.ENTITIES = Object.freeze({
   entity_news: "News",
   entity_category: "Category",
 
-  // listing
+  // event
   entity_event: "Event",
   entity_eventID: "Event ID",
   
