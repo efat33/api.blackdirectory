@@ -59,14 +59,14 @@ class EventModel {
 
         // first insert into event table
         const sql = `INSERT INTO ${DBTables.events} 
-                    (title, slug, description, start_time, end_time, 
+                    (user_id, title, slug, description, start_time, end_time, 
                         featured_img, address, latitude, longitude, website_url, 
                         youtube_url, featured, is_virtual, created_at, updated_at) 
-                    VALUES (?,?,?,?,?,
+                    VALUES (?,?,?,?,?,?,
                         ?,?,?,?,?,
                         ?,?,?,?,?)`;
         const values = [
-                        params.title, slug, params.description, params.start_time, params.end_time, params.featured_img, 
+                        user_id, params.title, slug, params.description, params.start_time, params.end_time, params.featured_img, 
                         params.address, params.latitude, params.longitude, params.website_url, params.youtube_url, 
                         0, is_virtual, current_date, current_date
                     ];
@@ -162,10 +162,174 @@ class EventModel {
         return output;
     }
 
-    // get single event details
-    getEvent = async (slug) => {
+    editEvent = async (params, currentUser) => {
+
         const current_date = commonfn.dateTimeNow();
-        const event = await this.findOne({slug});
+        const user_id = currentUser.id;
+        const user_role = currentUser.role;
+        const output = {}
+
+        const is_virtual = params.is_virtual ? params.is_virtual : 0;
+
+        // first update the event table 
+        const basic_info = {
+          'title': params.title,
+          'description': params.description,
+          'start_time': params.start_time,
+          'end_time': params.end_time,
+          'featured_img': params.featured_img,
+          'address': params.address,
+          'latitude': params.latitude,
+          'longitude': params.longitude,
+          'website_url': params.website_url,
+          'youtube_url': params.youtube_url,
+          'is_virtual': is_virtual,
+          'updated_at': current_date
+        }
+        
+        const basic_colset = multipleColumnSet(basic_info, ',');
+        
+        const sql = `UPDATE ${DBTables.events}  SET ${basic_colset.columnSet} WHERE id = ?`;
+        
+        const result = await query(sql, [...basic_colset.values, params.id]);
+        
+        
+        if (result.affectedRows == 1) {
+            const event_id = params.id;
+
+            // first delete the existing categories
+            const sqlDCat = `DELETE FROM ${DBTables.event_category_relationships} WHERE event_id IN (?)`;
+            await query(sqlDCat, [event_id]);
+
+            // insert data to event_category_relationships table
+            if (params.category_id.length > 0) {
+                const sql = `INSERT INTO ${DBTables.event_category_relationships} (event_id, category_id) VALUES ?`;
+                const values = [];
+
+                for (let x of params.category_id) {
+                    const tmp = [event_id, x];
+                    values.push(tmp);
+                }
+
+                await query2(sql, [values]);
+
+            }
+
+            // first delete the existing tags
+            const sqlDTag = `DELETE FROM ${DBTables.event_tag_relationships} WHERE event_id IN (?)`;
+            await query(sqlDTag, [event_id]);
+
+            // insert data to event_tag_relationships table
+            if (params.tag_id.length > 0) {
+                const sql = `INSERT INTO ${DBTables.event_tag_relationships} (event_id, tag_id) VALUES ?`;
+                const values = [];
+
+                for (let x of params.tag_id) {
+                    const tmp = [event_id, x];
+                    values.push(tmp);
+                }
+
+                await query2(sql, [values]);
+
+            }
+
+            // first delete the existing organisers
+            const sqlDOrg = `DELETE FROM ${DBTables.event_organiser_relationships} WHERE event_id IN (?)`;
+            await query(sqlDOrg, [event_id]);
+
+            // insert data to event_organiser_relationships table
+            if (params.organizers.length > 0) {
+                const sql = `INSERT INTO ${DBTables.event_organiser_relationships} (event_id, organizer_id) VALUES ?`;
+                const values = [];
+
+                for (let x of params.organizers) {
+                    const tmp = [event_id, x];
+                    values.push(tmp);
+                }
+
+                await query2(sql, [values]);
+
+            }
+
+            // update data in tickets table
+            if (params.tickets.length > 0) {
+                const sql = `INSERT INTO ${DBTables.event_tickets} (id, title, price, capacity, start_sale, end_sale, updated_at) VALUES ? ON DUPLICATE KEY 
+                                        UPDATE title=VALUES(title), price=VALUES(price), capacity=VALUES(capacity), start_sale=VALUES(start_sale), end_sale=VALUES(end_sale), updated_at=VALUES(updated_at)`;
+                const values = [];
+
+                for (let item of params.tickets) {
+                    const price = item.price ? item.price : 0;
+                    const capacity = item.capacity ? item.capacity : null;
+                    const start_sale = item.start_sale ? item.start_sale : null;
+                    const end_sale = item.end_sale ? item.end_sale : null;
+                    const tmp = [item.id, item.title, price, capacity, start_sale, end_sale, current_date];
+                    values.push(tmp);
+                }
+                
+                await query2(sql, [values]);
+
+            }
+
+            // remove tickets
+            if (params.removedTickets && JSON.parse(params.removedTickets) && JSON.parse(params.removedTickets).length > 0) {
+                const removedTickets = JSON.parse(params.removedTickets);
+
+                const sql = `DELETE FROM ${DBTables.event_tickets} WHERE id IN (?)`;
+
+                const values = [];
+                for (const item of removedTickets) {
+                    if (item.id != '') values.push(item.id);
+                }
+
+                await query2(sql, [values]);
+            }
+
+            // update data in rsvp table
+            if (params.rsvp.length > 0) {
+
+                const sql = `INSERT INTO ${DBTables.event_tickets} (id, title, capacity, start_sale, end_sale, updated_at) VALUES ? ON DUPLICATE KEY 
+                                        UPDATE title=VALUES(title), capacity=VALUES(capacity), start_sale=VALUES(start_sale), end_sale=VALUES(end_sale), updated_at=VALUES(updated_at)`;
+                const values = [];
+
+                for (let item of params.rsvp) {
+                    const capacity = item.capacity ? item.capacity : null;
+                    const start_sale = item.start_sale ? item.start_sale : null;
+                    const end_sale = item.end_sale ? item.end_sale : null;
+                    const tmp = [item.id, item.title, capacity, start_sale, end_sale, current_date];
+                    values.push(tmp);
+                }
+                
+                await query2(sql, [values]);
+
+            }
+
+            // remove rsvp
+            if (params.removedRsvp && JSON.parse(params.removedRsvp) && JSON.parse(params.removedRsvp).length > 0) {
+                const removedRsvp = JSON.parse(params.removedRsvp);
+
+                const sql = `DELETE FROM ${DBTables.event_tickets} WHERE id IN (?)`;
+
+                const values = [];
+                for (const item of removedRsvp) {
+                    if (item.id != '') values.push(item.id);
+                }
+
+                await query2(sql, [values]);
+            }
+
+            output.status = 200
+            output.data = { 'event_id': event_id }
+        }
+        else{
+            output.status = 403
+        }
+        return output;
+    }
+
+    // get single event details
+    getEvent = async (params) => {
+        const current_date = commonfn.dateTimeNow();
+        const event = await this.findOne({slug: params.slug});
         
         if(event){
             const event_id = event.id;
@@ -192,24 +356,170 @@ class EventModel {
             event.organisers = await query(sqlOrgan, [event_id]);
 
             // fetch tickets
-            const sqlTicket = `SELECT * 
+            let sqlTicket = '';
+            if(params.edit){
+                sqlTicket = `SELECT * 
+                        FROM ${DBTables.event_tickets} 
+                        WHERE event_id = ? AND type = ?`;
+            }
+            else{
+                sqlTicket = `SELECT * 
                         FROM ${DBTables.event_tickets} 
                         WHERE event_id = ? AND type = ? AND end_sale > NOW()`;
+            }
+            
             event.tickets = await query(sqlTicket, [event_id, 'ticket']);
 
-            // fetch tickets
-            const sqlRsvp = `SELECT * 
+            // fetch rsvp
+            let sqlRsvp = '';
+            if(params.edit){
+                sqlRsvp = `SELECT * 
+                        FROM ${DBTables.event_tickets} 
+                        WHERE event_id = ? AND type = ?`;
+            }
+            else{
+                sqlRsvp = `SELECT * 
                         FROM ${DBTables.event_tickets} 
                         WHERE event_id = ? AND type = ? AND end_sale > NOW()`;
+            }
+            
             event.rsvp = await query(sqlRsvp, [event_id, 'rsvp']);
         }
         
         return event;
     }
 
+
+    searchEvents = async (params = {}) => {
+
+        const keyword = params.keyword ? params.keyword : '';
+        const input_lat = params.lat ? params.lat : '';
+        const input_lng = params.lng ? params.lng : '';
+    
+        const output = {}
+        let values = [];
+    
+        let sql = '';
+        let queryDistance = ''
+    
+        if(params.lat && params.lng){
+          sql = `SELECT e.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( e.lat ) ) * cos( radians( e.lng ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( e.lat ) ) ) ) as event_distance 
+          FROM ${DBTables.events} AS e`;
+    
+          queryDistance = ` HAVING event_distance < 10`;
+        }
+        else{
+          sql = `SELECT e.* FROM ${DBTables.events} AS e`;
+        }
+        
+        let queryParams = ``;
+
+        if(params.start_time != '' && params.end_time != ''){
+            queryParams += ` WHERE e.start_time >= '${encodeURI(params.start_time)}' AND e.start_time <= '${encodeURI(params.end_time)}'`;
+        }
+        else{
+            queryParams += ` WHERE e.end_time > NOW()`;
+        }
+        
+    
+        let queryJoinCat = '';
+        if(params.category && params.category != ''){
+          queryJoinCat += ` JOIN ${DBTables.event_category_relationships} ec ON ec.event_id = e.id`;
+          queryParams += ` AND ec.category_id IN (${encodeURI(params.category)})`;
+        }
+
+        let queryJoinTag = '';
+        if(params.tag && params.tag != ''){
+            queryJoinTag += ` JOIN ${DBTables.event_tag_relationships} et ON et.event_id = e.id`;
+            queryParams += ` AND et.tag_id IN (${encodeURI(params.tag)})`;
+        }
+
+        let queryJoinOrg = '';
+        if(params.organisers && params.organisers != ''){
+            queryJoinOrg += ` JOIN ${DBTables.event_organiser_relationships} eo ON eo.event_id = e.id`;
+            queryParams += ` AND eo.organizer_id IN (${encodeURI(params.organisers)})`;
+        }
+    
+        if(keyword != ''){
+          queryParams += ` AND ( e.title LIKE '%${encodeURI(keyword)}%' OR e.description LIKE '%${encodeURI(keyword)}%' )`;
+        }
+        if(params.featured){
+          queryParams += ` AND e.featured = 1`;
+        }
+        if(params.is_virtual){
+            queryParams += ` AND e.is_virtual = 1`;
+        }
+
+        // if(params.price && params.price != ''){
+        //   queryParams += ` AND l.price_range = ?`;
+        //   values.push(params.price);
+        // }
+     
+        
+        
+        // set order by
+        let queryOrderby = ` ORDER BY e.start_time ASC`;
+        // if(params.orderby && params.orderby != ''){
+        //   queryOrderby = ` ORDER BY ${encodeURI(params.orderby)}`;
+    
+        //   if(params.order && params.order != ''){
+        //     queryOrderby += ` ${encodeURI(params.order)}`;
+        //   }
+        // }
+    
+        // set limit 
+        let queryLimit = '';
+        if(params.limit){
+          queryLimit = ` LIMIT ?, ?`;
+          values.push(params.offset || 0);
+          values.push(params.limit);
+        }
+        
+        const count_sql = `${sql}${queryJoinCat}${queryJoinTag}${queryJoinOrg}${queryParams}${queryDistance}${queryOrderby}`;
+        sql += `${queryJoinCat}${queryJoinTag}${queryJoinOrg}${queryParams}${queryDistance}${queryOrderby}${queryLimit}`;
+        
+        console.log(sql);
+        const events = await query(sql, values);
+        let total_events = 0;
+    
+        if(events.length > 0){
+    
+          const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;
+          const resultCount = await query(count_sql_final, values);
+          
+          total_events = resultCount[0].count;
+    
+          const event_ids = events.map((e) => e['id']);
+          
+          
+          // get categories
+        //   const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
+        //                         FROM ${this.tableListingCategories} lc
+        //                         JOIN ${this.tableCategories} c ON lc.listing_categories_id = c.id  
+        //                         WHERE lc.listing_id IN (${listing_ids.join()})`;
+        //   const categories = await query(sqlListCat);
+    
+    
+        //   for (const item of listings) {
+        //     item.categories = categories.filter((c) => c.listing_id == item.id);
+        //   }
+        }
+
+        output.status = 200;
+        const data = {
+          events: events,
+          total_events: total_events
+        }
+        output.data = data;
+    
+        return output;
+    }
+
     // get related events
     getRelatedEvents = async (id) => {
         const event_id = id;
+
+        const event = await this.findOne({id});
         
         const sqlCat = `SELECT category_id
                             FROM ${DBTables.event_category_relationships} 
@@ -238,9 +548,23 @@ class EventModel {
                     LEFT JOIN ${DBTables.event_tag_relationships} t ON t.event_id = e.id 
                     LEFT JOIN ${DBTables.event_organiser_relationships} o ON o.event_id = e.id`;
 
-        let queryParams = ` WHERE e.id != ${event_id} AND (c.category_id IN (${categories.join()}) OR o.organizer_id IN (${organisers.join()})`            
+        let queryParams = ` WHERE e.id != ${event_id}`;     
 
-        if(tags.length > 0) queryParams += ` OR t.tag_id IN (${tags.join()}))`;
+        if(event.is_virtual == 1){
+            queryParams += ` AND e.is_virtual = 1`;    
+        }
+        else{
+            queryParams += ` AND e.is_virtual = 0`;    
+        }
+        
+        queryParams += ` AND (c.category_id IN (${categories.join()}) OR o.organizer_id IN (${organisers.join()})`;  
+
+        if(tags.length > 0){
+            queryParams += ` OR t.tag_id IN (${tags.join()}))`;
+        } 
+        else{
+            queryParams += ` )`;
+        }
 
         const final_sql = `${sql}${queryParams} GROUP BY(e.id) LIMIT 3`;
         const events = await query(final_sql);
