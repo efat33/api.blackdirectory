@@ -170,8 +170,8 @@ class ShopController {
   getProductReviews = async (req, res, next) => {
     const product = await shopModel.findOne({ id: req.params.product_id });
 
-    if (Object.keys(product).length === 0) { 
-      throw new AppError(403, "Product not found"); 
+    if (Object.keys(product).length === 0) {
+      throw new AppError(403, "Product not found");
     }
 
     const reviews = await shopModel.getProductReviews(req.params.product_id);
@@ -182,8 +182,8 @@ class ShopController {
   createProductReview = async (req, res, next) => {
     const product = await shopModel.findOne({ id: req.params.product_id });
 
-    if (Object.keys(product).length === 0) { 
-      throw new AppError(403, "Product not found"); 
+    if (Object.keys(product).length === 0) {
+      throw new AppError(403, "Product not found");
     }
 
     if (!req.body.rating || req.body.rating == '') {
@@ -214,7 +214,7 @@ class ShopController {
 
     for (let field of requiredFields) {
       if (req.body[field] == null) {
-        throw new AppError(403, `${field} is required.`); 
+        throw new AppError(403, `${field} is required.`);
       }
     }
 
@@ -244,7 +244,7 @@ class ShopController {
   }
 
   deleteCartItem = async (req, res, next) => {
-    const item = await shopModel.findOne({id: req.params.item_id}, shopModel.tableNameCartItems);
+    const item = await shopModel.findOne({ id: req.params.item_id }, shopModel.tableNameCartItems);
 
     if (Object.keys(item).length === 0) {
       throw new AppError(403, "Item not found");
@@ -259,6 +259,56 @@ class ShopController {
     await shopModel.clearCartItems(req.currentUser.id);
 
     new AppSuccess(res, 200, "200_successful");
+  };
+
+  getOrders = async (req, res, next) => {
+    const orders = await shopModel.getOrders({ user_id: req.currentUser.id });
+
+    new AppSuccess(res, 200, "200_successful", null, orders);
+  };
+
+  getOrder = async (req, res, next) => {
+    if (!req.params.order_id) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    const result = await shopModel.getOrder({ 'Orders.id': req.params.order_id, "Orders.user_id": req.currentUser.id });
+
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "Order not found")
+    };
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, result);
+  };
+
+  newOrder = async (req, res, next) => {
+    const order = await shopModel.createOrder(req.body, req.currentUser);
+
+    if (order.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "200_added", { 'entity': 'entity_order' }, order);
+  }
+
+  getPromo = async (req, res, next) => {
+    if (!req.params.promo_code) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    const result = await shopModel.getPromo({ 'Promo.code': req.params.promo_code });
+
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "Promo code not found")
+    };
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  };
+
+  getCountries = async (req, res, next) => {
+    const countries = await shopModel.getCountries();
+
+    new AppSuccess(res, 200, "200_successful", null, countries);
   };
 }
 

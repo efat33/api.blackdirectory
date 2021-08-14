@@ -28,4 +28,11 @@ router.post('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopControlle
 router.delete('/cart/:item_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteCartItem));
 router.delete('/cart-clear', apiKey(), authVerified(), awaitHandlerFactory(ShopController.clearCartItems));
 
+router.get('/orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrders));
+router.get('/order/:order_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrder));
+router.post('/order', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newOrder));
+router.get('/promo-code/:promo_code', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getPromo));
+
+router.get('/countries', apiKey(), awaitHandlerFactory(ShopController.getCountries));
+
 module.exports = router;
