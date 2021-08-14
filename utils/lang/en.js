@@ -47,6 +47,7 @@ exports.RESPONSE_CODES = Object.freeze({
   // Generalized Success
   "200_successful": "Successful",
   "200_loginSuccessful": "Login Successful",
+  "200_retrieved": "Retrieved successfully",
   "200_detailFound": ":entity retrieved successfully",
   "200_registerSuccess": "Registered successfully",
   "200_verifiedSuccess": "Account is verified successfully",
@@ -111,6 +112,10 @@ exports.ENTITIES = Object.freeze({
   entity_news: "News",
   entity_category: "Category",
 
+  // event
+  entity_event: "Event",
+  entity_eventID: "Event ID",
+  
   // mobiles
   entity_mobile: "Mobile",
   entity_provider: "Provider",
