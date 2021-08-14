@@ -98,6 +98,7 @@ exports.ENTITIES = Object.freeze({
   // product
   entity_product: "Product",
   entity_productID: "Product ID",
+  entity_order: "Order",
 
 
   // job
