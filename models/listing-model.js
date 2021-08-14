@@ -574,6 +574,9 @@ class ListingModel {
     
 
     let queryParams = ` WHERE l.status = 'publish'`;
+    if(params.user_id){
+      queryParams += ` AND (l.user_id = ${encodeURI(params.user_id)} OR l.claimer_id = ${encodeURI(params.user_id)})`;
+    }
 
     let queryJoinCat = '';
     if(params.category && params.category != ''){
@@ -793,6 +796,15 @@ class ListingModel {
       return false;
     }
 
+  }
+
+  deleteListing = async (id) => {
+
+    // delete review
+    const sql = `DELETE FROM ${DBTables.listings} WHERE id IN (?)`;
+    const result = await query(sql, [id]);
+
+    return result;
   }
 
   // get current user favorites 

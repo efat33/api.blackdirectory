@@ -414,11 +414,16 @@ class EventModel {
         
         let queryParams = ``;
 
-        if(params.start_time != '' && params.end_time != ''){
+        if(params.start_time && params.end_time){
             queryParams += ` WHERE e.start_time >= '${encodeURI(params.start_time)}' AND e.start_time <= '${encodeURI(params.end_time)}'`;
         }
         else{
-            queryParams += ` WHERE e.end_time > NOW()`;
+            if(params.past_event){
+                queryParams += ` WHERE e.end_time < NOW()`;
+            }
+            else{
+                queryParams += ` WHERE e.end_time > NOW()`;
+            }
         }
         
     
@@ -458,7 +463,13 @@ class EventModel {
         
         
         // set order by
-        let queryOrderby = ` ORDER BY e.start_time ASC`;
+        let queryOrderby = ``;
+        if(params.past_event){
+            queryOrderby = ` ORDER BY e.start_time DESC`;
+        }
+        else{
+            queryOrderby = ` ORDER BY e.start_time ASC`;
+        }
         // if(params.orderby && params.orderby != ''){
         //   queryOrderby = ` ORDER BY ${encodeURI(params.orderby)}`;
     
