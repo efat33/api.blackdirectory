@@ -22,6 +22,7 @@ router.post('/add-listing', apiKey(), authVerified(), validation.validateNewList
 router.post('/update-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.updateListing));
 router.post('/publish-listing', apiKey(), authVerified(), awaitHandlerFactory(listingController.publishListing));
 router.get('/update-view/:id', apiKey(), awaitHandlerFactory(listingController.updateView));
+router.delete('/delete-listing/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteListing));
 
 router.post('/new-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.newReview));
 router.post('/edit-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.editReview));

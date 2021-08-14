@@ -162,6 +162,30 @@ class ListingController {
 
   };
 
+  // delete listing
+  deleteListing = async (req, res, next) => {
+
+    // first get the review details
+    const listing = await ListingModel.findOne({ 'id': req.params.id });
+
+    if (Object.keys(listing).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    if (listing.user_id != req.currentUser.id) {
+      throw new AppError(401, "Unauthorised");
+    }
+
+    const result = await ListingModel.deleteListing(req.params.id);
+
+    if (result.affectedRows > 0) {
+      new AppSuccess(res, 200, "Deleted Successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
   // get listing categories
   getCategories = async (req, res, next) => {
     
