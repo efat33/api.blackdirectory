@@ -12,294 +12,347 @@ const EventModel = require("../models/event-model");
 dotenv.config();
 
 class EventController {
-    checkValidation = (req) => {
-        const errors = validationResult(req);
-    
-        if (!errors.isEmpty()) {
-          throw new AppError(400, "400_paramMissingGeneral", null, errors);
-        }
-    };
+  checkValidation = (req) => {
+    const errors = validationResult(req);
 
-    // create new event
-    newEvent = async (req, res, next) => {
-        // check primary validation set in eventValidator.js
-        this.checkValidation(req);
+    if (!errors.isEmpty()) {
+      throw new AppError(400, "400_paramMissingGeneral", null, errors);
+    }
+  };
 
-        if (!req.body.title) {
-            throw new AppError(403, "Title is required");
-        }
-        if (!req.body.description) {
-            throw new AppError(403, "Description is required");
-        }
-        if (!req.body.start_time || !req.body.end_time) {
-            throw new AppError(403, "Event Time is required");
-        }
-        if (req.body.is_virtual && req.body.youtube_url == '') {
-            throw new AppError(403, "Youtube URL is required");
-        }
-        if (!req.body.is_virtual && (req.body.address == '' || req.body.latitude == '' || req.body.longitude == '')) {
-            throw new AppError(403, "Event Address is required");
-        }
-        if (!req.body.category_id) {
-            throw new AppError(403, "Category is required");
-        }
-        if (!req.body.organizers) {
-            throw new AppError(403, "Organiser is required");
-        }
+  // create new event
+  newEvent = async (req, res, next) => {
+    // check primary validation set in eventValidator.js
+    this.checkValidation(req);
 
-        const result = await  EventModel.newEvent(req.body, req.currentUser);
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+    if (!req.body.description) {
+      throw new AppError(403, "Description is required");
+    }
+    if (!req.body.start_time || !req.body.end_time) {
+      throw new AppError(403, "Event Time is required");
+    }
+    if (req.body.is_virtual && req.body.youtube_url == '') {
+      throw new AppError(403, "Youtube URL is required");
+    }
+    if (!req.body.is_virtual && (req.body.address == '' || req.body.latitude == '' || req.body.longitude == '')) {
+      throw new AppError(403, "Event Address is required");
+    }
+    if (!req.body.category_id) {
+      throw new AppError(403, "Category is required");
+    }
+    if (!req.body.organizers) {
+      throw new AppError(403, "Organiser is required");
+    }
 
-        if (result.status && result.status == 200) {
+    const result = await EventModel.newEvent(req.body, req.currentUser);
 
-            new AppSuccess(res, 200, "200_added", { 'entity': 'entity_event' }, result.data);
+    if (result.status && result.status == 200) {
 
-        }
-        else {
-            throw new AppError(403, "403_unknownError");
-        }
+      new AppSuccess(res, 200, "200_added", { 'entity': 'entity_event' }, result.data);
 
-    };
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
 
-    // edit event
-    editEvent = async (req, res, next) => {
-        // check primary validation set in eventValidator.js
-        this.checkValidation(req);
+  };
 
-        if (!req.body.id) {
-            throw new AppError(403, "ID is required");
-        }
-        if (!req.body.title) {
-            throw new AppError(403, "Title is required");
-        }
-        if (!req.body.description) {
-            throw new AppError(403, "Description is required");
-        }
-        if (!req.body.start_time || !req.body.end_time) {
-            throw new AppError(403, "Event Time is required");
-        }
-        if (req.body.is_virtual && req.body.youtube_url == '') {
-            throw new AppError(403, "Youtube URL is required");
-        }
-        if (!req.body.is_virtual && (req.body.address == '' || req.body.latitude == '' || req.body.longitude == '')) {
-            throw new AppError(403, "Event Address is required");
-        }
-        if (!req.body.category_id) {
-            throw new AppError(403, "Category is required");
-        }
-        if (!req.body.organizers) {
-            throw new AppError(403, "Organiser is required");
-        }
+  // edit event
+  editEvent = async (req, res, next) => {
+    // check primary validation set in eventValidator.js
+    this.checkValidation(req);
 
-        const existingEvent = await EventModel.findOne({id: req.body.id}, DBTables.events);
-        
-        // check if the user is authorised to edit this event
-        if(existingEvent.user_id && existingEvent.user_id != req.currentUser.id){
-            throw new AppError(401, "401_unauthorised");
-        }
+    if (!req.body.id) {
+      throw new AppError(403, "ID is required");
+    }
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+    if (!req.body.description) {
+      throw new AppError(403, "Description is required");
+    }
+    if (!req.body.start_time || !req.body.end_time) {
+      throw new AppError(403, "Event Time is required");
+    }
+    if (req.body.is_virtual && req.body.youtube_url == '') {
+      throw new AppError(403, "Youtube URL is required");
+    }
+    if (!req.body.is_virtual && (req.body.address == '' || req.body.latitude == '' || req.body.longitude == '')) {
+      throw new AppError(403, "Event Address is required");
+    }
+    if (!req.body.category_id) {
+      throw new AppError(403, "Category is required");
+    }
+    if (!req.body.organizers) {
+      throw new AppError(403, "Organiser is required");
+    }
 
-        const result = await  EventModel.editEvent(req.body, req.currentUser);
+    const existingEvent = await EventModel.findOne({ id: req.body.id }, DBTables.events);
 
-        if (result.status && result.status == 200) {
+    // check if the user is authorised to edit this event
+    if (existingEvent.user_id && existingEvent.user_id != req.currentUser.id) {
+      throw new AppError(401, "401_unauthorised");
+    }
 
-            new AppSuccess(res, 200, "200_updated_successfully", '', result.data);
+    const result = await EventModel.editEvent(req.body, req.currentUser);
 
-        }
-        else {
-            throw new AppError(403, "403_unknownError");
-        }
+    if (result.status && result.status == 200) {
 
-    };
+      new AppSuccess(res, 200, "200_updated_successfully", '', result.data);
 
-    // get single event details
-    getEvent = async (req, res, next) => {
-    
-        const result = await EventModel.getEvent(req.params);
-      
-        new AppSuccess(res, 200, "200_retrieved", '', result);
-      
-    };
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
 
-    searchEvents = async (req, res, next) => {
+  };
 
-        const result = await EventModel.searchEvents(req.body);
-    
-        if (result.status && result.status == 200) {
-    
-          new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_event' }, result.data);
-    
-        }
-        else {
-          throw new AppError(403, "403_unknownError");
-        }
-    
-      };
+  // get single event details
+  getEvent = async (req, res, next) => {
 
-    // get related events
-    getRelatedEvents = async (req, res, next) => {
-    
-        const result = await EventModel.getRelatedEvents(req.params.id);
-      
-        new AppSuccess(res, 200, "200_retrieved", '', result);
-      
-    };
+    const result = await EventModel.getEvent(req.params);
 
-    // get loggedin user tickets
-    getUserTickets = async (req, res, next) => {
-        let tickets = [];
+    if (result) {
+        // process comments and replies
 
-        // if user not loggedin, return with empty result
-        if(!req.currentUser) new AppSuccess(res, 200, "200_retrieved", '', tickets);
-
-
-        tickets = await EventModel.getUserTickets(req.params.id, req.currentUser.id);
-      
-        new AppSuccess(res, 200, "200_retrieved", '', tickets);
-      
-    };
-
-     // get loggedin user rsvp
-     getUserRsvp = async (req, res, next) => {
-        let rsvp = [];
-
-        // if user not loggedin, return with empty result
-        if(!req.currentUser) new AppSuccess(res, 200, "200_retrieved", '', rsvp);
-
-        rsvp = await EventModel.getUserRsvp(req.params.id, req.currentUser.id);
-      
-        new AppSuccess(res, 200, "200_retrieved", '', rsvp);
-      
-    };
-
-    // submit rsvp application form
-    rsvpApply = async (req, res, next) => {
-       
-        // do validation
-        if (!req.body.rsvp_id) {
-            throw new AppError(403, "RSVP ID is required");
-        }
-        if (!req.body.name) {
-            throw new AppError(403, "Name is required");
-        }
-        if (!req.body.email) {
-            throw new AppError(403, "Email is required");
-        }
-        if (!req.body.guest_no) {
-            throw new AppError(403, "Number of guest is required");
+        const comments = result.comments;
+        for (let comment of comments) {
+            comment.replies = comments.filter(com => com.parent_id === comment.id);
         }
 
-        // validate if the guest no is greater than available Number
-        const rsvp = await EventModel.findOne({id:req.body.rsvp_id}, DBTables.event_tickets);
+        result.comments = comments.filter(com => com.parent_id == null);
+    }
 
-        if (req.body.guest_no > rsvp.available) {
-            throw new AppError(403, "Guest number cannot be greater than available RSVP");
-        }
+    new AppSuccess(res, 200, "200_retrieved", '', result);
 
-        const result = await  EventModel.rsvpApply(req.body, req.currentUser, rsvp);
+  };
 
-        if (result.status && result.status == 200) {
+  searchEvents = async (req, res, next) => {
 
-            new AppSuccess(res, 200, "200_successful");
+    const result = await EventModel.searchEvents(req.body);
 
-        }
-        else {
-            throw new AppError(403, "403_unknownError");
-        }
+    if (result.status && result.status == 200) {
 
+      new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_event' }, result.data);
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+  // get related events
+  getRelatedEvents = async (req, res, next) => {
+
+    const result = await EventModel.getRelatedEvents(req.params.id);
+
+    new AppSuccess(res, 200, "200_retrieved", '', result);
+
+  };
+
+  // get loggedin user tickets
+  getUserTickets = async (req, res, next) => {
+    let tickets = [];
+
+    // if user not loggedin, return with empty result
+    if (!req.currentUser) {
+      new AppSuccess(res, 200, "200_retrieved", '', tickets);
+      return;
     };
 
 
-    // add new organiser
-    newOrganiser = async (req, res, next) => {
-       
-        // do validation
-        if (!req.body.name) {
-            throw new AppError(403, "Name is required");
-        }
-        if (!req.body.phone) {
-            throw new AppError(403, "Phone is required");
-        }
+    tickets = await EventModel.getUserTickets(req.params.id, req.currentUser.id);
 
-        const result = await  EventModel.newOrganiser(req.body);
+    new AppSuccess(res, 200, "200_retrieved", '', tickets);
 
-        if (result.status && result.status == 200) {
+  };
 
-            new AppSuccess(res, 200, "200_added_successfully", '', result.data);
+  // get loggedin user rsvp
+  getUserRsvp = async (req, res, next) => {
+    let rsvp = [];
 
-        }
-        else {
-            throw new AppError(403, "403_unknownError");
-        }
-
+    // if user not loggedin, return with empty result
+    if (!req.currentUser) {
+      new AppSuccess(res, 200, "200_retrieved", '', rsvp);
+      return;
     };
 
-    // get all the organisers
-    getOrganisers = async (req, res, next) => {
-    
-      const result = await EventModel.find('', DBTables.event_organisers);
-    
-      new AppSuccess(res, 200, "200_retrieved", '', result);
-    
+    rsvp = await EventModel.getUserRsvp(req.params.id, req.currentUser.id);
+
+    new AppSuccess(res, 200, "200_retrieved", '', rsvp);
+
+  };
+
+  // submit rsvp application form
+  rsvpApply = async (req, res, next) => {
+
+    // do validation
+    if (!req.body.rsvp_id) {
+      throw new AppError(403, "RSVP ID is required");
+    }
+    if (!req.body.name) {
+      throw new AppError(403, "Name is required");
+    }
+    if (!req.body.email) {
+      throw new AppError(403, "Email is required");
+    }
+    if (!req.body.guest_no) {
+      throw new AppError(403, "Number of guest is required");
+    }
+
+    // validate if the guest no is greater than available Number
+    const rsvp = await EventModel.findOne({ id: req.body.rsvp_id }, DBTables.event_tickets);
+
+    if (req.body.guest_no > rsvp.available) {
+      throw new AppError(403, "Guest number cannot be greater than available RSVP");
+    }
+
+    const result = await EventModel.rsvpApply(req.body, req.currentUser, rsvp);
+
+    if (result.status && result.status == 200) {
+
+      new AppSuccess(res, 200, "200_successful");
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+
+  // add new organiser
+  newOrganiser = async (req, res, next) => {
+
+    // do validation
+    if (!req.body.name) {
+      throw new AppError(403, "Name is required");
+    }
+    if (!req.body.phone) {
+      throw new AppError(403, "Phone is required");
+    }
+
+    const result = await EventModel.newOrganiser(req.body);
+
+    if (result.status && result.status == 200) {
+
+      new AppSuccess(res, 200, "200_added_successfully", '', result.data);
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+  // get all the organisers
+  getOrganisers = async (req, res, next) => {
+
+    const result = await EventModel.find('', DBTables.event_organisers);
+
+    new AppSuccess(res, 200, "200_retrieved", '', result);
+
+  };
+
+  // add new category
+  newCategory = async (req, res, next) => {
+
+    // do validation
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await EventModel.newCategory(req.body);
+
+    if (result.status && result.status == 200) {
+
+      new AppSuccess(res, 200, "200_added_successfully", '', result.data);
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+  // get all the categories
+  getCategories = async (req, res, next) => {
+
+    const result = await EventModel.find('', DBTables.event_categories);
+
+    new AppSuccess(res, 200, "200_retrieved", '', result);
+
+  };
+
+  // add new tag
+  newTag = async (req, res, next) => {
+
+    // do validation
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await EventModel.newTag(req.body);
+
+    if (result.status && result.status == 200) {
+
+      new AppSuccess(res, 200, "200_added_successfully", '', result.data);
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+  // get all the organisers
+  getTags = async (req, res, next) => {
+
+    const result = await EventModel.find('', DBTables.event_tags);
+
+    new AppSuccess(res, 200, "200_retrieved", '', result);
+
+  };
+
+  newEventComment = async (req, res, next) => {
+    const eventComment = await EventModel.createEventComment(req.body, req.currentUser);
+
+    if (eventComment.status !== 200) {
+      throw new AppError(403, "403_unknownError")
     };
 
-    // add new category
-    newCategory = async (req, res, next) => {
-       
-        // do validation
-        if (!req.body.title) {
-            throw new AppError(403, "Title is required");
-        }
+    new AppSuccess(res, 200, "200_added", { 'entity': 'entity_comment' }, eventComment.data);
+  }
 
-        const result = await  EventModel.newCategory(req.body);
+  deleteEventComment = async (req, res, next) => {
+    const result = await EventModel.getEventComment(req.params.comment_id);
 
-        if (result.status && result.status == 200) {
-
-            new AppSuccess(res, 200, "200_added_successfully", '', result.data);
-
-        }
-        else {
-            throw new AppError(403, "403_unknownError");
-        }
-
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
     };
 
-    // get all the categories
-    getCategories = async (req, res, next) => {
-    
-        const result = await EventModel.find('', DBTables.event_categories);
-      
-        new AppSuccess(res, 200, "200_retrieved", '', result);
-      
+    if (result[0].user_id !== req.currentUser.id) {
+      throw new AppError(403, "403_unknownError")
+    }
+
+    await EventModel.deleteEventComment(req.params.comment_id, result[0].event_id);
+
+    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_comment' });
+  };
+
+  updateEventComment = async (req, res, next) => {
+    if (!req.body) {
+      throw new AppError(403, "403_unknownError")
     };
 
-    // add new tag
-    newTag = async (req, res, next) => {
-       
-        // do validation
-        if (!req.body.title) {
-            throw new AppError(403, "Title is required");
-        }
+    const result = await EventModel.updateEventComment(req.params.comment_id, req.body.comment);
 
-        const result = await  EventModel.newTag(req.body);
-
-        if (result.status && result.status == 200) {
-
-            new AppSuccess(res, 200, "200_added_successfully", '', result.data);
-
-        }
-        else {
-            throw new AppError(403, "403_unknownError");
-        }
-
-    };
-
-    // get all the organisers
-    getTags = async (req, res, next) => {
-    
-        const result = await EventModel.find('', DBTables.event_tags);
-      
-        new AppSuccess(res, 200, "200_retrieved", '', result);
-      
-    };
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_comment' }, result);
+  };
 }
 
 module.exports = new EventController();

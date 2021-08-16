@@ -32,4 +32,8 @@ router.get('/categories', apiKey(),  awaitHandlerFactory(EventController.getCate
 router.post('/new-tag', apiKey(), authVerified(), awaitHandlerFactory(EventController.newTag));
 router.get('/tags', apiKey(),  awaitHandlerFactory(EventController.getTags));
 
+router.post('/add-comment', apiKey(), authVerified(), awaitHandlerFactory(EventController.newEventComment));
+router.delete('/delete-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(EventController.deleteEventComment));
+router.put('/update-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(EventController.updateEventComment));
+
 module.exports = router;
