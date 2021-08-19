@@ -518,7 +518,7 @@ class ShopModel {
   }
 
   getOrderShipment = async (order_id) => {
-    let sql = `SELECT first_name, last_name, company_name, Countries.title as country, address, city, county, postcode, phone, email
+    let sql = `SELECT first_name, last_name, company_name, Countries.title as country, address, city, state, postcode, phone, email
       FROM ${this.tableOrderShipments}
       LEFT JOIN ${this.tableCountries} as Countries ON Countries.id=country_id
       WHERE order_id=?
@@ -569,7 +569,7 @@ class ShopModel {
       }
 
       const orderShippingSql = `INSERT INTO ${this.tableOrderShipments} 
-        (order_id, first_name, last_name, company_name, country_id, address, city, county, postcode, phone, email) 
+        (order_id, first_name, last_name, company_name, country_id, address, city, state, postcode, phone, email) 
         VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
 
       const shippingValues = [
@@ -580,7 +580,7 @@ class ShopModel {
         params.shipping.country_id,
         params.shipping.address,
         params.shipping.city,
-        params.shipping.county,
+        params.shipping.state,
         params.shipping.postcode,
         params.shipping.phone,
         params.shipping.email,
