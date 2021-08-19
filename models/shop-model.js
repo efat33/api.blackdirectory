@@ -15,6 +15,8 @@ class ShopModel {
   tableOrderShipments = 'order_shipments';
   tableOrderPromoCodes = 'order_promo_codes';
 
+  tableWithdrawRequests = 'withdraw_requests';
+
   tableNameUsers = 'users';
   tableCountries = 'countries';
 
@@ -634,6 +636,42 @@ class ShopModel {
     let sql = `SELECT * FROM ${this.tableCountries}`;
 
     return await query(sql);
+  }
+
+  createWithdrawRequest = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableWithdrawRequests} 
+        (user_id, amount, payment_method, date) 
+        VALUES (?,?,?,?)`;
+
+    const values = [
+      currentUser.id,
+      params.amount,
+      params.payment_method,
+      current_date,
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      const request_id = result.insertId;
+
+      output.status = 200
+      output.data = { request_id }
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  getWithdrawRequests = async (currentUser) => {
+    let sql = `SELECT * FROM ${this.tableWithdrawRequests} WHERE user_id=?`;
+
+    return await query(sql, [currentUser.id]);
   }
 }
 
