@@ -11,6 +11,8 @@ const dotenv = require("dotenv");
 const EventModel = require("../models/event-model");
 dotenv.config();
 
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 class EventController {
   checkValidation = (req) => {
     const errors = validationResult(req);
@@ -116,14 +118,14 @@ class EventController {
     const result = await EventModel.getEvent(req.params);
 
     if (result) {
-        // process comments and replies
+      // process comments and replies
 
-        const comments = result.comments;
-        for (let comment of comments) {
-            comment.replies = comments.filter(com => com.parent_id === comment.id);
-        }
+      const comments = result.comments;
+      for (let comment of comments) {
+        comment.replies = comments.filter(com => com.parent_id === comment.id);
+      }
 
-        result.comments = comments.filter(com => com.parent_id == null);
+      result.comments = comments.filter(com => com.parent_id == null);
     }
 
     new AppSuccess(res, 200, "200_retrieved", '', result);
@@ -352,6 +354,63 @@ class EventController {
     const result = await EventModel.updateEventComment(req.params.comment_id, req.body.comment);
 
     new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_comment' }, result);
+  };
+
+  createStripeCheckoutSession = async (req, res, next) => {
+    if (!req.body.tickets || req.body.tickets.length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    
+    const ids = req.body.tickets.map(ticket => ticket.id);
+    const tickets = await EventModel.getTickets(ids);
+    
+    const event_id = tickets[0].event_id;
+    const line_items = [];
+    const meta_items = [];
+
+    for (const ticket of tickets) {
+      const quantity = req.body.tickets.find(t => t.id === ticket.id).quantity;
+
+      if (ticket.available != null && ticket.available < quantity) {
+        throw new AppError(403, "Please provide a valid quantity")
+      };
+
+      line_items.push(
+        {
+          price_data: {
+            currency: 'gbp',
+            unit_amount: parseFloat(ticket.price) * 100,
+            product_data: {
+              name: ticket.title
+            },
+          },
+          quantity: quantity,
+        },
+      );
+
+      meta_items.push({
+        ticketId: ticket.id,
+        price: ticket.price,
+        quantity: quantity
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: line_items,
+      mode: 'payment',
+      success_url: `${req.body.returnUrl}?success=true`,
+      cancel_url: `${req.body.returnUrl}?success=false`,
+      metadata: {
+        type: 'event',
+        eventId: event_id,
+        items: JSON.stringify(meta_items),
+        userId: req.currentUser.id
+      }
+    });
+
+    new AppSuccess(res, 200, "200_successful", null, session);
   };
 }
 

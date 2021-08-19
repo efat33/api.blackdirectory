@@ -402,6 +402,7 @@ class JobController {
             success_url: `${req.body.returnUrl}?success=true`,
             cancel_url: `${req.body.returnUrl}?success=false`,
             metadata: {
+                'type': 'job',
                 'packageId': jobPackage.id,
                 'priceId': packagePrice.id,
                 'validity': packagePrice.validity,
@@ -410,39 +411,6 @@ class JobController {
         });
 
         new AppSuccess(res, 200, "200_successful", null, session);
-    };
-
-    stripeWebhook = async (req, res, next) => {
-        const payload = req.body;
-        const sig = req.headers['stripe-signature'];
-
-        let event;
-
-        try {
-            const webhookSecret = process.env.NODE_ENV === "development" ? process.env.STRIPE_WEBHOOK_SECRET_LOCALHOST : process.env.STRIPE_WEBHOOK_SECRET;
-            event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
-        } catch (err) {
-            return res.status(400).send(`Webhook Error: ${err.message}`);
-        }
-
-        if (event.type === 'checkout.session.completed') {
-            const session = event.data.object;
-
-            const date = new Date();
-            const purchaseDate = commonfn.dateTimeNow();
-            const expireDate = commonfn.dateTime(new Date(date.setMonth(date.getMonth() + parseInt(session.metadata.validity))));
-
-            const meta = {
-                package: session.metadata.packageId,
-                package_price: session.metadata.priceId,
-                package_purchase_date: purchaseDate,
-                package_expire_date: expireDate,
-            }
-
-            await UserModel.updateUserPostMeta(session.metadata.userId, meta);
-        }
-
-        res.status(200).send();
     };
 }
 

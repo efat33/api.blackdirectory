@@ -384,7 +384,7 @@ class EventModel {
       }
 
       event.rsvp = await query(sqlRsvp, [event_id, 'rsvp']);
-      
+
       event.comments = await this.getEventComments(event.id);
     }
 
@@ -784,6 +784,99 @@ class EventModel {
 
     await query(sql, values);
     await this.updateEventCommentCount(eventId);
+  }
+
+  getTickets = async (ticketIds) => {
+    const ids = encodeURI(ticketIds.join(','));
+    const sqlTicket = `SELECT * 
+      FROM ${DBTables.event_tickets} 
+      WHERE id IN (${ids})`;
+
+    return await query(sqlTicket);
+  }
+
+  
+  buyEventTickets = async (items, event_id, user_id) => {
+    const current_date = commonfn.dateTimeNow();
+    const output = {}
+
+    event_id = parseInt(event_id);
+    user_id = parseInt(user_id);
+
+    let total = 0;
+    let ticket_count = 0;
+
+    for (const item of items) {
+      total += item.price * item.quantity;
+      ticket_count += item.quantity;
+    }
+
+    // first insert into ticket order table
+    const sqlOrder = `INSERT INTO ${DBTables.event_ticket_orders} (event_id, user_id, type, date, status, ticket_count, total, created_at, updated_at) 
+                    VALUES (?,?,?,?,?,?,?,?,?)`;
+    const valuesOrder = [event_id, user_id, 'ticket', current_date, 'approved', ticket_count, total, current_date, current_date];
+
+    const resultOrder = await query(sqlOrder, valuesOrder);
+
+    if (resultOrder.insertId) {
+      const order_id = resultOrder.insertId;
+
+      // insert into order meta table
+      const sqlOMeta = `INSERT INTO ${DBTables.event_ticket_order_meta} (event_ticket_order_id, event_tickets_id, quantity, amount) VALUES ?`;
+      const meta_values = [];
+
+      for (const item of items) {
+        const value = [order_id, item.ticketId, item.quantity, item.price];
+        meta_values.push(value);
+      }
+
+      await query2(sqlOMeta, [meta_values]);
+
+      // insert into ticket attendee table
+      const sqlAttende = `INSERT INTO ${DBTables.event_ticket_attendees} (event_ticket_order_id, event_ticket_id, event_id, user_id, code) VALUES ?`;
+      const insertData = [];
+
+      console.log("🚀 ~ file: event-model.js ~ line 840 ~ EventModel ~ buyEventTickets= ~ items", items)
+      for (const item of items) {
+        for (let index = 0; index < item.quantity; index++) {
+          // generate code
+          const ranStr2 = commonfn.randomCode(8);
+          const code = `${order_id}${ranStr2}`;
+
+          const tmp = [order_id, item.ticketId, event_id, user_id, code];
+          insertData.push(tmp);
+        }
+      }
+
+      await query2(sqlAttende, [insertData]);
+
+
+      // finally update available ticket
+      const ids = items.map(ticket => ticket.ticketId);
+      const tickets = await this.getTickets(ids);
+
+      for (const ticket of tickets) {
+        if (ticket.available != null) {
+          const item = items.find(t => t.ticketId === ticket.id);
+
+          const updated_available = ticket.available - item.quantity;
+          const basic_info = {
+            'available': updated_available,
+            'updated_at': current_date
+          }
+    
+          const basic_colset = multipleColumnSet(basic_info, ',');
+          const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+          const result = await query(sql, [...basic_colset.values, ticket.id]);
+    
+        }
+      }
+
+      output.status = 200;
+
+    }
+    return output;
   }
 }
 

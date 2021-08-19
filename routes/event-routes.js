@@ -36,4 +36,7 @@ router.post('/add-comment', apiKey(), authVerified(), awaitHandlerFactory(EventC
 router.delete('/delete-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(EventController.deleteEventComment));
 router.put('/update-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(EventController.updateEventComment));
 
+router.post('/create-checkout-session', apiKey(), auth(), awaitHandlerFactory(EventController.createStripeCheckoutSession));
+// router.post('/stripe-webhook', express.raw({ type: 'application/json' }), awaitHandlerFactory(EventController.stripeWebhook));
+
 module.exports = router;
