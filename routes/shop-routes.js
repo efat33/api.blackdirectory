@@ -13,6 +13,7 @@ const validation = require('../utils/validators/shopValidator');
 router.post('/product/new', apiKey(), authVerified(), validation.validateNewProduct, awaitHandlerFactory(ShopController.newProduct));
 router.post('/product/edit', apiKey(), authVerified(), validation.validateNewProduct, awaitHandlerFactory(ShopController.editProduct));
 router.get('/product/:slug', apiKey(), awaitHandlerFactory(ShopController.getProduct));
+router.get('/product/:slug/related-products', apiKey(), awaitHandlerFactory(ShopController.getRelatedProducts));
 router.get('/product-categories', apiKey(), awaitHandlerFactory(ShopController.getProductCategories));
 router.get('/product-tags', apiKey(), awaitHandlerFactory(ShopController.getProductTags));
 router.post('/products', apiKey(), awaitHandlerFactory(ShopController.getProducts));

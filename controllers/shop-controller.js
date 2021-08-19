@@ -139,6 +139,21 @@ class ShopController {
 
   };
 
+  // get single product details
+  getRelatedProducts = async (req, res, next) => {
+    if (!req.params.slug || req.params.slug == '') {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    const result = await shopModel.getRelatedProducts(req.params.slug);
+
+    if (Object.keys(result).length === 0) throw new AppError(403, "403_unknownError");
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_product' }, result);
+
+
+  };
+
   // get all products and product filter
   getProducts = async (req, res, next) => {
 

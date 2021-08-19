@@ -259,9 +259,6 @@ class ShopModel {
       values.push(params.offset);
       values.push(params.limit);
     }
-    else {
-      queryLimit = ` LIMIT 0, 12`;
-    }
 
     // set params
     if (params.params) {
@@ -277,6 +274,11 @@ class ShopModel {
         queryParams += ` AND p.category_id = ${p.category}`;
       }
 
+      if (p.user_id && p.user_id != '') {
+        // TODO: do javascript validation
+        queryParams += ` AND p.user_id = ${p.user_id}`;
+      }
+
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
@@ -286,6 +288,26 @@ class ShopModel {
     return await query(sql, values);
   }
 
+  getRelatedProducts = async (slug) => {
+    let sql = `SELECT p.*, c.title as category_name
+              FROM ${DBTables.products} as p
+              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+
+    let queryParams = ` WHERE p.slug != ? AND p.category_id = (
+      SELECT category_id FROM ${DBTables.products} WHERE slug = ?
+    )`;
+
+    let values = [slug, slug];
+
+    // set limit 
+    let queryLimit = ` LIMIT 4`;
+
+    sql += `${queryParams}${queryLimit}`;
+
+
+
+    return await query(sql, values);
+  }
 
   getProductReviews = async (id) => {
     let sql = `SELECT Reviews.*, Users.display_name as user_display_name,
