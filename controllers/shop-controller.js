@@ -139,6 +139,21 @@ class ShopController {
 
   };
 
+  // get single product details
+  getRelatedProducts = async (req, res, next) => {
+    if (!req.params.slug || req.params.slug == '') {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    const result = await shopModel.getRelatedProducts(req.params.slug);
+
+    if (Object.keys(result).length === 0) throw new AppError(403, "403_unknownError");
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_product' }, result);
+
+
+  };
+
   // get all products and product filter
   getProducts = async (req, res, next) => {
 
@@ -309,6 +324,44 @@ class ShopController {
     const countries = await shopModel.getCountries();
 
     new AppSuccess(res, 200, "200_successful", null, countries);
+  };
+
+  newWithdrawRequest = async (req, res, next) => {
+    const orders = await shopModel.getOrders({ user_id: req.currentUser.id });
+
+    const total_earned = orders
+      .filter((order) => order.status === 'Approved')
+      .reduce((acc, order) => {
+        return acc + parseFloat(order.earned);
+      }, 0);
+
+    const withdraw_requests = await shopModel.getWithdrawRequests(req.currentUser);
+
+    const total_requested_ammount = withdraw_requests
+      .filter((request) => request.status !== 'Cancelled')
+      .reduce((acc, request) => {
+        return acc + parseFloat(request.amount);
+      }, 0);
+
+    const current_balance = total_earned - total_requested_ammount;
+
+    if (current_balance < req.body.amount) {
+      throw new AppError(403, "Not enough balance")
+    }
+
+    const withdraw_request = await shopModel.createWithdrawRequest(req.body, req.currentUser);
+
+    if (withdraw_request.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "200_successful", null, withdraw_request);
+  }
+
+  getWithdrawRequests = async (req, res, next) => {
+    const withdraw_requests = await shopModel.getWithdrawRequests(req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful", null, withdraw_requests);
   };
 }
 

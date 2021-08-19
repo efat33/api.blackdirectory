@@ -22,7 +22,6 @@ class StripeController {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      console.log("🚀 ~ file: stripe-controller.js ~ line 30 ~ StripeController ~ stripeWebhook= ~ session", session)
 
       if (session.metadata.type === 'job') {
         await this.jobPackageHook(session);
@@ -55,8 +54,6 @@ class StripeController {
       event_id: parseInt(session.metadata.eventId),
       user_id: parseInt(session.metadata.userId)
     }
-
-    console.log(meta);
 
     await EventModel.buyEventTickets(meta.items, meta.event_id, meta.user_id);
   }

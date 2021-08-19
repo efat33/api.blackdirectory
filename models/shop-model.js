@@ -15,6 +15,8 @@ class ShopModel {
   tableOrderShipments = 'order_shipments';
   tableOrderPromoCodes = 'order_promo_codes';
 
+  tableWithdrawRequests = 'withdraw_requests';
+
   tableNameUsers = 'users';
   tableCountries = 'countries';
 
@@ -259,9 +261,6 @@ class ShopModel {
       values.push(params.offset);
       values.push(params.limit);
     }
-    else {
-      queryLimit = ` LIMIT 0, 12`;
-    }
 
     // set params
     if (params.params) {
@@ -277,6 +276,11 @@ class ShopModel {
         queryParams += ` AND p.category_id = ${p.category}`;
       }
 
+      if (p.user_id && p.user_id != '') {
+        // TODO: do javascript validation
+        queryParams += ` AND p.user_id = ${p.user_id}`;
+      }
+
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
@@ -286,6 +290,26 @@ class ShopModel {
     return await query(sql, values);
   }
 
+  getRelatedProducts = async (slug) => {
+    let sql = `SELECT p.*, c.title as category_name
+              FROM ${DBTables.products} as p
+              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+
+    let queryParams = ` WHERE p.slug != ? AND p.category_id = (
+      SELECT category_id FROM ${DBTables.products} WHERE slug = ?
+    )`;
+
+    let values = [slug, slug];
+
+    // set limit 
+    let queryLimit = ` LIMIT 4`;
+
+    sql += `${queryParams}${queryLimit}`;
+
+
+
+    return await query(sql, values);
+  }
 
   getProductReviews = async (id) => {
     let sql = `SELECT Reviews.*, Users.display_name as user_display_name,
@@ -518,7 +542,7 @@ class ShopModel {
   }
 
   getOrderShipment = async (order_id) => {
-    let sql = `SELECT first_name, last_name, company_name, Countries.title as country, address, city, county, postcode, phone, email
+    let sql = `SELECT first_name, last_name, company_name, Countries.title as country, address, city, state, postcode, phone, email
       FROM ${this.tableOrderShipments}
       LEFT JOIN ${this.tableCountries} as Countries ON Countries.id=country_id
       WHERE order_id=?
@@ -569,7 +593,7 @@ class ShopModel {
       }
 
       const orderShippingSql = `INSERT INTO ${this.tableOrderShipments} 
-        (order_id, first_name, last_name, company_name, country_id, address, city, county, postcode, phone, email) 
+        (order_id, first_name, last_name, company_name, country_id, address, city, state, postcode, phone, email) 
         VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
 
       const shippingValues = [
@@ -580,7 +604,7 @@ class ShopModel {
         params.shipping.country_id,
         params.shipping.address,
         params.shipping.city,
-        params.shipping.county,
+        params.shipping.state,
         params.shipping.postcode,
         params.shipping.phone,
         params.shipping.email,
@@ -612,6 +636,42 @@ class ShopModel {
     let sql = `SELECT * FROM ${this.tableCountries}`;
 
     return await query(sql);
+  }
+
+  createWithdrawRequest = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableWithdrawRequests} 
+        (user_id, amount, payment_method, date) 
+        VALUES (?,?,?,?)`;
+
+    const values = [
+      currentUser.id,
+      params.amount,
+      params.payment_method,
+      current_date,
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      const request_id = result.insertId;
+
+      output.status = 200
+      output.data = { request_id }
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  getWithdrawRequests = async (currentUser) => {
+    let sql = `SELECT * FROM ${this.tableWithdrawRequests} WHERE user_id=?`;
+
+    return await query(sql, [currentUser.id]);
   }
 }
 
