@@ -38,7 +38,9 @@ exports.DBTables = {
   'event_ticket_order_meta': 'event_ticket_order_meta',
   'event_ticket_attendees': 'event_ticket_attendees',
   'event_reviews': 'event_reviews',
+  'event_comments': 'event_comments',
   
+  'users': 'users',
 };
 
 exports.multipleColumnSet = (object, joinBy = 'AND') => {

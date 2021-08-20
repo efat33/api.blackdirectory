@@ -64,7 +64,7 @@ class UserController {
             });
             const { password, ...userWithoutPassword } = registerInfo;
 
-            res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
+            res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
 
             new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
@@ -97,7 +97,7 @@ class UserController {
                 const { password, ...userWithoutPassword } = user;
 
 
-                res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true });
+                res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
                 new AppSuccess(res, 200, "200_loginSuccessful", '', { ...userWithoutPassword });
 
             } else {

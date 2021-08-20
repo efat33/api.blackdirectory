@@ -48,6 +48,6 @@ router.get('/get-job-packages', apiKey(), auth(), isEmployer(), awaitHandlerFact
 router.get('/get-current-package', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.getCurrentPackage));
 
 router.post('/create-checkout-session', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.createStripeCheckoutSession));
-router.post('/stripe-webhook', express.raw({ type: 'application/json' }), awaitHandlerFactory(jobController.stripeWebhook));
+// router.post('/stripe-webhook', express.raw({ type: 'application/json' }), awaitHandlerFactory(jobController.stripeWebhook));
 
 module.exports = router;
