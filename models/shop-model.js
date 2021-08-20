@@ -10,8 +10,17 @@ class ShopModel {
   tableNameShopDetails = 'store_details';
   tableNameCartItems = 'store_cart_items';
 
-  tableNameUsers = 'users';
+  tableOrders = 'orders';
+  tableOrderItems = 'order_items';
+  tableOrderShipments = 'order_shipments';
+  tableOrderPromoCodes = 'order_promo_codes';
 
+  tableWithdrawRequests = 'withdraw_requests';
+
+  tableNameUsers = 'users';
+  tableCountries = 'countries';
+
+  earnPercent = 95;
 
   findOne = async (params, table = `${this.tableName}`) => {
     const { columnSet, values } = multipleColumnSet(params)
@@ -252,9 +261,6 @@ class ShopModel {
       values.push(params.offset);
       values.push(params.limit);
     }
-    else {
-      queryLimit = ` LIMIT 0, 12`;
-    }
 
     // set params
     if (params.params) {
@@ -270,6 +276,11 @@ class ShopModel {
         queryParams += ` AND p.category_id = ${p.category}`;
       }
 
+      if (p.user_id && p.user_id != '') {
+        // TODO: do javascript validation
+        queryParams += ` AND p.user_id = ${p.user_id}`;
+      }
+
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
@@ -279,6 +290,26 @@ class ShopModel {
     return await query(sql, values);
   }
 
+  getRelatedProducts = async (slug) => {
+    let sql = `SELECT p.*, c.title as category_name
+              FROM ${DBTables.products} as p
+              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+
+    let queryParams = ` WHERE p.slug != ? AND p.category_id = (
+      SELECT category_id FROM ${DBTables.products} WHERE slug = ?
+    )`;
+
+    let values = [slug, slug];
+
+    // set limit 
+    let queryLimit = ` LIMIT 4`;
+
+    sql += `${queryParams}${queryLimit}`;
+
+
+
+    return await query(sql, values);
+  }
 
   getProductReviews = async (id) => {
     let sql = `SELECT Reviews.*, Users.display_name as user_display_name,
@@ -446,6 +477,201 @@ class ShopModel {
     const values = [user_id];
 
     await query(sql, values);
+  }
+
+
+  getOrders = async (params = {}, page = 1, limit = -1) => {
+    let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
+      Orders.subtotal as subtotal, Orders.total as total, Orders.earned as earned, Orders.additional_info as additional_info, 
+      Orders.created_at as created_at, Orders.updated_at, 
+      Promo.code as promo_code, Promo.discount as discount
+      FROM ${this.tableOrders} as Orders 
+      LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
+      `;
+
+    const paramArray = [];
+    const values = [];
+
+    for (let param in params) {
+      paramArray.push(`Orders.${param}=?`);
+      values.push(params[param])
+    }
+
+    if (paramArray.length) {
+      sql += ` WHERE ${paramArray.join(' AND ')}`;
+    }
+
+    if (limit > 0) {
+      sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+    }
+
+    return await query(sql, values);
+  }
+
+  getOrder = async (params = {}) => {
+    let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
+      Orders.subtotal as subtotal, Orders.total as total, Orders.earned as earned, Orders.additional_info as additional_info, 
+      Orders.created_at as created_at, Orders.updated_at, 
+      Promo.code as promo_code, Promo.discount as discount
+      FROM ${this.tableOrders} as Orders
+      LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
+      `;
+
+    const { columnSet, values } = multipleColumnSet(params)
+    sql += ` WHERE ${columnSet}`;
+
+    const result = await query(sql, [...values]);
+
+    if (result.length > 0) {
+      result[0].items = await this.getOrderItems(result[0].id);
+      result[0].shipment = await this.getOrderShipment(result[0].id);
+    }
+
+    return result;
+  }
+
+  getOrderItems = async (order_id) => {
+    let sql = `SELECT OrderItems.*,
+      Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image 
+      FROM ${this.tableOrderItems} as OrderItems
+      LEFT JOIN ${this.tableName} as Product ON Product.id=OrderItems.product_id
+      WHERE order_id=?
+      `;
+
+    return await query(sql, [order_id]);
+  }
+
+  getOrderShipment = async (order_id) => {
+    let sql = `SELECT first_name, last_name, company_name, Countries.title as country, address, city, state, postcode, phone, email
+      FROM ${this.tableOrderShipments}
+      LEFT JOIN ${this.tableCountries} as Countries ON Countries.id=country_id
+      WHERE order_id=?
+      `;
+
+    return await query(sql, [order_id]);
+  }
+
+  createOrder = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableOrders} 
+        (user_id, subtotal, total, earned, promo_id, additional_info, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?,?)`;
+
+    const values = [
+      currentUser.id,
+      params.subtotal,
+      params.total,
+      params.total * 0.95,
+      params.promo_id,
+      params.additional_info,
+      current_date,
+      current_date
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      const order_id = result.insertId;
+
+      output.status = 200
+      output.data = { order_id }
+
+      const orderItemsSql = `INSERT INTO ${this.tableOrderItems} 
+        (order_id, product_id, quantity, price, created_at) 
+        VALUES ?`;
+
+      const items = [];
+
+      for (const item of params.items) {
+        items.push([order_id, item.product_id, item.quantity, item.price, current_date]);
+      }
+
+      if (items.length > 0) {
+        await query2(orderItemsSql, [items]);
+      }
+
+      const orderShippingSql = `INSERT INTO ${this.tableOrderShipments} 
+        (order_id, first_name, last_name, company_name, country_id, address, city, state, postcode, phone, email) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
+
+      const shippingValues = [
+        order_id,
+        params.shipping.first_name,
+        params.shipping.last_name,
+        params.shipping.company_name,
+        params.shipping.country_id,
+        params.shipping.address,
+        params.shipping.city,
+        params.shipping.state,
+        params.shipping.postcode,
+        params.shipping.phone,
+        params.shipping.email,
+      ];
+
+      await query(orderShippingSql, shippingValues);
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  getPromo = async (params = {}) => {
+    let sql = `SELECT Promo.*
+        FROM ${this.tableOrderPromoCodes} as Promo
+        `;
+
+    const { columnSet, values } = multipleColumnSet(params)
+    sql += ` WHERE ${columnSet}`;
+
+    const result = await query(sql, [...values]);
+
+    return result;
+  }
+
+  getCountries = async () => {
+    let sql = `SELECT * FROM ${this.tableCountries}`;
+
+    return await query(sql);
+  }
+
+  createWithdrawRequest = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableWithdrawRequests} 
+        (user_id, amount, payment_method, date) 
+        VALUES (?,?,?,?)`;
+
+    const values = [
+      currentUser.id,
+      params.amount,
+      params.payment_method,
+      current_date,
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      const request_id = result.insertId;
+
+      output.status = 200
+      output.data = { request_id }
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  getWithdrawRequests = async (currentUser) => {
+    let sql = `SELECT * FROM ${this.tableWithdrawRequests} WHERE user_id=?`;
+
+    return await query(sql, [currentUser.id]);
   }
 }
 

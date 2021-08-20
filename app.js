@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 const cookieParser = require('cookie-parser');
 const cors = require("cors");
 const morgan = require('morgan');
@@ -16,6 +17,10 @@ const mailRouter = require('./routes/mail-routes');
 const shopRouter = require('./routes/shop-routes');
 const eventRouter = require('./routes/event-routes');
 const mobilesRouter = require('./routes/mobiles-routes');
+const stripeRouter = require('./routes/stripe-routes');
+
+const StripeController = require('./controllers/stripe-controller');
+const awaitHandlerFactory = require('./utils/awaitHandlerFactory');
 
 const app = express();
 
@@ -42,7 +47,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Use JSON parser for all non-webhook routes
 app.use((req, res, next) => {
-    if (req.originalUrl === '/jobs/stripe-webhook') {
+    if (req.originalUrl === '/stripe/stripe-webhook') {
         next();
     } else {
         express.json()(req, res, next);
@@ -58,6 +63,7 @@ app.use('/mail', mailRouter);
 app.use('/shop', shopRouter);
 app.use('/events', eventRouter);
 app.use('/mobiles', mobilesRouter);
+app.use('/stripe', stripeRouter);
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Blackdirectory!!!" });
