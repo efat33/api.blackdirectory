@@ -126,11 +126,11 @@ class EventModel {
         for (let item of params.tickets) {
           const price = item.price ? item.price : 0;
           const capacity = item.capacity ? item.capacity : null;
-          const start_sale = item.start_sale ? item.start_sale : null;
-          const end_sale = item.end_sale ? item.end_sale : null;
+          const start_sale = item.start_sale ? item.start_sale : params.start_time;
+          const end_sale = item.end_sale ? item.end_sale : params.end_time;
           const tmp = [event_id, 'ticket', item.title, price, capacity, capacity, start_sale, end_sale, current_date, current_date];
           values.push(tmp);
-        }
+      }
 
         await query2(sql, [values]);
 
@@ -141,10 +141,11 @@ class EventModel {
         const sql = `INSERT INTO ${DBTables.event_tickets} (event_id, type, title, price, capacity, available, start_sale, end_sale, created_at, updated_at) VALUES ?`;
         const values = [];
 
+                
         for (let item of params.rsvp) {
           const capacity = item.capacity ? item.capacity : null;
-          const start_sale = item.start_sale ? item.start_sale : null;
-          const end_sale = item.end_sale ? item.end_sale : null;
+          const start_sale = item.start_sale ? item.start_sale : params.start_time;
+          const end_sale = item.end_sale ? item.end_sale : params.end_time;
           const tmp = [event_id, 'rsvp', item.title, 0, capacity, capacity, start_sale, end_sale, current_date, current_date];
           values.push(tmp);
         }
@@ -260,8 +261,8 @@ class EventModel {
         for (let item of params.tickets) {
           const price = item.price ? item.price : 0;
           const capacity = item.capacity ? item.capacity : null;
-          const start_sale = item.start_sale ? item.start_sale : null;
-          const end_sale = item.end_sale ? item.end_sale : null;
+          const start_sale = item.start_sale ? item.start_sale : params.start_time;
+          const end_sale = item.end_sale ? item.end_sale : params.end_time;
           const tmp = [item.id, item.title, price, capacity, start_sale, end_sale, current_date];
           values.push(tmp);
         }
@@ -293,12 +294,12 @@ class EventModel {
 
         for (let item of params.rsvp) {
           const capacity = item.capacity ? item.capacity : null;
-          const start_sale = item.start_sale ? item.start_sale : null;
-          const end_sale = item.end_sale ? item.end_sale : null;
+          const start_sale = item.start_sale ? item.start_sale : params.start_time;
+          const end_sale = item.end_sale ? item.end_sale : params.end_time;
           const tmp = [item.id, item.title, capacity, start_sale, end_sale, current_date];
           values.push(tmp);
         }
-
+        
         await query2(sql, [values]);
 
       }
