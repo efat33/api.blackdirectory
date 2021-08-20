@@ -126,8 +126,8 @@ class EventModel {
                 for (let item of params.tickets) {
                     const price = item.price ? item.price : 0;
                     const capacity = item.capacity ? item.capacity : null;
-                    const start_sale = item.start_sale ? item.start_sale : null;
-                    const end_sale = item.end_sale ? item.end_sale : null;
+                    const start_sale = item.start_sale ? item.start_sale : params.start_time;
+                    const end_sale = item.end_sale ? item.end_sale : params.end_time;
                     const tmp = [event_id, 'ticket', item.title, price, capacity, capacity, start_sale, end_sale, current_date, current_date];
                     values.push(tmp);
                 }
@@ -143,8 +143,8 @@ class EventModel {
 
                 for (let item of params.rsvp) {
                     const capacity = item.capacity ? item.capacity : null;
-                    const start_sale = item.start_sale ? item.start_sale : null;
-                    const end_sale = item.end_sale ? item.end_sale : null;
+                    const start_sale = item.start_sale ? item.start_sale : params.start_time;
+                    const end_sale = item.end_sale ? item.end_sale : params.end_time;
                     const tmp = [event_id, 'rsvp', item.title, 0, capacity, capacity, start_sale, end_sale, current_date, current_date];
                     values.push(tmp);
                 }
@@ -260,8 +260,8 @@ class EventModel {
                 for (let item of params.tickets) {
                     const price = item.price ? item.price : 0;
                     const capacity = item.capacity ? item.capacity : null;
-                    const start_sale = item.start_sale ? item.start_sale : null;
-                    const end_sale = item.end_sale ? item.end_sale : null;
+                    const start_sale = item.start_sale ? item.start_sale : params.start_time;
+                    const end_sale = item.end_sale ? item.end_sale : params.end_time;
                     const tmp = [item.id, item.title, price, capacity, start_sale, end_sale, current_date];
                     values.push(tmp);
                 }
@@ -293,8 +293,8 @@ class EventModel {
 
                 for (let item of params.rsvp) {
                     const capacity = item.capacity ? item.capacity : null;
-                    const start_sale = item.start_sale ? item.start_sale : null;
-                    const end_sale = item.end_sale ? item.end_sale : null;
+                    const start_sale = item.start_sale ? item.start_sale : params.start_time;
+                    const end_sale = item.end_sale ? item.end_sale : params.end_time;
                     const tmp = [item.id, item.title, capacity, start_sale, end_sale, current_date];
                     values.push(tmp);
                 }
@@ -454,6 +454,11 @@ class EventModel {
         if(params.is_virtual){
             queryParams += ` AND e.is_virtual = 1`;
         }
+        if(params.user_id){
+            queryParams += ` AND e.user_id = ${encodeURI(params.user_id)}`;
+            // values.push(params.user_id);
+
+        }
 
         // if(params.price && params.price != ''){
         //   queryParams += ` AND l.price_range = ?`;
@@ -489,10 +494,10 @@ class EventModel {
         const count_sql = `${sql}${queryJoinCat}${queryJoinTag}${queryJoinOrg}${queryParams}${queryDistance}${queryOrderby}`;
         sql += `${queryJoinCat}${queryJoinTag}${queryJoinOrg}${queryParams}${queryDistance}${queryOrderby}${queryLimit}`;
         
-        console.log(sql);
+        
         const events = await query(sql, values);
         let total_events = 0;
-    
+        
         if(events.length > 0){
     
           const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;

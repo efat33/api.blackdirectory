@@ -24,6 +24,11 @@ router.post('/publish-listing', apiKey(), authVerified(), awaitHandlerFactory(li
 router.get('/update-view/:id', apiKey(), awaitHandlerFactory(listingController.updateView));
 router.delete('/delete-listing/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteListing));
 
+router.post('/new-claim', apiKey(), authVerified(), awaitHandlerFactory(listingController.newClaim));
+router.post('/get-claims', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(listingController.getClaims));
+router.get('/approve-claim/:id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(listingController.approveClaim));
+router.get('/delete-claim/:id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(listingController.deleteClaim));
+
 router.post('/new-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.newReview));
 router.post('/edit-review', apiKey(), authVerified(), awaitHandlerFactory(listingController.editReview));
 router.delete('/delete-review/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteReview));
@@ -33,6 +38,7 @@ router.post('/submit-comment', apiKey(), authVerified(), awaitHandlerFactory(lis
 router.delete('/delete-comment/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.deleteComment));
 
 router.get('/get-categories', apiKey(), awaitHandlerFactory(listingController.getListingCategories));
+router.get('/trending-categories', apiKey(), awaitHandlerFactory(listingController.getTrendingCategories));
 router.post('/add-category', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(listingController.newListingCategory));
 router.put('/update-category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(listingController.updateListingCategory));
 router.delete('/delete-category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(listingController.deleteListingCategory));

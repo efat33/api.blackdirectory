@@ -1208,6 +1208,16 @@ class ListingModel {
     return await query(sql);
   }
 
+  getTrendingCategories = async () => {
+    let sql = `SELECT COUNT(lc.listing_id) as total_listing, lc.listing_categories_id, c.title, c.image
+    FROM ${DBTables.listing_categories_listing} AS lc
+    JOIN ${DBTables.listing_categories} AS c ON lc.listing_categories_id = c.id
+    GROUP BY lc.listing_categories_id
+    ORDER BY total_listing DESC LIMIT 4`;
+
+    return await query(sql);
+  }
+
   getListingCategory = async (categoryId) => {
     let sql = `SELECT * FROM ${this.tableCategories} WHERE id=?`;
 
@@ -1219,6 +1229,91 @@ class ListingModel {
     const values = [categoryId];
 
     return await query(sql, values);
+  }
+
+  newClaim = async (params, currentUser) => {
+
+    const current_date = commonfn.dateTimeNow();
+    const user_id = currentUser.id;
+
+    const sql = `INSERT INTO ${DBTables.listing_claims} (listing_id, user_id, firstname, lastname, phone, email, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)`;
+    const values = [params.listing_id, user_id, params.firstname, params.lastname, params.phone, params.email, 'pending', current_date, current_date];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      return true;
+    }
+
+    return false;
+
+  }
+
+  getClaims = async (params) => {
+    let sql = `SELECT c.*, l.title, u.username FROM ${DBTables.listing_claims} AS c
+                JOIN ${DBTables.listings} AS l ON l.id =  c.listing_id 
+                JOIN ${DBTables.users} AS u ON u.id =  c.user_id 
+                WHERE 1=1`;
+    let queryParams = '';
+    let values = [];
+
+    if(params.listing_id){
+      queryParams += ` AND listing_id = ?`;
+      values.push(params.listing_id);
+    }
+    if(params.status){
+      queryParams += ` AND status = ?`;
+      values.push(params.status);
+    }
+
+    sql += `${queryParams}`;
+
+    return await query(sql, values);
+  }
+
+
+  approveClaim = async (id) => {
+    const current_date = commonfn.dateTimeNow();
+
+    // get listing claim details
+    const claim = await this.findOne({id}, DBTables.listing_claims);
+
+    // update listing_claims table
+    const basic_info = {
+      'status': 'approved',
+      'updated_at': current_date
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${DBTables.listing_claims} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const result = await query(sql, [...basic_colset.values, id]);
+    
+    
+    if (result.affectedRows == 1) {
+      // update listing table 
+      const basic_info = {
+        'claimer_id': claim.user_id,
+        'updated_at': current_date
+      }
+      
+      const basic_colset = multipleColumnSet(basic_info, ',');
+      
+      const sql = `UPDATE ${DBTables.listings} SET ${basic_colset.columnSet} WHERE id = ?`;
+      
+      const result = await query(sql, [...basic_colset.values, claim.listing_id]);
+      
+      
+      return result;
+    }
+
+    return false;
+  }
+
+  deleteClaim = async (id) => {
+    const sql = `DELETE FROM ${DBTables.listing_claims} WHERE id IN (?)`;
+    return await query(sql, [id]);
   }
 
 

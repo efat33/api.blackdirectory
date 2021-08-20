@@ -378,6 +378,12 @@ class ListingController {
     new AppSuccess(res, 200, "200_successful", { 'entity': 'entity_category' }, result);
   };
 
+  getTrendingCategories = async (req, res, next) => {
+    const result = await ListingModel.getTrendingCategories();
+
+    new AppSuccess(res, 200, "200_successful", { 'entity': 'entity_category' }, result);
+  };
+
   newListingCategory = async (req, res, next) => {
     const listingCategory = await ListingModel.createListingCategory(req.body);
 
@@ -408,6 +414,76 @@ class ListingController {
     await ListingModel.deleteListingCategory(req.params.category_id);
 
     new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
+  };
+
+  newClaim = async (req, res, next) => {
+
+    // validation
+    if (req.body.listing_id == '') {
+      throw new AppError(403, "Listing ID is required");
+    }
+    if (req.body.firstname  == '') {
+      throw new AppError(403, "Firstname is required");
+    }
+    if (req.body.lastname == '') {
+      throw new AppError(403, "Lastname is required");
+    }
+    if (req.body.phone == '') {
+      throw new AppError(403, "Phone is required");
+    }
+    if (req.body.email == '') {
+      throw new AppError(403, "Email is required");
+    }
+
+    // check if the user has already applied for this listing
+    const claim = await ListingModel.findOne({listing_id: req.body.listing_id, user_id: req.currentUser.id}, DBTables.listing_claims);
+
+    if (Object.keys(claim).length > 0){
+      throw new AppError(403, "You have already submitted claim request for this listing");
+    }
+
+    const result = await ListingModel.newClaim(req.body, req.currentUser);
+
+    if (result) {
+
+      new AppSuccess(res, 200, "Submitted Successfully");
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+  getClaims = async (req, res, next) => {
+    const result = await ListingModel.getClaims(req.body);
+
+    new AppSuccess(res, 200, "200_successful", '', result);
+  };
+
+
+  approveClaim = async (req, res, next) => {
+    const result = await ListingModel.approveClaim(req.params.id);
+
+    if (result.affectedRows && result.affectedRows > 0) {
+      new AppSuccess(res, 200, "Successfully Approved");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  };
+
+
+  deleteClaim = async (req, res, next) => {
+    const result = await ListingModel.deleteClaim(req.params.id);
+
+    if (result.affectedRows > 0) {
+      new AppSuccess(res, 200, "200_deleted_successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+    
   };
 
 }
