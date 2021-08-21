@@ -199,7 +199,13 @@ class ShopModel {
   }
 
   getProduct = async (slug) => {
-    const product = await this.findOne({ 'slug': slug });
+    let sql = `SELECT p.*, c.title as category_name
+              FROM ${DBTables.products} as p
+              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id
+              WHERE p.slug=?`;
+
+    const result = await query(sql, [slug]);
+    const product = result[0] ? result[0] : {};
 
     if (Object.keys(product) === 0) {
       return product;
@@ -230,8 +236,16 @@ class ShopModel {
     }
     product.tags = tags;
 
+    this.updateProductViewCount(product);
+
     return product;
   }
+
+  updateProductViewCount = async (product) => {
+    const sql = `UPDATE ${DBTables.products} SET views=${product.views + 1} WHERE id=${product.id}`;
+
+    return await query(sql);
+}
 
   getProducts = async (params) => {
     let sql = `SELECT p.*, c.title as category_name
@@ -245,12 +259,13 @@ class ShopModel {
     // set order by
     let queryOrderby = '';
     if (params.orderby && params.orderby != '') {
-      queryOrderby = ` ORDER BY ?`;
-      values.push(params.orderby);
+      const orderBy = encodeURI(params.orderby);
+      queryOrderby = ` ORDER BY ${orderBy}`;
 
       if (params.order && params.order != '') {
         // TODO: do javascript validation
-        queryOrderby += ` ${params.order}`;
+        const order = encodeURI(params.order);
+        queryOrderby += ` ${order}`;
       }
     }
 
@@ -276,6 +291,25 @@ class ShopModel {
         queryParams += ` AND p.category_id = ${p.category}`;
       }
 
+      if (p.tag && p.tag != '') {
+        const tagSql = `
+          SELECT DISTINCT product_id
+          FROM ${DBTables.product_tag_relationships}
+          WHERE tag_id = ?
+        `;
+
+        const product_ids = await query(tagSql, [encodeURI(p.tag)]);
+
+        let ids = product_ids.map((product_id) => product_id.product_id);
+        if (ids.length) {
+          ids = ids.join(',');
+        } else {
+          ids = 0;
+        }
+
+        queryParams += ` AND p.id IN (${ids})`;
+      }
+
       if (p.user_id && p.user_id != '') {
         // TODO: do javascript validation
         queryParams += ` AND p.user_id = ${p.user_id}`;
@@ -284,8 +318,6 @@ class ShopModel {
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
-
-
 
     return await query(sql, values);
   }
