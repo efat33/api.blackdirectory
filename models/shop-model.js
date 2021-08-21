@@ -482,7 +482,7 @@ class ShopModel {
 
   getOrders = async (params = {}, page = 1, limit = -1) => {
     let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
-      Orders.subtotal as subtotal, Orders.total as total, Orders.earned as earned, Orders.additional_info as additional_info, 
+      Orders.subtotal as subtotal, Orders.total as total, Orders.additional_info as additional_info, 
       Orders.created_at as created_at, Orders.updated_at, 
       Promo.code as promo_code, Promo.discount as discount
       FROM ${this.tableOrders} as Orders 
@@ -510,7 +510,7 @@ class ShopModel {
 
   getOrder = async (params = {}) => {
     let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
-      Orders.subtotal as subtotal, Orders.total as total, Orders.earned as earned, Orders.additional_info as additional_info, 
+      Orders.subtotal as subtotal, Orders.total as total, Orders.additional_info as additional_info, 
       Orders.created_at as created_at, Orders.updated_at, 
       Promo.code as promo_code, Promo.discount as discount
       FROM ${this.tableOrders} as Orders
@@ -556,14 +556,13 @@ class ShopModel {
     let output = {};
 
     const sql = `INSERT INTO ${this.tableOrders} 
-        (user_id, subtotal, total, earned, promo_id, additional_info, created_at, updated_at) 
-        VALUES (?,?,?,?,?,?,?,?)`;
+        (user_id, subtotal, total, promo_id, additional_info, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?)`;
 
     const values = [
       currentUser.id,
       params.subtotal,
       params.total,
-      params.total * 0.95,
       params.promo_id,
       params.additional_info,
       current_date,
@@ -579,13 +578,16 @@ class ShopModel {
       output.data = { order_id }
 
       const orderItemsSql = `INSERT INTO ${this.tableOrderItems} 
-        (order_id, product_id, quantity, price, created_at) 
+        (order_id, product_id, quantity, price, total, earned, created_at) 
         VALUES ?`;
 
       const items = [];
 
       for (const item of params.items) {
-        items.push([order_id, item.product_id, item.quantity, item.price, current_date]);
+        const total = item.quantity * item.price;
+        const earned = total * 0.95;
+
+        items.push([order_id, item.product_id, item.quantity, item.price, total, earned, current_date]);
       }
 
       if (items.length > 0) {
@@ -670,6 +672,17 @@ class ShopModel {
 
   getWithdrawRequests = async (currentUser) => {
     let sql = `SELECT * FROM ${this.tableWithdrawRequests} WHERE user_id=?`;
+
+    return await query(sql, [currentUser.id]);
+  }
+
+  getSoldItems = async (currentUser) => {
+    let sql = `SELECT OrderItems.*, Orders.status as order_status 
+      FROM ${this.tableOrderItems} as OrderItems
+      LEFT JOIN ${this.tableName} as Products ON Products.id=OrderItems.product_id 
+      LEFT JOIN ${this.tableOrders} as Orders ON Orders.id=OrderItems.order_id 
+      WHERE Products.user_id=?
+    `;
 
     return await query(sql, [currentUser.id]);
   }

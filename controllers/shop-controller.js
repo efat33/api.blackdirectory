@@ -327,12 +327,12 @@ class ShopController {
   };
 
   newWithdrawRequest = async (req, res, next) => {
-    const orders = await shopModel.getOrders({ user_id: req.currentUser.id });
+    const sold_items = await shopModel.getSoldItems(req.currentUser);
 
-    const total_earned = orders
-      .filter((order) => order.status === 'Approved')
-      .reduce((acc, order) => {
-        return acc + parseFloat(order.earned);
+    const total_earned = sold_items
+      .filter((item) => item.order_status === 'Approved')
+      .reduce((acc, item) => {
+        return acc + parseFloat(item.earned);
       }, 0);
 
     const withdraw_requests = await shopModel.getWithdrawRequests(req.currentUser);
@@ -355,13 +355,33 @@ class ShopController {
       throw new AppError(403, "403_unknownError")
     };
 
-    new AppSuccess(res, 200, "200_successful", null, withdraw_request);
+    new AppSuccess(res, 200, "200_successful", null);
   }
 
   getWithdrawRequests = async (req, res, next) => {
+    const sold_items = await shopModel.getSoldItems(req.currentUser);
+
+    const total_earned = sold_items
+      .filter((item) => item.order_status === 'Approved')
+      .reduce((acc, item) => {
+        return acc + parseFloat(item.earned);
+      }, 0);
+
     const withdraw_requests = await shopModel.getWithdrawRequests(req.currentUser);
 
-    new AppSuccess(res, 200, "200_successful", null, withdraw_requests);
+    const total_requested_ammount = withdraw_requests
+      .filter((request) => request.status !== 'Cancelled')
+      .reduce((acc, request) => {
+        return acc + parseFloat(request.amount);
+      }, 0);
+
+    const output = {
+      withdraw_requests,
+      total_earned: parseFloat(total_earned.toFixed(2)),
+      current_balance: parseFloat((total_earned - total_requested_ammount).toFixed(2))
+    };
+
+    new AppSuccess(res, 200, "200_successful", null, output);
   };
 }
 
