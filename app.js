@@ -17,6 +17,7 @@ const mailRouter = require('./routes/mail-routes');
 const shopRouter = require('./routes/shop-routes');
 const eventRouter = require('./routes/event-routes');
 const mobilesRouter = require('./routes/mobiles-routes');
+const pagesRouter = require('./routes/pages-routes');
 const stripeRouter = require('./routes/stripe-routes');
 
 const StripeController = require('./controllers/stripe-controller');
@@ -63,6 +64,7 @@ app.use('/mail', mailRouter);
 app.use('/shop', shopRouter);
 app.use('/events', eventRouter);
 app.use('/mobiles', mobilesRouter);
+app.use('/pages', pagesRouter);
 app.use('/stripe', stripeRouter);
 
 app.get("/", (req, res) => {
