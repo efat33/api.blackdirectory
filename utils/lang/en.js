@@ -38,7 +38,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "403_invalidFileFormat": "Supported file type are doc, docx, pdf and file size cannot be greater than 5MB",
 
   // Mail Specific Error
-  "403_missingValue": "Email To, Subject, and Body are required",
+  "403_missingValue": "Subject and Body are required",
 
 
 
@@ -78,6 +78,7 @@ exports.ENTITIES = Object.freeze({
   entity_comment: "Comment",
   entity_details: "Details",
   entity_provider: "Provider",
+  entity_page: "Page",
 
   // Users
   entity_apiKey: "API Key",

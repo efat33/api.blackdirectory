@@ -28,4 +28,6 @@ router.post('/image-store', storageImage.storageImageShop, awaitHandlerFactory(U
 
 router.post('/image-mobiles', storageImage.storageImageMobiles, awaitHandlerFactory(UploadController.uploadImage));
 
+router.post('/image-pages-ckeditor', storageImage.storageImagePagesCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
+
 module.exports = router;

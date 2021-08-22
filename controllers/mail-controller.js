@@ -4,7 +4,7 @@ const mailHandler = require('../utils/mailHandler.js');
 
 class MailController {
   sendMail = (req, res, next) => {
-    if (!req.body.to || !req.body.subject || !req.body.body) {
+    if (!req.body.subject || !req.body.body) {
       throw new AppError(403, "403_missingValue");
     }
 
