@@ -159,6 +159,24 @@ const storageImageMobiles = multer({ storage: diskStorageMobiles, fileFilter: fi
     'image'
 );
 
+// ckeditor storage
+const diskStoragePagesCkeditor = multer.diskStorage({
+    destination: (reqm, file, cb) => {
+        cb(null, `uploads/pages`);
+    },
+    filename: (reqm, file, cb) => {
+        const mimeType = file.mimetype.split('/');
+        const fileType = mimeType[1];
+        const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        cb(null, fileName);
+    },
+});
+
+const storageImagePagesCkeditor = multer({ storage: diskStoragePagesCkeditor, fileFilter: fileFilter }).single(
+    'upload'
+);
+
 // exports.storageImageUser = storageImageUser;
 // exports.storageImageListing = storageImageListing;
 // exports.storageImageNews = storageImageNews;
@@ -172,5 +190,6 @@ module.exports = {
     storageImageProduct,
     storageImageEvent,
     storageImageShop,
-    storageImageMobiles
+    storageImageMobiles,
+    storageImagePagesCkeditor
 }
