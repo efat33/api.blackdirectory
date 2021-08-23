@@ -15,6 +15,7 @@ const validation = require('../utils/listingValidator');
 
 router.get('/get-listings/:limit/:offset/:orderby/:all?', apiKey(), awaitHandlerFactory(listingController.getListings));
 router.get('/favorites', apiKey(), currentUser(), awaitHandlerFactory(listingController.getFavorites));
+router.post('/favorite-listings', apiKey(), authVerified(), awaitHandlerFactory(listingController.getFavoriteListings));
 router.get('/categories', apiKey(), currentUser(), awaitHandlerFactory(listingController.getCategories));
 router.get('/update-favorite/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.updateFavorite));
 router.post('/search-listing', apiKey(), awaitHandlerFactory(listingController.searchListing));
