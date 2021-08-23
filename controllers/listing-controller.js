@@ -122,6 +122,21 @@ class ListingController {
     new AppSuccess(res, 200, "200_successful", '', favorites);
   };
 
+  getFavoriteListings = async (req, res, next) => {
+
+    const result = await ListingModel.favoriteListings(req.body, req.currentUser);
+
+    if (result.status && result.status == 200) {
+
+      new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_listing' }, result.data);
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
   // get current users favorite listings
   updateFavorite = async (req, res, next) => {
 
