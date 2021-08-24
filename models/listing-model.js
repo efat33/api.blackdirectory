@@ -93,13 +93,13 @@ class ListingModel {
       cover_img, description, address, lat, lng, 
       price_range, price_min, price_max, featured_img, galleries, 
       business_hour, video_urls, products, button_icon, button_link, 
-      coupon_title, coupon_description, coupon_image, coupon_code, coupon_popup_desc, coupon_link, coupon_expiry_date
+      coupon_title, coupon_description, coupon_image, coupon_code, coupon_popup_desc, coupon_link, coupon_expiry_date,
       button_name, status, created_at, updated_at) 
       VALUES (?,?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
-        ?,?,?,?,?,?,?
+        ?,?,?,?,?,?,?,
         ?,?,?,?)`;
 
     const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo,

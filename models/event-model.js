@@ -406,7 +406,7 @@ class EventModel {
     let queryDistance = ''
 
     if (params.lat && params.lng) {
-      sql = `SELECT e.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( e.lat ) ) * cos( radians( e.lng ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( e.lat ) ) ) ) as event_distance 
+      sql = `SELECT e.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( e.latitude ) ) * cos( radians( e.longitude ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( e.latitude ) ) ) ) as event_distance 
           FROM ${DBTables.events} AS e`;
 
       queryDistance = ` HAVING event_distance < 10`;
