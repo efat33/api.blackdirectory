@@ -93,13 +93,13 @@ class ListingModel {
       cover_img, description, address, lat, lng, 
       price_range, price_min, price_max, featured_img, galleries, 
       business_hour, video_urls, products, button_icon, button_link, 
-      coupon_title, coupon_description, coupon_image, coupon_code, coupon_popup_desc, coupon_link, coupon_expiry_date
+      coupon_title, coupon_description, coupon_image, coupon_code, coupon_popup_desc, coupon_link, coupon_expiry_date,
       button_name, status, created_at, updated_at) 
       VALUES (?,?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
-        ?,?,?,?,?,?,?
+        ?,?,?,?,?,?,?,
         ?,?,?,?)`;
 
     const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo,
@@ -813,6 +813,78 @@ class ListingModel {
     const result = await query(sql, [user_id]);
     const favorites = result.map(l => l.listing_id);
     return favorites;
+  }
+
+  favoriteListings = async (params = {}, currentUser) => {
+
+    const user_id = currentUser.id;
+    const output = {}
+    let values = [];
+
+    let sql = '';
+
+    sql = `SELECT l.* FROM ${this.tableName} AS l 
+          JOIN ${DBTables.listing_favorites} lf ON lf.listing_id = l.id`;
+    
+
+    let queryParams = ` WHERE l.status = 'publish' AND lf.user_id = ?`;
+    values.push(user_id);
+    
+    
+    // set order by
+    let queryOrderby = ` ORDER BY lf.id DESC`;
+
+    // set limit 
+    let queryLimit = '';
+    if(params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')){
+      queryLimit = ` LIMIT ?, ?`;
+      values.push(params.offset);
+      values.push(params.limit);
+    }
+    else{
+      queryLimit = ` LIMIT 0, 12`;
+    }
+
+    const count_sql = `${sql}${queryParams}${queryOrderby}`;
+    sql += `${queryParams}${queryOrderby}${queryLimit}`;
+
+    const listings = await query(sql, values);
+    let total_listings = 0;
+
+    if(listings.length > 0){
+
+      const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;
+      const resultCount = await query(count_sql_final, [user_id]);
+      
+      total_listings = resultCount[0].count;
+
+      const listing_ids = listings.map((l) => l['id']);
+      
+      // get contacts
+      const sqlContacts = `SELECT * FROM ${DBTables.listing_contact} WHERE listing_id IN (${listing_ids.join()})`;
+      const contacts = await query(sqlContacts);
+      
+      // get categories
+      const sqlListCat = `SELECT lc.listing_id, lc.listing_categories_id, c.title, c.image 
+                            FROM ${this.tableListingCategories} lc
+                            JOIN ${this.tableCategories} c ON lc.listing_categories_id = c.id  
+                            WHERE lc.listing_id IN (${listing_ids.join()})`;
+      const categories = await query(sqlListCat);
+
+
+      for (const item of listings) {
+        item.contact = contacts.find((c) => c.listing_id == item.id);
+        item.categories = categories.filter((c) => c.listing_id == item.id);
+      }
+    }
+    output.status = 200;
+    const data = {
+      listings: listings,
+      total_listings: total_listings
+    }
+    output.data = data;
+
+    return output;
   }
 
   // get current user favorites 

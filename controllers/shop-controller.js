@@ -201,6 +201,14 @@ class ShopController {
       throw new AppError(403, "Product not found");
     }
 
+    const reviews = await shopModel.getProductReviews(req.params.product_id);
+    
+    const alreadyReviewed = reviews.some((review) => review.user_id === req.currentUser.id);
+
+    if (alreadyReviewed) {
+      throw new AppError(403, "You have already reviewed this product");
+    }
+
     if (!req.body.rating || req.body.rating == '') {
       throw new AppError(403, "Rating is required");
     }
