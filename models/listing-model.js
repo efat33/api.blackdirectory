@@ -739,6 +739,17 @@ class ListingModel {
                           WHERE lc.listing_id = ?`;
       output.categories = await query(sqlListCat, [listing_id]);
 
+      
+      // fetch products
+      output.allproducts = [];
+      if(output.listing.products){
+        const prod_arr = JSON.parse(output.listing.products);
+        const sqlListProd = `SELECT * FROM ${DBTables.products} 
+                            WHERE id IN (${prod_arr.join()})`;
+        output.allproducts = await query(sqlListProd);
+      }
+      
+
 
       // fetch contacts
       const sqlContact = `SELECT * FROM ${this.tableListingContact} WHERE listing_id=? LIMIT 1`;
