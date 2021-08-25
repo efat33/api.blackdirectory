@@ -253,6 +253,20 @@ class ShopController {
   getCartItems = async (req, res, next) => {
     const items = await shopModel.getCartItems(req.currentUser.id);
 
+    items.forEach(item => {
+      if (item.product_discounted_price) {
+        const now = new Date();
+
+        if (new Date(item.product_discount_start) < now && now < new Date(item.product_discount_end)) {
+          item.product_price = item.product_discounted_price;
+        }
+      }
+
+      delete item.product_discounted_price;
+      delete item.product_discount_start;
+      delete item.product_discount_end;
+    });
+
     new AppSuccess(res, 200, "200_successful", null, items);
   };
 

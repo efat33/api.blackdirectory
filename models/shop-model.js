@@ -453,7 +453,9 @@ class ShopModel {
 
   getCartItems = async (user_id) => {
     let sql = `SELECT Cart.*, 
-    Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image 
+    Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image,
+    Product.discounted_price as product_discounted_price, Product.discount_start as product_discount_start, 
+    Product.discount_end as product_discount_end 
     FROM ${this.tableNameCartItems} as Cart  
     LEFT JOIN ${this.tableName} as Product ON Product.id=Cart.product_id
     WHERE Cart.user_id=?`;
@@ -564,7 +566,7 @@ class ShopModel {
 
   getOrderItems = async (order_id) => {
     let sql = `SELECT OrderItems.*,
-      Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image 
+      Product.title as product_title, Product.slug as product_slug, OrderItems.price as product_price, Product.image as product_image 
       FROM ${this.tableOrderItems} as OrderItems
       LEFT JOIN ${this.tableName} as Product ON Product.id=OrderItems.product_id
       WHERE order_id=?
