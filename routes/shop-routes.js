@@ -24,13 +24,15 @@ router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandle
 router.get('/details/:user_id', apiKey(), awaitHandlerFactory(ShopController.getShopDetails));
 router.post('/details', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateShopDetails));
 
-router.get('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getCartItems));
-router.post('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateCartItems));
-router.delete('/cart/:item_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteCartItem));
-router.delete('/cart-clear', apiKey(), authVerified(), awaitHandlerFactory(ShopController.clearCartItems));
+router.get('/cart', apiKey(), auth(), awaitHandlerFactory(ShopController.getCartItems));
+router.post('/cart', apiKey(), auth(), awaitHandlerFactory(ShopController.updateCartItems));
+router.delete('/cart/:item_id', apiKey(), auth(), awaitHandlerFactory(ShopController.deleteCartItem));
+router.delete('/cart-clear', apiKey(), auth(), awaitHandlerFactory(ShopController.clearCartItems));
 
+router.get('/vendor-orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getVendorOrders));
 router.get('/orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrders));
 router.get('/order/:order_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrder));
+router.put('/order/:order_id/status', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateOrderStatus));
 router.post('/order', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newOrder));
 router.get('/promo-code/:promo_code', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getPromo));
 
