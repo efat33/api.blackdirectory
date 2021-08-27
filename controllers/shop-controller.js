@@ -1,4 +1,4 @@
-const ShopModel = require("../models/shop-model");
+const lodash = require('lodash');
 const AppError = require("../utils/appError");
 const AppSuccess = require("../utils/appSuccess");
 const { validationResult } = require("express-validator");
@@ -202,7 +202,7 @@ class ShopController {
     }
 
     const reviews = await shopModel.getProductReviews(req.params.product_id);
-    
+
     const alreadyReviewed = reviews.some((review) => review.user_id === req.currentUser.id);
 
     if (alreadyReviewed) {
@@ -299,7 +299,13 @@ class ShopController {
   };
 
   getOrders = async (req, res, next) => {
-    const orders = await shopModel.getOrders({ user_id: req.currentUser.id });
+    const orders = await shopModel.getOrders({ user_id: req.currentUser.id, parent_id: -1 });
+
+    new AppSuccess(res, 200, "200_successful", null, orders);
+  };
+
+  getVendorOrders = async (req, res, next) => {
+    const orders = await shopModel.getOrders({ vendor_id: req.currentUser.id });
 
     new AppSuccess(res, 200, "200_successful", null, orders);
   };
@@ -309,23 +315,143 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    const result = await shopModel.getOrder({ 'Orders.id': req.params.order_id, "Orders.user_id": req.currentUser.id });
+    const order = await shopModel.getOrder({ 'Orders.id': req.params.order_id, "Orders.user_id": req.currentUser.id });
 
-    if (Object.keys(result).length === 0) {
+    if (Object.keys(order).length === 0) {
       throw new AppError(403, "Order not found")
     };
 
-    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, result);
+    const subOrders = await shopModel.getOrders({ parent_id: order[0].id });
+
+    if (subOrders.length) {
+      order[0].subOrders = subOrders;
+
+      const items = [];
+      for (const subOrder of subOrders) {
+        const subOrderItems = await shopModel.getOrderItems(subOrder.id);
+        items.push(...subOrderItems);
+      }
+
+      order[0].items = items;
+    }
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
   };
 
   newOrder = async (req, res, next) => {
-    const order = await shopModel.createOrder(req.body, req.currentUser);
+    let promo;
+    if (req.body.promo_id) {
+      promo = await shopModel.getPromo({ 'Promo.id': req.body.promo_id });
+
+      if (!promo.length) {
+        throw new AppError(403, "Invalid promo code")
+      }
+    }
+
+    let items = req.body.items;
+
+    const productIds = items.map(item => item.product_id);
+
+    const products = await shopModel.getProducts({ params: { ids: productIds } });
+
+    items.forEach((item) => {
+      const product = products.find((product) => product.id === item.product_id);
+      item.user_id = product.user_id;
+    });
+
+    const groups = Object.values(lodash.groupBy(items, (product) => product.user_id));
+
+    let body = [];
+
+    if (groups.length > 1) {
+      // make sub orders
+      let vendor_id;
+      const subOrders = [];
+
+      for (const items of groups) {
+        vendor_id = items[0].user_id;
+
+        const subtotal = items.reduce((acc, item) => {
+          return acc + (item.price * item.quantity);
+        }, 0);
+
+        let total = subtotal;
+        if (promo) {
+          total = total * (1 - promo[0].discount / 100);
+        }
+
+        subOrders.push({
+          items,
+          subtotal,
+          total,
+          vendor_id,
+          shipping: req.body.shipping
+        });
+      }
+
+      const subOrderSubtotal = subOrders.reduce((acc, item) => {
+        return acc + item.subtotal;
+      }, 0);
+      
+      const subOrderTotal = subOrders.reduce((acc, item) => {
+        return acc + item.total;
+      }, 0);
+
+      const order = {
+        items: [],
+        subtotal: subOrderSubtotal,
+        total: subOrderTotal,
+        shipping: req.body.shipping
+      };
+
+      body = [order, ...subOrders];
+    } else {
+      items = groups[0];
+      const subtotal = items.reduce((acc, item) => {
+        return acc + (item.price * item.quantity);
+      }, 0);
+
+      let total = subtotal;
+      if (promo) {
+        total = total * (1 - promo[0].discount / 100);
+      }
+
+      body = [{
+        items,
+        subtotal,
+        total,
+        vendor_id: items[0].user_id,
+        shipping: req.body.shipping
+      }];
+    }
+
+    const order = await shopModel.createOrder(body, req.currentUser);
 
     if (order.status !== 200) {
       throw new AppError(403, "403_unknownError")
     };
 
     new AppSuccess(res, 200, "200_added", { 'entity': 'entity_order' }, order);
+  }
+
+  updateOrderStatus = async (req, res, next) => {
+    if (!req.body.status) {
+      throw new AppError(403, `status is required.`);
+    }
+
+    const order = await shopModel.getOrder({ 'Orders.id': req.params.order_id, "Orders.vendor_id": req.currentUser.id });
+
+    if (Object.keys(order).length === 0) {
+      throw new AppError(403, "Order not found")
+    };
+
+    const result = await shopModel.updateOrderStatus(req.params.order_id, req.body.status);
+
+    if (result.affectedRows == 0) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_order' });
   }
 
   getPromo = async (req, res, next) => {

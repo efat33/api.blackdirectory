@@ -315,6 +315,11 @@ class ShopModel {
         queryParams += ` AND p.user_id = ${p.user_id}`;
       }
 
+      if (p.ids) {
+        const ids = encodeURI(p.ids.join(','));
+
+        queryParams += ` AND p.id IN (${ids})`;
+      }
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
@@ -515,9 +520,7 @@ class ShopModel {
 
 
   getOrders = async (params = {}, page = 1, limit = -1) => {
-    let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
-      Orders.subtotal as subtotal, Orders.total as total, Orders.additional_info as additional_info, 
-      Orders.created_at as created_at, Orders.updated_at, 
+    let sql = `SELECT Orders.*, 
       Promo.code as promo_code, Promo.discount as discount
       FROM ${this.tableOrders} as Orders 
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
@@ -543,9 +546,7 @@ class ShopModel {
   }
 
   getOrder = async (params = {}) => {
-    let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
-      Orders.subtotal as subtotal, Orders.total as total, Orders.additional_info as additional_info, 
-      Orders.created_at as created_at, Orders.updated_at, 
+    let sql = `SELECT Orders.*, 
       Promo.code as promo_code, Promo.discount as discount
       FROM ${this.tableOrders} as Orders
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
@@ -557,7 +558,12 @@ class ShopModel {
     const result = await query(sql, [...values]);
 
     if (result.length > 0) {
-      result[0].items = await this.getOrderItems(result[0].id);
+      const orderItems = await this.getOrderItems(result[0].id);
+
+      if (orderItems.length) {
+        result[0].items = await this.getOrderItems(result[0].id);
+      }
+
       result[0].shipment = await this.getOrderShipment(result[0].id);
     }
 
@@ -585,20 +591,39 @@ class ShopModel {
     return await query(sql, [order_id]);
   }
 
-  createOrder = async (params, currentUser) => {
+  createOrder = async (orders, currentUser) => {
+    if (orders.length > 1) {
+      const parentOrder = await this.insertOrder(orders[0], currentUser);
+
+      if (parentOrder.status !== 401) {
+        for (let i = 1; i < orders.length; i++) {
+          await this.insertOrder(orders[i], currentUser, parentOrder.data.order_id);
+        }
+      }
+
+      return parentOrder;
+    } else {
+      return await this.insertOrder(orders[0], currentUser);
+    }
+  }
+
+  insertOrder = async (order, currentUser, parent_id = -1) => {
     const current_date = commonfn.dateTimeNow();
     let output = {};
 
     const sql = `INSERT INTO ${this.tableOrders} 
-        (user_id, subtotal, total, promo_id, additional_info, created_at, updated_at) 
-        VALUES (?,?,?,?,?,?,?)`;
+        (parent_id, user_id, vendor_id, subtotal, total, earned, promo_id, additional_info, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?,?,?,?)`;
 
     const values = [
+      parent_id,
       currentUser.id,
-      params.subtotal,
-      params.total,
-      params.promo_id,
-      params.additional_info,
+      order.vendor_id,
+      order.subtotal,
+      order.total,
+      order.total * 0.95,
+      order.promo_id,
+      order.additional_info,
       current_date,
       current_date
     ];
@@ -617,7 +642,7 @@ class ShopModel {
 
       const items = [];
 
-      for (const item of params.items) {
+      for (const item of order.items) {
         const total = item.quantity * item.price;
         const earned = total * 0.95;
 
@@ -634,16 +659,16 @@ class ShopModel {
 
       const shippingValues = [
         order_id,
-        params.shipping.first_name,
-        params.shipping.last_name,
-        params.shipping.company_name,
-        params.shipping.country_id,
-        params.shipping.address,
-        params.shipping.city,
-        params.shipping.state,
-        params.shipping.postcode,
-        params.shipping.phone,
-        params.shipping.email,
+        order.shipping.first_name,
+        order.shipping.last_name,
+        order.shipping.company_name,
+        order.shipping.country_id,
+        order.shipping.address,
+        order.shipping.city,
+        order.shipping.state,
+        order.shipping.postcode,
+        order.shipping.phone,
+        order.shipping.email,
       ];
 
       await query(orderShippingSql, shippingValues);
@@ -653,6 +678,15 @@ class ShopModel {
     }
 
     return output;
+  }
+
+  updateOrderStatus = async (orderId, status) => {
+    const current_date = commonfn.dateTimeNow();
+
+    const sql = `UPDATE ${this.tableOrders} SET status=?, updated_at=? WHERE id = ?`;
+    const values = [status, current_date, orderId];
+    
+    return await query(sql, values);
   }
 
   getPromo = async (params = {}) => {
