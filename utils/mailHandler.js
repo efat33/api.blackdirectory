@@ -127,9 +127,13 @@ exports.sendEmail = (options, successCallback = null, errorCallback = null) => {
 
   transporter.sendMail(mailOptions, function (error, info) {
     if (error) {
-      errorCallback();
+      if (errorCallback) {
+        errorCallback();
+      }
     } else {
-      successCallback();
+      if (successCallback) {
+        successCallback();
+      }
     }
   });
 };
