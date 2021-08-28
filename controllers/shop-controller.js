@@ -385,7 +385,9 @@ class ShopController {
           subtotal,
           total,
           vendor_id,
-          shipping: req.body.shipping
+          shipping: req.body.shipping,
+          promo_id: req.body.promo_id,
+          additional_info: req.body.additional_info
         });
       }
 
@@ -401,7 +403,9 @@ class ShopController {
         items: [],
         subtotal: subOrderSubtotal,
         total: subOrderTotal,
-        shipping: req.body.shipping
+        shipping: req.body.shipping,
+        promo_id: req.body.promo_id,
+        additional_info: req.body.additional_info
       };
 
       body = [order, ...subOrders];
@@ -421,7 +425,9 @@ class ShopController {
         subtotal,
         total,
         vendor_id: items[0].user_id,
-        shipping: req.body.shipping
+        shipping: req.body.shipping,
+        promo_id: req.body.promo_id,
+        additional_info: req.body.additional_info
       }];
     }
 
