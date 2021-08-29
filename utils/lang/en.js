@@ -12,6 +12,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "401_invalidAge": "You must be 18 to register",
   "401_notEmployer": "You must be an employer",
   "401_notAdmin": "You must be an admin",
+  "401_notAdminOrEmployer": "You must be an admin or an employer",
   "403_unknownError": "Something went wrong. Please try again.",
 
   // Errors
