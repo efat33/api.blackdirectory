@@ -1,3 +1,5 @@
+const logger = require('../logger');
+
 module.exports = (error, req, res, next) => {
   let { status = 500, message, data } = error;
 
@@ -10,6 +12,8 @@ module.exports = (error, req, res, next) => {
     message,
     ...(data && data),
   };
+
+  logger.error('Error response ' + JSON.stringify(error));
 
   res.status(status).send(error);
 };
