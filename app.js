@@ -8,6 +8,8 @@ const path = require('path');
 
 const globalErrorHandler = require('./controllers/error-controller');
 
+const logger = require('./logger')
+
 const userRouter = require('./routes/users-routes');
 const listingRouter = require('./routes/listing-routes');
 const uploadRouter = require('./routes/upload-routes');
@@ -55,6 +57,12 @@ app.use((req, res, next) => {
     }
 });
 
+app.use((req, res, next) => {
+  logger.info('Incoming request ' + JSON.stringify({url: req.url, query: req.query, body: req.body}))
+
+  next();
+});
+
 app.use('/users', userRouter);
 app.use('/listings', listingRouter);
 app.use('/upload', uploadRouter);
@@ -75,5 +83,5 @@ app.use(globalErrorHandler);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-    console.log(`Running on port ${port}...`);
+  logger.info(`Running on port ${port}...`);
 });
