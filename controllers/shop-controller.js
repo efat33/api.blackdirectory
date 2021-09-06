@@ -35,7 +35,7 @@ class ShopController {
     if (req.body.discounted_price != '' && (req.body.discount_start == '' || req.body.discount_end == '')) {
       throw new AppError(403, "Discount schedule is required");
     }
-    if (!req.body.category_id || req.body.category_id == '') {
+    if (!req.body.categories || req.body.categories.length == 0) {
       throw new AppError(403, "Category is required");
     }
     if (!req.body.description || req.body.description == '') {
@@ -93,7 +93,7 @@ class ShopController {
     if (req.body.discounted_price != '' && (req.body.discount_start == '' || req.body.discount_end == '')) {
       throw new AppError(403, "Discount schedule is required");
     }
-    if (!req.body.category_id || req.body.category_id == '') {
+    if (!req.body.categories || req.body.categories == '') {
       throw new AppError(403, "Category is required");
     }
     if (!req.body.description || req.body.description == '') {
@@ -170,10 +170,19 @@ class ShopController {
 
   // get product categories
   getProductCategories = async (req, res, next) => {
+    const result = await shopModel.find({}, DBTables.product_categories, 'ORDER BY parent_id');
 
-    const result = await shopModel.find({}, DBTables.product_categories);
+    const categories = result.filter(cat => cat.parent_id == null).sort((a, b) => a.title.localeCompare(b.title));
 
-    new AppSuccess(res, 200, "200_successful", '', result);
+    for (const category of categories) {
+      category.subCategories = result.filter(cat => cat.parent_id === category.id).sort((a, b) => a.title.localeCompare(b.title));
+
+      for (const subCategory of category.subCategories) {
+        subCategory.subCategories = result.filter(cat => cat.parent_id === subCategory.id).sort((a, b) => a.title.localeCompare(b.title));
+      }
+    }
+
+    new AppSuccess(res, 200, "200_successful", '', categories);
 
   };
 

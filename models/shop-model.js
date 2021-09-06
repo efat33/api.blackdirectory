@@ -39,6 +39,8 @@ class ShopModel {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if (orderby != '') sql += ` ${orderby}`;
+
       return await query(sql);
     }
 
@@ -75,14 +77,14 @@ class ShopModel {
 
     // insert into product table 
     const sql = `INSERT INTO ${DBTables.products} (user_id, title, slug, price, discounted_price, 
-                  discount_start, discount_end, category_id, image, galleries, 
+                  discount_start, discount_end, image, galleries, 
                   short_desc, description, sku, stock_status, purchase_note, 
                   is_downloadable, is_virtual, created_at, updated_at) VALUES 
                   (?,?,?,?,?,
-                    ?,?,?,?,?,
+                    ?,?,?,?,
                     ?,?,?,?,?,
                     ?,?,?,?)`;
-    const values = [user_id, params.title, slug, params.price, params.discounted_price, params.discount_start, params.discount_end, params.category_id, params.image,
+    const values = [user_id, params.title, slug, params.price, params.discounted_price, params.discount_start, params.discount_end, params.image,
       JSON.stringify(params.galleries), params.short_desc, params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
       current_date, current_date];
 
@@ -105,6 +107,19 @@ class ShopModel {
       }
 
       const resultProdMeta = await query2(sql_meta, [values]);
+
+      // insert product categories 
+      if (params.categories && params.categories.length > 0) {
+        const sql_cats = `INSERT INTO ${DBTables.product_category_relationships} (product_id, category_id) VALUES ?`;
+        const values = [];
+
+        for (let category_id of params.categories) {
+          const tmp = [product_id, category_id];
+          values.push(tmp);
+        }
+
+        await query2(sql_cats, [values]);
+      }
 
       // insert product tags 
       if (params.tags && params.tags.length > 0) {
@@ -137,7 +152,6 @@ class ShopModel {
       'discounted_price': params.discounted_price,
       'discount_start': params.discount_start,
       'discount_end': params.discount_end,
-      'category_id': params.category_id,
       'image': params.image,
       'galleries': JSON.stringify(params.galleries),
       'short_desc': params.short_desc,
@@ -193,15 +207,29 @@ class ShopModel {
 
       }
 
+      // update product categories
+      const cat_ids = encodeURI(params.categories.join(','));
+      const cat_remove_sql = `DELETE FROM ${DBTables.product_category_relationships} WHERE product_id=${product_id} AND category_id NOT IN (${cat_ids})`;
+      await query(cat_remove_sql);
+
+      if (params.categories && params.categories.length > 0) {
+        const cat_sql = `INSERT INTO ${DBTables.product_category_relationships} 
+          (product_id, category_id) 
+          VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+        const cat_values = params.categories.map(cat => ([product_id, cat]));
+        await query2(cat_sql, [cat_values]);
+      }
+
       return true;
     }
+
     return false;
   }
 
   getProduct = async (slug) => {
-    let sql = `SELECT p.*, c.title as category_name
+    let sql = `SELECT p.*
               FROM ${DBTables.products} as p
-              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id
               WHERE p.slug=?`;
 
     const result = await query(sql, [slug]);
@@ -236,6 +264,21 @@ class ShopModel {
     }
     product.tags = tags;
 
+    // process categories data
+    const sqlCats = `SELECT pc.*
+                          FROM ${DBTables.product_category_relationships} pcr
+                          JOIN ${DBTables.product_categories} pc ON pc.id = pcr.category_id  
+                          WHERE pcr.product_id = ?`;
+
+    const catData = await query(sqlCats, [product_id]);
+    const categories = [];
+
+    for (const item of catData) {
+      categories.push(item);
+    }
+
+    product.categories = categories;
+
     this.updateProductViewCount(product);
 
     return product;
@@ -245,12 +288,11 @@ class ShopModel {
     const sql = `UPDATE ${DBTables.products} SET views=${product.views + 1} WHERE id=${product.id}`;
 
     return await query(sql);
-}
+  }
 
   getProducts = async (params) => {
-    let sql = `SELECT p.*, c.title as category_name
-              FROM ${DBTables.products} as p
-              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+    let sql = `SELECT p.*
+              FROM ${DBTables.products} as p`;
 
     let queryParams = ` WHERE p.status = 'publish'`;
 
@@ -685,7 +727,7 @@ class ShopModel {
 
     const sql = `UPDATE ${this.tableOrders} SET status=?, updated_at=? WHERE id = ?`;
     const values = [status, current_date, orderId];
-    
+
     return await query(sql, values);
   }
 

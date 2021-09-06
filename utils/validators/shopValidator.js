@@ -6,7 +6,7 @@ exports.validateNewProduct = [
       .withMessage('Price is required')
       .notEmpty()
       .withMessage('Price is required'),
-  check('category_id')
+  check('categories')
       .exists()
       .withMessage('Category is required')
       .notEmpty()

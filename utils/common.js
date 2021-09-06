@@ -19,6 +19,7 @@ exports.DBTables = {
   'products': 'products',
   'products_meta': 'products_meta',
   'product_categories': 'product_categories',
+  'product_category_relationships': 'product_category_relationships',
   'product_tags': 'product_tags',
   'product_tag_relationships': 'product_tag_relationships',
 
