@@ -3,6 +3,7 @@ const router = express.Router();
 const ShopController = require('../controllers/shop-controller');
 const auth = require('../utils/auth');
 const authVerified = require('../utils/authVerified');
+const currentUser = require('../utils/currentUser');
 const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
@@ -16,7 +17,7 @@ router.get('/product/:slug', apiKey(), awaitHandlerFactory(ShopController.getPro
 router.get('/product/:slug/related-products', apiKey(), awaitHandlerFactory(ShopController.getRelatedProducts));
 router.get('/product-categories', apiKey(), awaitHandlerFactory(ShopController.getProductCategories));
 router.get('/product-tags', apiKey(), awaitHandlerFactory(ShopController.getProductTags));
-router.post('/products', apiKey(), awaitHandlerFactory(ShopController.getProducts));
+router.post('/products', apiKey(), currentUser(), awaitHandlerFactory(ShopController.getProducts));
 
 router.get('/product/:product_id/reviews', apiKey(), awaitHandlerFactory(ShopController.getProductReviews));
 router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandlerFactory(ShopController.createProductReview));

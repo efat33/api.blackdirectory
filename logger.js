@@ -7,7 +7,7 @@ const logFormat = format.combine(format.timestamp(), format.printf((info) => {
 const logger = createLogger({
   format: logFormat,
   transports: [
-    new transports.Console(),
+    // new transports.Console(),
     new transports.File({ filename: 'logs/app.log', maxsize: 10000000 })
   ]
 });

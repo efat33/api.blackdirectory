@@ -79,7 +79,7 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    if (product.user_id != req.currentUser.id) {
+    if (req.currentUser.role !== 'admin' && product.user_id != req.currentUser.id) {
       throw new AppError(401, "401_unauthorised");
     }
 
@@ -156,6 +156,10 @@ class ShopController {
 
   // get all products and product filter
   getProducts = async (req, res, next) => {
+
+    if (req.currentUser && req.currentUser.role === 'admin' && req.body.params && req.body.params.user_id) {
+      delete req.body.params.user_id;
+    }
 
     const result = await shopModel.getProducts(req.body);
 
