@@ -31,7 +31,7 @@ router.put('/update-job-property/:job_id', apiKey(), auth(), isEmployerOrAdmin()
 router.post('/new-application', apiKey(), auth(), awaitHandlerFactory(jobController.newJobApplication));
 router.get('/get-applications', apiKey(), auth(), isEmployerOrAdmin(), awaitHandlerFactory(jobController.getJobApplications));
 router.get('/get-applications/:job_id', apiKey(), auth(), isEmployerOrAdmin(), awaitHandlerFactory(jobController.getJobApplications));
-router.get('/get-application-status/:job_id', apiKey(), auth(), isEmployerOrAdmin(), awaitHandlerFactory(jobController.getUserJobApplication));
+router.get('/get-application-status/:job_id', apiKey(), auth(), awaitHandlerFactory(jobController.getUserJobApplication));
 router.put('/update-job-appliation/:application_id', apiKey(), auth(), isEmployerOrAdmin(), awaitHandlerFactory(jobController.updateJobApplication));
 
 router.get('/get-applied-jobs', apiKey(), auth(), awaitHandlerFactory(jobController.getAppliedJobs));

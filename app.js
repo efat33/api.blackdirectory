@@ -84,4 +84,5 @@ app.use(globalErrorHandler);
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   logger.info(`Running on port ${port}...`);
+  console.log(`Running on port ${port}...`);
 });
