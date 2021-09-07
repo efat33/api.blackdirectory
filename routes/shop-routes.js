@@ -42,4 +42,8 @@ router.get('/countries', apiKey(), awaitHandlerFactory(ShopController.getCountri
 router.get('/withdraw-requests', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getWithdrawRequests));
 router.post('/withdraw-request', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newWithdrawRequest));
 
+router.get('/wishlist', apiKey(), auth(), awaitHandlerFactory(ShopController.getWishlistProducts));
+router.post('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.addWishlistProduct));
+router.delete('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.deleteWishlistProduct));
+
 module.exports = router;

@@ -22,6 +22,7 @@ exports.DBTables = {
   'product_category_relationships': 'product_category_relationships',
   'product_tags': 'product_tags',
   'product_tag_relationships': 'product_tag_relationships',
+  'product_wishlists': 'product_wishlists',
 
   // event tables
   'events': 'events',

@@ -796,6 +796,46 @@ class ShopModel {
 
     return await query(sql, [currentUser.id]);
   }
+
+  addWishlistProduct = async (product_id, currentUser) => {
+    const user_id = currentUser.id;
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_wishlists} 
+            (user_id, product_id) 
+            VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+    const values = [user_id, product_id];
+
+    const result = await query2(sql, [[values]]);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  getWishlistProducts = async (currentUser) => {
+    let sql = `SELECT product_id
+      FROM ${DBTables.product_wishlists}
+      WHERE user_id=${currentUser.id}`;
+
+    let product_ids = await query(sql);
+    product_ids = product_ids.map(obj => obj.product_id);
+
+    return this.getProducts({ params: { ids: product_ids } });
+  }
+
+  deleteWishlistProduct = async (product_id, currentUser) => {
+    const sql = `DELETE FROM ${DBTables.product_wishlists} WHERE user_id=? AND product_id=?`;
+    const values = [currentUser.id, product_id];
+
+    return await query(sql, values);
+  }
 }
 
 module.exports = new ShopModel;

@@ -550,6 +550,28 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_successful", null, output);
   };
+
+  getWishlistProducts = async (req, res, next) => {
+    const result = await shopModel.getWishlistProducts(req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  };
+
+  addWishlistProduct = async (req, res, next) => {
+    if (!req.params.product_id) {
+      throw new AppError(403, "Product ID is required");
+    }
+
+    await shopModel.addWishlistProduct(req.params.product_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
+  }
+
+  deleteWishlistProduct = async (req, res, next) => {
+    await shopModel.deleteWishlistProduct(req.params.product_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
 }
 
 module.exports = new ShopController();
