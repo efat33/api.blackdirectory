@@ -135,6 +135,22 @@ class ShopModel {
 
       }
 
+      // insert product options 
+      if (params.options && params.options.length > 0) {
+        const sql_options = `INSERT INTO ${DBTables.product_option_relationships} (product_id, option_id, choice_id) VALUES ?`;
+        const values = [];
+
+        for (let option of params.options) {
+          for (const choice of option.choices) {
+            const value = [product_id, option.option_id, choice];
+            values.push(value);
+          }
+        }
+
+        await query2(sql_options, [values]);
+
+      }
+
       return true;
     }
     return false;
@@ -209,7 +225,9 @@ class ShopModel {
 
       // update product categories
       const cat_ids = encodeURI(params.categories.join(','));
-      const cat_remove_sql = `DELETE FROM ${DBTables.product_category_relationships} WHERE product_id=${product_id} AND category_id NOT IN (${cat_ids})`;
+      const cat_remove_sql = `DELETE FROM ${DBTables.product_category_relationships} 
+        WHERE product_id=${product_id} AND category_id NOT IN (${cat_ids})`;
+
       await query(cat_remove_sql);
 
       if (params.categories && params.categories.length > 0) {
@@ -219,6 +237,27 @@ class ShopModel {
 
         const cat_values = params.categories.map(cat => ([product_id, cat]));
         await query2(cat_sql, [cat_values]);
+      }
+
+      // update product options
+      // first delete the existing options 
+      const option_remove_sql = `DELETE FROM ${DBTables.product_option_relationships} WHERE product_id IN (?)`;
+      await query(option_remove_sql, [product_id]);
+
+      // insert product options 
+      if (params.options && params.options.length > 0) {
+        const sql_options = `INSERT INTO ${DBTables.product_option_relationships} (product_id, option_id, choice_id) VALUES ?`;
+        const values = [];
+
+        for (let option of params.options) {
+          for (const choice of option.choices) {
+            const value = [product_id, option.option_id, choice];
+            values.push(value);
+          }
+        }
+
+        await query2(sql_options, [values]);
+
       }
 
       return true;
@@ -266,9 +305,9 @@ class ShopModel {
 
     // process categories data
     const sqlCats = `SELECT pc.*
-                          FROM ${DBTables.product_category_relationships} pcr
-                          JOIN ${DBTables.product_categories} pc ON pc.id = pcr.category_id  
-                          WHERE pcr.product_id = ?`;
+      FROM ${DBTables.product_category_relationships} pcr
+      JOIN ${DBTables.product_categories} pc ON pc.id = pcr.category_id  
+      WHERE pcr.product_id = ?`;
 
     const catData = await query(sqlCats, [product_id]);
     const categories = [];
@@ -278,6 +317,27 @@ class ShopModel {
     }
 
     product.categories = categories;
+
+    // process options data
+    const sqlOptions = `SELECT po.*, poc.id as choice_id, poc.title as choice
+      FROM ${DBTables.product_option_relationships} por
+      LEFT JOIN ${DBTables.product_options} po ON po.id = por.option_id  
+      LEFT JOIN ${DBTables.product_option_choices} poc ON poc.id = por.choice_id  
+      WHERE por.product_id = ?`;
+
+    const optionData = await query(sqlOptions, [product_id]);
+
+    const options = {};
+
+    for (const option of optionData) {
+      if (!options[option.id]) {
+        options[option.id] = { id: option.id, title: option.title, choices: [] };
+      }
+
+      options[option.id].choices.push({ id: option.choice_id, title: option.choice });
+    }
+
+    product.options = Object.values(options);
 
     this.updateProductViewCount(product);
 
@@ -835,6 +895,21 @@ class ShopModel {
     const values = [currentUser.id, product_id];
 
     return await query(sql, values);
+  }
+
+  getProductOptions = async () => {
+    let sql = `SELECT Choices.*, Options.title as option
+      FROM ${DBTables.product_options} as Options
+      LEFT JOIN ${DBTables.product_option_choices} as Choices ON Choices.option_id=Options.id`;
+
+    return await query(sql);
+  }
+
+  getProductCategoryOptions = async () => {
+    let sql = `SELECT *
+      FROM ${DBTables.product_category_option_relationships}`;
+
+    return await query(sql);
   }
 }
 

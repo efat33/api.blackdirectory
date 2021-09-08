@@ -170,20 +170,61 @@ class ShopController {
 
   // get product categories
   getProductCategories = async (req, res, next) => {
-    const result = await shopModel.find({}, DBTables.product_categories, 'ORDER BY parent_id');
+    const categories_result = await shopModel.find({}, DBTables.product_categories, 'ORDER BY parent_id');
+    const options_result = await shopModel.getProductOptions();
+    const category_options_result = await shopModel.getProductCategoryOptions();
 
-    const categories = result.filter(cat => cat.parent_id == null).sort((a, b) => a.title.localeCompare(b.title));
+    let options = options_result.reduce((acc, option) => {
+      if (!acc[option.option_id]) {
+        acc[option.option_id] = [];
+      }
+
+      acc[option.option_id].push(option);
+
+      return acc;
+    }, {});
+
+    for (let option_id in options) {
+      options[option_id].sort((a, b) => a.choice_order - b.choice_order);
+    }
+
+    options = Object.values(options);
+
+    const categories = categories_result
+      .filter(cat => cat.parent_id == null)
+      .map((cat) => {
+        const cat_options = category_options_result.filter(option => option.category_id === cat.id).map(option => option.option_id);
+        cat.options = options.filter(option => cat_options.includes(option[0].option_id));
+
+        return cat;
+      })
+      .sort((a, b) => a.title.localeCompare(b.title));
 
     for (const category of categories) {
-      category.subCategories = result.filter(cat => cat.parent_id === category.id).sort((a, b) => a.title.localeCompare(b.title));
+      category.subCategories = categories_result
+        .filter(cat => cat.parent_id === category.id)
+        .map((cat) => {
+          const cat_options = category_options_result.filter(option => option.category_id === cat.id).map(option => option.option_id);
+          cat.options = options.filter(option => cat_options.includes(option[0].option_id));
+
+          return cat;
+        })
+        .sort((a, b) => a.title.localeCompare(b.title));
 
       for (const subCategory of category.subCategories) {
-        subCategory.subCategories = result.filter(cat => cat.parent_id === subCategory.id).sort((a, b) => a.title.localeCompare(b.title));
+        subCategory.subCategories = categories_result
+          .filter(cat => cat.parent_id === subCategory.id)
+          .map((cat) => {
+            const cat_options = category_options_result.filter(option => option.category_id === cat.id).map(option => option.option_id);
+            cat.options = options.filter(option => cat_options.includes(option[0].option_id));
+
+            return cat;
+          })
+          .sort((a, b) => a.title.localeCompare(b.title));
       }
     }
 
     new AppSuccess(res, 200, "200_successful", '', categories);
-
   };
 
   // get product tags
@@ -407,7 +448,7 @@ class ShopController {
       const subOrderSubtotal = subOrders.reduce((acc, item) => {
         return acc + item.subtotal;
       }, 0);
-      
+
       const subOrderTotal = subOrders.reduce((acc, item) => {
         return acc + item.total;
       }, 0);
