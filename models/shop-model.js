@@ -430,24 +430,59 @@ class ShopModel {
   }
 
   getRelatedProducts = async (slug) => {
-    let sql = `SELECT p.*, c.title as category_name
-              FROM ${DBTables.products} as p
-              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+    const sqlTags = `SELECT tr.tag_id
+      FROM ${DBTables.product_tag_relationships} tr
+      LEFT JOIN ${DBTables.products} as p ON p.id = tr.product_id 
+      WHERE p.slug = ?`;
 
-    let queryParams = ` WHERE p.slug != ? AND p.category_id = (
-      SELECT category_id FROM ${DBTables.products} WHERE slug = ?
-    )`;
+    const tagData = await query(sqlTags, [slug]);
+    const tagIds = tagData.map(tag => tag.tag_id);
 
-    let values = [slug, slug];
+    const sqlCats = `SELECT pcr.category_id
+      FROM ${DBTables.product_category_relationships} pcr
+      LEFT JOIN ${DBTables.products} as p ON p.id = pcr.product_id 
+      WHERE p.slug = ?`;
 
-    // set limit 
-    let queryLimit = ` LIMIT 4`;
+    const catData = await query(sqlCats, [slug]);
+    const catIds = catData.map(cat => cat.category_id);
 
-    sql += `${queryParams}${queryLimit}`;
+    let catRelatedRows = [];
+    if (catIds.length) {
 
+      let catRelatedSql = `SELECT DISTINCT p.*
+      FROM ${DBTables.product_category_relationships} as pcr 
+      LEFT JOIN ${DBTables.products} as p ON pcr.product_id = p.id`;
 
+      let catRelatedQueryParams = ` WHERE p.slug != ? AND pcr.category_id IN (${catIds.join(',')})`;
 
-    return await query(sql, values);
+      // set limit 
+      let catRelatedQueryLimit = ` LIMIT 4`;
+
+      catRelatedSql += `${catRelatedQueryParams}${catRelatedQueryLimit}`;
+
+      catRelatedRows = await query(catRelatedSql, [slug]);
+    }
+
+    let tagRelatedRows = [];
+    if (tagIds.length) {
+      let tagRelatedSql = `SELECT DISTINCT p.*
+      FROM ${DBTables.product_tag_relationships} as ptr 
+      LEFT JOIN ${DBTables.products} as p ON ptr.product_id = p.id`;
+
+      let tagRelatedQueryParams = ` WHERE p.slug != ? AND ptr.tag_id IN (${tagIds.join(',')})`;
+
+      // set limit 
+      let tagRelatedQueryLimit = ` LIMIT 4`;
+
+      tagRelatedSql += `${tagRelatedQueryParams}${tagRelatedQueryLimit}`;
+
+      tagRelatedRows = await query(tagRelatedSql, [slug]);
+    }
+
+    const mergedProducts = [...catRelatedRows, ...tagRelatedRows];
+    mergedProducts.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+    return mergedProducts.slice(0, 4);
   }
 
   getProductReviews = async (id) => {
@@ -887,7 +922,11 @@ class ShopModel {
     let product_ids = await query(sql);
     product_ids = product_ids.map(obj => obj.product_id);
 
-    return this.getProducts({ params: { ids: product_ids } });
+    if (product_ids.length) {
+      return this.getProducts({ params: { ids: product_ids } });
+    }
+
+    return [];
   }
 
   deleteWishlistProduct = async (product_id, currentUser) => {
