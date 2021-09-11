@@ -351,33 +351,12 @@ class ShopModel {
   }
 
   getProducts = async (params) => {
-    let sql = `SELECT p.*
+    let sql = `SELECT  p.*
               FROM ${DBTables.products} as p`;
 
     let queryParams = ` WHERE p.status = 'publish'`;
 
     let values = [];
-
-    // set order by
-    let queryOrderby = '';
-    if (params.orderby && params.orderby != '') {
-      const orderBy = encodeURI(params.orderby);
-      queryOrderby = ` ORDER BY ${orderBy}`;
-
-      if (params.order && params.order != '') {
-        // TODO: do javascript validation
-        const order = encodeURI(params.order);
-        queryOrderby += ` ${order}`;
-      }
-    }
-
-    // set limit 
-    let queryLimit = '';
-    if (params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')) {
-      queryLimit = ` LIMIT ?, ?`;
-      values.push(params.offset);
-      values.push(params.limit);
-    }
 
     // set params
     if (params.params) {
@@ -385,12 +364,40 @@ class ShopModel {
 
       if (p.keyword && p.keyword != '') {
         // TODO: do javascript validation
-        queryParams += ` AND ( p.title LIKE '%${p.keyword}%' OR p.description LIKE '%${p.keyword}%' )`;
+        queryParams += ` AND ( p.title LIKE '%${encodeURI(p.keyword)}%' OR p.description LIKE '%${encodeURI(p.keyword)}%' )`;
       }
 
       if (p.category && p.category != '') {
         // TODO: do javascript validation
-        queryParams += ` AND p.category_id = ${p.category}`;
+        sql += ` LEFT JOIN ${DBTables.product_category_relationships} as pcr ON pcr.product_id=p.id`
+        queryParams += ` AND pcr.category_id = ?`;
+        values.push(p.category);
+      }
+
+      if (p.price_min) {
+        queryParams += ` AND (p.price >= ? OR p.discounted_price >= ?)`;
+        values.push(p.price_min);
+        values.push(p.price_min);
+      }
+
+      if (p.price_max) {
+        queryParams += ` AND (p.price <= ? OR p.discounted_price <= ?)`;
+        values.push(p.price_max);
+        values.push(p.price_max);
+      }
+
+      if (p.rating) {
+        queryParams += ` AND p.rating_average >= ?`;
+        values.push(p.rating);
+      }
+
+      if (p.choices && p.choices.length) {
+        sql += ` LEFT JOIN ${DBTables.product_option_relationships} as por ON por.product_id=p.id`
+
+        const choiceParams = p.choices.map((choice) => `por.choice_id=?`);
+
+        queryParams += ` AND ${choiceParams.join(' OR ')}`;
+        values.push(...p.choices);
       }
 
       if (p.tag && p.tag != '') {
@@ -422,6 +429,27 @@ class ShopModel {
 
         queryParams += ` AND p.id IN (${ids})`;
       }
+    }
+
+    // set order by
+    let queryOrderby = '';
+    if (params.orderby && params.orderby != '') {
+      const orderBy = encodeURI(params.orderby);
+      queryOrderby = ` ORDER BY ${orderBy}`;
+
+      if (params.order && params.order != '') {
+        // TODO: do javascript validation
+        const order = encodeURI(params.order);
+        queryOrderby += ` ${order}`;
+      }
+    }
+
+    // set limit 
+    let queryLimit = '';
+    if (params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')) {
+      queryLimit = ` LIMIT ?, ?`;
+      values.push(params.offset);
+      values.push(params.limit);
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
