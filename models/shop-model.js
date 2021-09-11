@@ -950,6 +950,23 @@ class ShopModel {
 
     return await query(sql);
   }
+
+  getPriceRange = async () => {
+    let sql = `SELECT MAX(price) as max_price, MIN(price) as min_price, 
+      MAX(discounted_price) as max_discounted_price, MIN(discounted_price) as min_discounted_price
+      FROM ${DBTables.products}`;
+
+    return await query(sql);
+  }
+
+  getBrands = async () => {
+    let sql = `SELECT DISTINCT u.display_name as display_name, u.username as username
+      FROM ${DBTables.products} as p
+      LEFT JOIN ${DBTables.users} as u ON u.id=p.user_id
+      ORDER BY u.display_name`;
+
+    return await query(sql);
+  }
 }
 
 module.exports = new ShopModel;

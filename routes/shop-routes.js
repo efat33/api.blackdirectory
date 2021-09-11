@@ -46,4 +46,6 @@ router.get('/wishlist', apiKey(), auth(), awaitHandlerFactory(ShopController.get
 router.post('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.addWishlistProduct));
 router.delete('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.deleteWishlistProduct));
 
+router.get('/filter-options', apiKey(), awaitHandlerFactory(ShopController.getFilterOptions));
+
 module.exports = router;

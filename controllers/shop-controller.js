@@ -613,6 +613,22 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_successful");
   };
+
+  getFilterOptions = async (req, res, next) => {
+    const priceResult = await shopModel.getPriceRange();
+    const brandResult = await shopModel.getBrands();
+
+    const options = {};
+
+    options.price = {
+      max: Math.max(priceResult[0].max_price, priceResult[0].max_discounted_price),
+      min: Math.min(priceResult[0].min_price, priceResult[0].min_discounted_price)
+    };
+
+    options.brands = brandResult;
+
+    new AppSuccess(res, 200, "200_successful", null, options);
+  };
 }
 
 module.exports = new ShopController();
