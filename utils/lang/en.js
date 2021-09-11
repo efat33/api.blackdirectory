@@ -7,7 +7,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "400_paramMissingGeneral": "Please enter the missing fields",
 
   "401_unauthorised": "Uauthorized",
-  "401_invalidCredentials": "uauthorized",
+  "401_invalidCredentials": "Uauthorized",
   "401_accountNotVerified": "Account is not verified",
   "401_invalidAge": "You must be 18 to register",
   "401_notEmployer": "You must be an employer",

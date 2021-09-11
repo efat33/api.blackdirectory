@@ -35,7 +35,7 @@ class ShopController {
     if (req.body.discounted_price != '' && (req.body.discount_start == '' || req.body.discount_end == '')) {
       throw new AppError(403, "Discount schedule is required");
     }
-    if (!req.body.category_id || req.body.category_id == '') {
+    if (!req.body.categories || req.body.categories.length == 0) {
       throw new AppError(403, "Category is required");
     }
     if (!req.body.description || req.body.description == '') {
@@ -93,7 +93,7 @@ class ShopController {
     if (req.body.discounted_price != '' && (req.body.discount_start == '' || req.body.discount_end == '')) {
       throw new AppError(403, "Discount schedule is required");
     }
-    if (!req.body.category_id || req.body.category_id == '') {
+    if (!req.body.categories || req.body.categories == '') {
       throw new AppError(403, "Category is required");
     }
     if (!req.body.description || req.body.description == '') {
@@ -170,11 +170,61 @@ class ShopController {
 
   // get product categories
   getProductCategories = async (req, res, next) => {
+    const categories_result = await shopModel.find({}, DBTables.product_categories, 'ORDER BY parent_id');
+    const options_result = await shopModel.getProductOptions();
+    const category_options_result = await shopModel.getProductCategoryOptions();
 
-    const result = await shopModel.find({}, DBTables.product_categories);
+    let options = options_result.reduce((acc, option) => {
+      if (!acc[option.option_id]) {
+        acc[option.option_id] = [];
+      }
 
-    new AppSuccess(res, 200, "200_successful", '', result);
+      acc[option.option_id].push(option);
 
+      return acc;
+    }, {});
+
+    for (let option_id in options) {
+      options[option_id].sort((a, b) => a.choice_order - b.choice_order);
+    }
+
+    options = Object.values(options);
+
+    const categories = categories_result
+      .filter(cat => cat.parent_id == null)
+      .map((cat) => {
+        const cat_options = category_options_result.filter(option => option.category_id === cat.id).map(option => option.option_id);
+        cat.options = options.filter(option => cat_options.includes(option[0].option_id));
+
+        return cat;
+      })
+      .sort((a, b) => a.title.localeCompare(b.title));
+
+    for (const category of categories) {
+      category.subCategories = categories_result
+        .filter(cat => cat.parent_id === category.id)
+        .map((cat) => {
+          const cat_options = category_options_result.filter(option => option.category_id === cat.id).map(option => option.option_id);
+          cat.options = options.filter(option => cat_options.includes(option[0].option_id));
+
+          return cat;
+        })
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+      for (const subCategory of category.subCategories) {
+        subCategory.subCategories = categories_result
+          .filter(cat => cat.parent_id === subCategory.id)
+          .map((cat) => {
+            const cat_options = category_options_result.filter(option => option.category_id === cat.id).map(option => option.option_id);
+            cat.options = options.filter(option => cat_options.includes(option[0].option_id));
+
+            return cat;
+          })
+          .sort((a, b) => a.title.localeCompare(b.title));
+      }
+    }
+
+    new AppSuccess(res, 200, "200_successful", '', categories);
   };
 
   // get product tags
@@ -398,7 +448,7 @@ class ShopController {
       const subOrderSubtotal = subOrders.reduce((acc, item) => {
         return acc + item.subtotal;
       }, 0);
-      
+
       const subOrderTotal = subOrders.reduce((acc, item) => {
         return acc + item.total;
       }, 0);
@@ -540,6 +590,44 @@ class ShopController {
     };
 
     new AppSuccess(res, 200, "200_successful", null, output);
+  };
+
+  getWishlistProducts = async (req, res, next) => {
+    const result = await shopModel.getWishlistProducts(req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  };
+
+  addWishlistProduct = async (req, res, next) => {
+    if (!req.params.product_id) {
+      throw new AppError(403, "Product ID is required");
+    }
+
+    await shopModel.addWishlistProduct(req.params.product_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
+  }
+
+  deleteWishlistProduct = async (req, res, next) => {
+    await shopModel.deleteWishlistProduct(req.params.product_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
+
+  getFilterOptions = async (req, res, next) => {
+    const priceResult = await shopModel.getPriceRange();
+    const brandResult = await shopModel.getBrands();
+
+    const options = {};
+
+    options.price = {
+      max: Math.max(priceResult[0].max_price, priceResult[0].max_discounted_price),
+      min: Math.min(priceResult[0].min_price, priceResult[0].min_discounted_price)
+    };
+
+    options.brands = brandResult;
+
+    new AppSuccess(res, 200, "200_successful", null, options);
   };
 }
 
