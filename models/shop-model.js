@@ -396,7 +396,7 @@ class ShopModel {
 
         const choiceParams = p.choices.map((choice) => `por.choice_id=?`);
 
-        queryParams += ` AND ${choiceParams.join(' OR ')}`;
+        queryParams += ` AND (${choiceParams.join(' OR ')})`;
         values.push(...p.choices);
       }
 
