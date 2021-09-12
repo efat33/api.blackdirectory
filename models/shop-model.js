@@ -692,9 +692,11 @@ class ShopModel {
 
   getOrders = async (params = {}, page = 1, limit = -1) => {
     let sql = `SELECT Orders.*, 
-      Promo.code as promo_code, Promo.discount as discount
+      Promo.code as promo_code, Promo.discount as discount,
+      Shipping.title as shipping_title, Shipping.fee as shipping_fee
       FROM ${this.tableOrders} as Orders 
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
+      LEFT JOIN ${DBTables.product_shippings} as Shipping ON Shipping.id=Orders.shipping_id
       `;
 
     const paramArray = [];
@@ -718,9 +720,11 @@ class ShopModel {
 
   getOrder = async (params = {}) => {
     let sql = `SELECT Orders.*, 
-      Promo.code as promo_code, Promo.discount as discount
+      Promo.code as promo_code, Promo.discount as discount,
+      Shipping.title as shipping_title, Shipping.fee as shipping_fee
       FROM ${this.tableOrders} as Orders
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
+      LEFT JOIN ${DBTables.product_shippings} as Shipping ON Shipping.id=Orders.shipping_id
       `;
 
     const { columnSet, values } = multipleColumnSet(params)
@@ -783,8 +787,8 @@ class ShopModel {
     let output = {};
 
     const sql = `INSERT INTO ${this.tableOrders} 
-        (parent_id, user_id, vendor_id, subtotal, total, earned, promo_id, additional_info, created_at, updated_at) 
-        VALUES (?,?,?,?,?,?,?,?,?,?)`;
+        (parent_id, user_id, vendor_id, subtotal, total, earned, promo_id, shipping_id, additional_info, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
 
     const values = [
       parent_id,
@@ -794,6 +798,7 @@ class ShopModel {
       order.total,
       order.total * 0.95,
       order.promo_id,
+      order.shipping_method,
       order.additional_info,
       current_date,
       current_date
@@ -1009,6 +1014,14 @@ class ShopModel {
       ORDER BY shipping_order`;
 
     return await query(sql, [currentUser.id]);
+  }
+
+  getShippingMethodsById = async (ids) => {
+    let sql = `SELECT *
+    FROM ${DBTables.product_shippings}
+    WHERE id IN (${encodeURI(ids.join(','))})`;
+    
+    return await query(sql);
   }
 
   addShippingMethod = async (body, currentUser) => {
