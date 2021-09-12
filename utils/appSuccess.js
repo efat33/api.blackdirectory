@@ -1,6 +1,8 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
+const logger = require('../logger');
+
 const lang = process.env.LOCALE || 'en';
 const { RESPONSE_CODES, ENTITIES } = require(`./lang/${lang}.js`);
 
@@ -18,6 +20,8 @@ class AppSuccess {
       message,
       data
     };
+
+    logger.debug('Outgoing response ' + JSON.stringify(response));
     
     res.status(status).send(response);
 

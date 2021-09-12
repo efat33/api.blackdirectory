@@ -95,7 +95,7 @@ class EventController {
     const existingEvent = await EventModel.findOne({ id: req.body.id }, DBTables.events);
 
     // check if the user is authorised to edit this event
-    if (existingEvent.user_id && existingEvent.user_id != req.currentUser.id) {
+    if (req.currentUser.role !== 'admin' && existingEvent.user_id && existingEvent.user_id != req.currentUser.id) {
       throw new AppError(401, "401_unauthorised");
     }
 

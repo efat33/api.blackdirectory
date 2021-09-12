@@ -3,6 +3,7 @@ const router = express.Router();
 const ShopController = require('../controllers/shop-controller');
 const auth = require('../utils/auth');
 const authVerified = require('../utils/authVerified');
+const currentUser = require('../utils/currentUser');
 const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
@@ -16,7 +17,7 @@ router.get('/product/:slug', apiKey(), awaitHandlerFactory(ShopController.getPro
 router.get('/product/:slug/related-products', apiKey(), awaitHandlerFactory(ShopController.getRelatedProducts));
 router.get('/product-categories', apiKey(), awaitHandlerFactory(ShopController.getProductCategories));
 router.get('/product-tags', apiKey(), awaitHandlerFactory(ShopController.getProductTags));
-router.post('/products', apiKey(), awaitHandlerFactory(ShopController.getProducts));
+router.post('/products', apiKey(), currentUser(), awaitHandlerFactory(ShopController.getProducts));
 
 router.get('/product/:product_id/reviews', apiKey(), awaitHandlerFactory(ShopController.getProductReviews));
 router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandlerFactory(ShopController.createProductReview));
@@ -24,13 +25,15 @@ router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandle
 router.get('/details/:user_id', apiKey(), awaitHandlerFactory(ShopController.getShopDetails));
 router.post('/details', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateShopDetails));
 
-router.get('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getCartItems));
-router.post('/cart', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateCartItems));
-router.delete('/cart/:item_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteCartItem));
-router.delete('/cart-clear', apiKey(), authVerified(), awaitHandlerFactory(ShopController.clearCartItems));
+router.get('/cart', apiKey(), auth(), awaitHandlerFactory(ShopController.getCartItems));
+router.post('/cart', apiKey(), auth(), awaitHandlerFactory(ShopController.updateCartItems));
+router.delete('/cart/:item_id', apiKey(), auth(), awaitHandlerFactory(ShopController.deleteCartItem));
+router.delete('/cart-clear', apiKey(), auth(), awaitHandlerFactory(ShopController.clearCartItems));
 
+router.get('/vendor-orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getVendorOrders));
 router.get('/orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrders));
 router.get('/order/:order_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrder));
+router.put('/order/:order_id/status', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateOrderStatus));
 router.post('/order', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newOrder));
 router.get('/promo-code/:promo_code', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getPromo));
 
@@ -38,5 +41,11 @@ router.get('/countries', apiKey(), awaitHandlerFactory(ShopController.getCountri
 
 router.get('/withdraw-requests', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getWithdrawRequests));
 router.post('/withdraw-request', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newWithdrawRequest));
+
+router.get('/wishlist', apiKey(), auth(), awaitHandlerFactory(ShopController.getWishlistProducts));
+router.post('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.addWishlistProduct));
+router.delete('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.deleteWishlistProduct));
+
+router.get('/filter-options', apiKey(), awaitHandlerFactory(ShopController.getFilterOptions));
 
 module.exports = router;

@@ -44,4 +44,6 @@ router.delete('/notification/:notification_id', apiKey(), auth(), awaitHandlerFa
 
 router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.getUsersByIds));
 
+router.get('/verify-email/:verification_key', awaitHandlerFactory(userController.verifiyEmail));
+
 module.exports = router;

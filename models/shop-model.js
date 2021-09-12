@@ -39,6 +39,8 @@ class ShopModel {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if (orderby != '') sql += ` ${orderby}`;
+
       return await query(sql);
     }
 
@@ -75,14 +77,14 @@ class ShopModel {
 
     // insert into product table 
     const sql = `INSERT INTO ${DBTables.products} (user_id, title, slug, price, discounted_price, 
-                  discount_start, discount_end, category_id, image, galleries, 
+                  discount_start, discount_end, image, galleries, 
                   short_desc, description, sku, stock_status, purchase_note, 
                   is_downloadable, is_virtual, created_at, updated_at) VALUES 
                   (?,?,?,?,?,
-                    ?,?,?,?,?,
+                    ?,?,?,?,
                     ?,?,?,?,?,
                     ?,?,?,?)`;
-    const values = [user_id, params.title, slug, params.price, params.discounted_price, params.discount_start, params.discount_end, params.category_id, params.image,
+    const values = [user_id, params.title, slug, params.price, params.discounted_price, params.discount_start, params.discount_end, params.image,
       JSON.stringify(params.galleries), params.short_desc, params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
       current_date, current_date];
 
@@ -106,6 +108,19 @@ class ShopModel {
 
       const resultProdMeta = await query2(sql_meta, [values]);
 
+      // insert product categories 
+      if (params.categories && params.categories.length > 0) {
+        const sql_cats = `INSERT INTO ${DBTables.product_category_relationships} (product_id, category_id) VALUES ?`;
+        const values = [];
+
+        for (let category_id of params.categories) {
+          const tmp = [product_id, category_id];
+          values.push(tmp);
+        }
+
+        await query2(sql_cats, [values]);
+      }
+
       // insert product tags 
       if (params.tags && params.tags.length > 0) {
         const sql_tags = `INSERT INTO ${DBTables.product_tag_relationships} (product_id, tag_id) VALUES ?`;
@@ -117,6 +132,22 @@ class ShopModel {
         }
 
         const resultProdTags = await query2(sql_tags, [values]);
+
+      }
+
+      // insert product options 
+      if (params.options && params.options.length > 0) {
+        const sql_options = `INSERT INTO ${DBTables.product_option_relationships} (product_id, option_id, choice_id) VALUES ?`;
+        const values = [];
+
+        for (let option of params.options) {
+          for (const choice of option.choices) {
+            const value = [product_id, option.option_id, choice];
+            values.push(value);
+          }
+        }
+
+        await query2(sql_options, [values]);
 
       }
 
@@ -137,7 +168,6 @@ class ShopModel {
       'discounted_price': params.discounted_price,
       'discount_start': params.discount_start,
       'discount_end': params.discount_end,
-      'category_id': params.category_id,
       'image': params.image,
       'galleries': JSON.stringify(params.galleries),
       'short_desc': params.short_desc,
@@ -193,15 +223,52 @@ class ShopModel {
 
       }
 
+      // update product categories
+      const cat_ids = encodeURI(params.categories.join(','));
+      const cat_remove_sql = `DELETE FROM ${DBTables.product_category_relationships} 
+        WHERE product_id=${product_id} AND category_id NOT IN (${cat_ids})`;
+
+      await query(cat_remove_sql);
+
+      if (params.categories && params.categories.length > 0) {
+        const cat_sql = `INSERT INTO ${DBTables.product_category_relationships} 
+          (product_id, category_id) 
+          VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+        const cat_values = params.categories.map(cat => ([product_id, cat]));
+        await query2(cat_sql, [cat_values]);
+      }
+
+      // update product options
+      // first delete the existing options 
+      const option_remove_sql = `DELETE FROM ${DBTables.product_option_relationships} WHERE product_id IN (?)`;
+      await query(option_remove_sql, [product_id]);
+
+      // insert product options 
+      if (params.options && params.options.length > 0) {
+        const sql_options = `INSERT INTO ${DBTables.product_option_relationships} (product_id, option_id, choice_id) VALUES ?`;
+        const values = [];
+
+        for (let option of params.options) {
+          for (const choice of option.choices) {
+            const value = [product_id, option.option_id, choice];
+            values.push(value);
+          }
+        }
+
+        await query2(sql_options, [values]);
+
+      }
+
       return true;
     }
+
     return false;
   }
 
   getProduct = async (slug) => {
-    let sql = `SELECT p.*, c.title as category_name
+    let sql = `SELECT p.*
               FROM ${DBTables.products} as p
-              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id
               WHERE p.slug=?`;
 
     const result = await query(sql, [slug]);
@@ -236,6 +303,42 @@ class ShopModel {
     }
     product.tags = tags;
 
+    // process categories data
+    const sqlCats = `SELECT pc.*
+      FROM ${DBTables.product_category_relationships} pcr
+      JOIN ${DBTables.product_categories} pc ON pc.id = pcr.category_id  
+      WHERE pcr.product_id = ?`;
+
+    const catData = await query(sqlCats, [product_id]);
+    const categories = [];
+
+    for (const item of catData) {
+      categories.push(item);
+    }
+
+    product.categories = categories;
+
+    // process options data
+    const sqlOptions = `SELECT po.*, poc.id as choice_id, poc.title as choice
+      FROM ${DBTables.product_option_relationships} por
+      LEFT JOIN ${DBTables.product_options} po ON po.id = por.option_id  
+      LEFT JOIN ${DBTables.product_option_choices} poc ON poc.id = por.choice_id  
+      WHERE por.product_id = ?`;
+
+    const optionData = await query(sqlOptions, [product_id]);
+
+    const options = {};
+
+    for (const option of optionData) {
+      if (!options[option.id]) {
+        options[option.id] = { id: option.id, title: option.title, choices: [] };
+      }
+
+      options[option.id].choices.push({ id: option.choice_id, title: option.choice });
+    }
+
+    product.options = Object.values(options);
+
     this.updateProductViewCount(product);
 
     return product;
@@ -245,12 +348,11 @@ class ShopModel {
     const sql = `UPDATE ${DBTables.products} SET views=${product.views + 1} WHERE id=${product.id}`;
 
     return await query(sql);
-}
+  }
 
   getProducts = async (params) => {
-    let sql = `SELECT p.*, c.title as category_name
-              FROM ${DBTables.products} as p
-              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+    let sql = `SELECT p.*
+              FROM ${DBTables.products} as p`;
 
     let queryParams = ` WHERE p.status = 'publish'`;
 
@@ -315,6 +417,11 @@ class ShopModel {
         queryParams += ` AND p.user_id = ${p.user_id}`;
       }
 
+      if (p.ids) {
+        const ids = encodeURI(p.ids.join(','));
+
+        queryParams += ` AND p.id IN (${ids})`;
+      }
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
@@ -323,24 +430,59 @@ class ShopModel {
   }
 
   getRelatedProducts = async (slug) => {
-    let sql = `SELECT p.*, c.title as category_name
-              FROM ${DBTables.products} as p
-              JOIN ${DBTables.product_categories} as c ON p.category_id = c.id`;
+    const sqlTags = `SELECT tr.tag_id
+      FROM ${DBTables.product_tag_relationships} tr
+      LEFT JOIN ${DBTables.products} as p ON p.id = tr.product_id 
+      WHERE p.slug = ?`;
 
-    let queryParams = ` WHERE p.slug != ? AND p.category_id = (
-      SELECT category_id FROM ${DBTables.products} WHERE slug = ?
-    )`;
+    const tagData = await query(sqlTags, [slug]);
+    const tagIds = tagData.map(tag => tag.tag_id);
 
-    let values = [slug, slug];
+    const sqlCats = `SELECT pcr.category_id
+      FROM ${DBTables.product_category_relationships} pcr
+      LEFT JOIN ${DBTables.products} as p ON p.id = pcr.product_id 
+      WHERE p.slug = ?`;
 
-    // set limit 
-    let queryLimit = ` LIMIT 4`;
+    const catData = await query(sqlCats, [slug]);
+    const catIds = catData.map(cat => cat.category_id);
 
-    sql += `${queryParams}${queryLimit}`;
+    let catRelatedRows = [];
+    if (catIds.length) {
 
+      let catRelatedSql = `SELECT DISTINCT p.*
+      FROM ${DBTables.product_category_relationships} as pcr 
+      LEFT JOIN ${DBTables.products} as p ON pcr.product_id = p.id`;
 
+      let catRelatedQueryParams = ` WHERE p.slug != ? AND pcr.category_id IN (${catIds.join(',')})`;
 
-    return await query(sql, values);
+      // set limit 
+      let catRelatedQueryLimit = ` LIMIT 4`;
+
+      catRelatedSql += `${catRelatedQueryParams}${catRelatedQueryLimit}`;
+
+      catRelatedRows = await query(catRelatedSql, [slug]);
+    }
+
+    let tagRelatedRows = [];
+    if (tagIds.length) {
+      let tagRelatedSql = `SELECT DISTINCT p.*
+      FROM ${DBTables.product_tag_relationships} as ptr 
+      LEFT JOIN ${DBTables.products} as p ON ptr.product_id = p.id`;
+
+      let tagRelatedQueryParams = ` WHERE p.slug != ? AND ptr.tag_id IN (${tagIds.join(',')})`;
+
+      // set limit 
+      let tagRelatedQueryLimit = ` LIMIT 4`;
+
+      tagRelatedSql += `${tagRelatedQueryParams}${tagRelatedQueryLimit}`;
+
+      tagRelatedRows = await query(tagRelatedSql, [slug]);
+    }
+
+    const mergedProducts = [...catRelatedRows, ...tagRelatedRows];
+    mergedProducts.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+    return mergedProducts.slice(0, 4);
   }
 
   getProductReviews = async (id) => {
@@ -453,7 +595,9 @@ class ShopModel {
 
   getCartItems = async (user_id) => {
     let sql = `SELECT Cart.*, 
-    Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image 
+    Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image,
+    Product.discounted_price as product_discounted_price, Product.discount_start as product_discount_start, 
+    Product.discount_end as product_discount_end 
     FROM ${this.tableNameCartItems} as Cart  
     LEFT JOIN ${this.tableName} as Product ON Product.id=Cart.product_id
     WHERE Cart.user_id=?`;
@@ -513,9 +657,7 @@ class ShopModel {
 
 
   getOrders = async (params = {}, page = 1, limit = -1) => {
-    let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
-      Orders.subtotal as subtotal, Orders.total as total, Orders.additional_info as additional_info, 
-      Orders.created_at as created_at, Orders.updated_at, 
+    let sql = `SELECT Orders.*, 
       Promo.code as promo_code, Promo.discount as discount
       FROM ${this.tableOrders} as Orders 
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
@@ -541,9 +683,7 @@ class ShopModel {
   }
 
   getOrder = async (params = {}) => {
-    let sql = `SELECT Orders.id as id, Orders.user_id as user_id, Orders.status as status, 
-      Orders.subtotal as subtotal, Orders.total as total, Orders.additional_info as additional_info, 
-      Orders.created_at as created_at, Orders.updated_at, 
+    let sql = `SELECT Orders.*, 
       Promo.code as promo_code, Promo.discount as discount
       FROM ${this.tableOrders} as Orders
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
@@ -555,7 +695,12 @@ class ShopModel {
     const result = await query(sql, [...values]);
 
     if (result.length > 0) {
-      result[0].items = await this.getOrderItems(result[0].id);
+      const orderItems = await this.getOrderItems(result[0].id);
+
+      if (orderItems.length) {
+        result[0].items = await this.getOrderItems(result[0].id);
+      }
+
       result[0].shipment = await this.getOrderShipment(result[0].id);
     }
 
@@ -564,7 +709,7 @@ class ShopModel {
 
   getOrderItems = async (order_id) => {
     let sql = `SELECT OrderItems.*,
-      Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image 
+      Product.title as product_title, Product.slug as product_slug, OrderItems.price as product_price, Product.image as product_image 
       FROM ${this.tableOrderItems} as OrderItems
       LEFT JOIN ${this.tableName} as Product ON Product.id=OrderItems.product_id
       WHERE order_id=?
@@ -583,20 +728,39 @@ class ShopModel {
     return await query(sql, [order_id]);
   }
 
-  createOrder = async (params, currentUser) => {
+  createOrder = async (orders, currentUser) => {
+    if (orders.length > 1) {
+      const parentOrder = await this.insertOrder(orders[0], currentUser);
+
+      if (parentOrder.status !== 401) {
+        for (let i = 1; i < orders.length; i++) {
+          await this.insertOrder(orders[i], currentUser, parentOrder.data.order_id);
+        }
+      }
+
+      return parentOrder;
+    } else {
+      return await this.insertOrder(orders[0], currentUser);
+    }
+  }
+
+  insertOrder = async (order, currentUser, parent_id = -1) => {
     const current_date = commonfn.dateTimeNow();
     let output = {};
 
     const sql = `INSERT INTO ${this.tableOrders} 
-        (user_id, subtotal, total, promo_id, additional_info, created_at, updated_at) 
-        VALUES (?,?,?,?,?,?,?)`;
+        (parent_id, user_id, vendor_id, subtotal, total, earned, promo_id, additional_info, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?,?,?,?)`;
 
     const values = [
+      parent_id,
       currentUser.id,
-      params.subtotal,
-      params.total,
-      params.promo_id,
-      params.additional_info,
+      order.vendor_id,
+      order.subtotal,
+      order.total,
+      order.total * 0.95,
+      order.promo_id,
+      order.additional_info,
       current_date,
       current_date
     ];
@@ -615,7 +779,7 @@ class ShopModel {
 
       const items = [];
 
-      for (const item of params.items) {
+      for (const item of order.items) {
         const total = item.quantity * item.price;
         const earned = total * 0.95;
 
@@ -632,16 +796,16 @@ class ShopModel {
 
       const shippingValues = [
         order_id,
-        params.shipping.first_name,
-        params.shipping.last_name,
-        params.shipping.company_name,
-        params.shipping.country_id,
-        params.shipping.address,
-        params.shipping.city,
-        params.shipping.state,
-        params.shipping.postcode,
-        params.shipping.phone,
-        params.shipping.email,
+        order.shipping.first_name,
+        order.shipping.last_name,
+        order.shipping.company_name,
+        order.shipping.country_id,
+        order.shipping.address,
+        order.shipping.city,
+        order.shipping.state,
+        order.shipping.postcode,
+        order.shipping.phone,
+        order.shipping.email,
       ];
 
       await query(orderShippingSql, shippingValues);
@@ -651,6 +815,15 @@ class ShopModel {
     }
 
     return output;
+  }
+
+  updateOrderStatus = async (orderId, status) => {
+    const current_date = commonfn.dateTimeNow();
+
+    const sql = `UPDATE ${this.tableOrders} SET status=?, updated_at=? WHERE id = ?`;
+    const values = [status, current_date, orderId];
+
+    return await query(sql, values);
   }
 
   getPromo = async (params = {}) => {
@@ -717,6 +890,82 @@ class ShopModel {
     `;
 
     return await query(sql, [currentUser.id]);
+  }
+
+  addWishlistProduct = async (product_id, currentUser) => {
+    const user_id = currentUser.id;
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_wishlists} 
+            (user_id, product_id) 
+            VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+    const values = [user_id, product_id];
+
+    const result = await query2(sql, [[values]]);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+
+  getWishlistProducts = async (currentUser) => {
+    let sql = `SELECT product_id
+      FROM ${DBTables.product_wishlists}
+      WHERE user_id=${currentUser.id}`;
+
+    let product_ids = await query(sql);
+    product_ids = product_ids.map(obj => obj.product_id);
+
+    if (product_ids.length) {
+      return this.getProducts({ params: { ids: product_ids } });
+    }
+
+    return [];
+  }
+
+  deleteWishlistProduct = async (product_id, currentUser) => {
+    const sql = `DELETE FROM ${DBTables.product_wishlists} WHERE user_id=? AND product_id=?`;
+    const values = [currentUser.id, product_id];
+
+    return await query(sql, values);
+  }
+
+  getProductOptions = async () => {
+    let sql = `SELECT Choices.*, Options.title as option
+      FROM ${DBTables.product_options} as Options
+      LEFT JOIN ${DBTables.product_option_choices} as Choices ON Choices.option_id=Options.id`;
+
+    return await query(sql);
+  }
+
+  getProductCategoryOptions = async () => {
+    let sql = `SELECT *
+      FROM ${DBTables.product_category_option_relationships}`;
+
+    return await query(sql);
+  }
+
+  getPriceRange = async () => {
+    let sql = `SELECT MAX(price) as max_price, MIN(price) as min_price, 
+      MAX(discounted_price) as max_discounted_price, MIN(discounted_price) as min_discounted_price
+      FROM ${DBTables.products}`;
+
+    return await query(sql);
+  }
+
+  getBrands = async () => {
+    let sql = `SELECT DISTINCT u.display_name as display_name, u.username as username
+      FROM ${DBTables.products} as p
+      LEFT JOIN ${DBTables.users} as u ON u.id=p.user_id
+      ORDER BY u.display_name`;
+
+    return await query(sql);
   }
 }
 
