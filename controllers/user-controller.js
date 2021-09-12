@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 const dotenv = require("dotenv");
 const hasher = require('wordpress-hash-node');
 const jobModel = require("../models/job-model");
+const mailHandler = require('../utils/mailHandler.js');
 dotenv.config();
 
 class UserController {
@@ -65,6 +66,24 @@ class UserController {
             const { password, ...userWithoutPassword } = registerInfo;
 
             res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
+
+            let websiteUrl;;
+            if (process.env.NODE_ENV === 'development') {
+              websiteUrl = 'http://localhost:4200';
+            } else {
+              websiteUrl = 'https://blackdir.mibrahimkhalil.com';
+            }
+
+            const mailOptions = {
+              to: req.body.email,
+              subject: 'Email Verification',
+              body: `Welcome to Blackdirectory!<br><br>
+Please click on the following link to verify your email.<br>
+${websiteUrl}/verify/${registerInfo.verification_key}
+              `,
+            }
+            
+            mailHandler.sendEmail(mailOptions);
 
             new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
@@ -518,6 +537,16 @@ class UserController {
 
     deleteNotification = async (req, res, next) => {
         await UserModel.deleteNotification(req.params.notification_id);
+
+        new AppSuccess(res, 200, "200_successful");
+    };
+
+    verifiyEmail = async (req, res, next) => {
+        const result = await UserModel.verifiyEmail(req.params.verification_key);
+
+        if (!result) {
+          throw new AppError(403, "403_unknownError");
+        }
 
         new AppSuccess(res, 200, "200_successful");
     };

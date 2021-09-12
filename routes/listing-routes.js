@@ -18,7 +18,7 @@ router.get('/favorites', apiKey(), currentUser(), awaitHandlerFactory(listingCon
 router.post('/favorite-listings', apiKey(), authVerified(), awaitHandlerFactory(listingController.getFavoriteListings));
 router.get('/categories', apiKey(), currentUser(), awaitHandlerFactory(listingController.getCategories));
 router.get('/update-favorite/:id', apiKey(), authVerified(), awaitHandlerFactory(listingController.updateFavorite));
-router.post('/search-listing', apiKey(), awaitHandlerFactory(listingController.searchListing));
+router.post('/search-listing', apiKey(), currentUser(), awaitHandlerFactory(listingController.searchListing));
 router.post('/add-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.newListing));
 router.post('/update-listing', apiKey(), authVerified(), validation.validateNewListing, awaitHandlerFactory(listingController.updateListing));
 router.post('/publish-listing', apiKey(), authVerified(), awaitHandlerFactory(listingController.publishListing));

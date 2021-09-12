@@ -75,6 +75,10 @@ class ListingController {
     //   throw new AppError(401, "Location is required");
     // }
 
+    if (req.currentUser && req.currentUser.role === 'admin') {
+      delete req.body.user_id;
+    }
+
     const result = await ListingModel.searchListing(req.body);
 
     if (result.status && result.status == 200) {
@@ -187,7 +191,7 @@ class ListingController {
       throw new AppError(403, "403_unknownError");
     }
 
-    if (listing.user_id != req.currentUser.id) {
+    if (req.currentUser.role !== 'admin' && listing.user_id != req.currentUser.id) {
       throw new AppError(401, "Unauthorised");
     }
 

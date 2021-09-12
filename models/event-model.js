@@ -429,6 +429,10 @@ class EventModel {
       }
     }
 
+    if(params.user_id){
+      queryParams += ` AND e.user_id = ${encodeURI(params.user_id)}`;
+    }
+
 
     let queryJoinCat = '';
     if (params.category && params.category != '') {
@@ -492,7 +496,7 @@ class EventModel {
     const count_sql = `${sql}${queryJoinCat}${queryJoinTag}${queryJoinOrg}${queryParams}${queryDistance}${queryOrderby}`;
     sql += `${queryJoinCat}${queryJoinTag}${queryJoinOrg}${queryParams}${queryDistance}${queryOrderby}${queryLimit}`;
 
-    console.log(sql);
+    // console.log(sql);
     const events = await query(sql, values);
     let total_events = 0;
 
