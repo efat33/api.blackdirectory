@@ -400,6 +400,12 @@ class ShopModel {
         values.push(...p.choices);
       }
 
+      if (p.brands && p.brands.length) {
+        const ids = encodeURI(p.brands.join(','));
+
+        queryParams += ` AND p.user_id IN (${ids})`;
+      }
+
       if (p.tag && p.tag != '') {
         const tagSql = `
           SELECT DISTINCT product_id
@@ -988,12 +994,71 @@ class ShopModel {
   }
 
   getBrands = async () => {
-    let sql = `SELECT DISTINCT u.display_name as display_name, u.username as username
+    let sql = `SELECT DISTINCT u.id as id, u.display_name as display_name, u.username as username
       FROM ${DBTables.products} as p
       LEFT JOIN ${DBTables.users} as u ON u.id=p.user_id
       ORDER BY u.display_name`;
 
     return await query(sql);
+  }
+
+  getShippingMethods = async (currentUser) => {
+    let sql = `SELECT *
+      FROM ${DBTables.product_shippings}
+      WHERE vendor_id=?
+      ORDER BY shipping_order`;
+
+    return await query(sql, [currentUser.id]);
+  }
+
+  addShippingMethod = async (body, currentUser) => {
+    const user_id = currentUser.id;
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_shippings} 
+            (vendor_id, title, fee, shipping_order) 
+            VALUES (?,?,?,?)`;
+
+    const values = [
+      user_id,
+      body.title,
+      body.fee || 0,
+      body.shipping_order || 1
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+  
+  editShippingMethod = async (shipping_id, body) => {
+    const sqlParamsArr = [];
+    const values = [];
+
+    Object.entries(body).forEach(([key, val]) => {
+      sqlParamsArr.push(`${key} = ?`);
+      values.push(val);
+    });
+
+    const sqlParams = sqlParamsArr.join(',');
+    const sql = `UPDATE ${DBTables.product_shippings} SET ${sqlParams} WHERE id=?`;
+    values.push(shipping_id);
+
+    return await query(sql, values);
+  }
+
+  deleteShippingMethod = async (shipping_id, currentUser) => {
+    const sql = `DELETE FROM ${DBTables.product_shippings} WHERE id=? AND vendor_id=?`;
+    const values = [shipping_id, currentUser.id];
+
+    return await query(sql, values);
   }
 }
 

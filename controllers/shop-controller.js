@@ -629,6 +629,62 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_successful", null, options);
   };
+
+  getShippingMethods = async (req, res, next) => {
+    const shippings = await shopModel.getShippingMethods(req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful", null, shippings);
+  };
+
+  addShippingMethod = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await shopModel.addShippingMethod(req.body, req.currentUser);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  }
+
+  editShippingMethod = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+    const shipping = await shopModel.findOne({ id: req.params.shipping_id, vendor_id: req.currentUser.id }, DBTables.product_shippings);
+
+    if (Object.keys(shipping).length == 0) {
+      throw new AppError(403, "Shipping method not found");
+    }
+
+    const result = await shopModel.editShippingMethod(req.params.shipping_id, req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    if (result) {
+      new AppSuccess(res, 200, "200_updated_successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  deleteShippingMethod = async (req, res, next) => {
+    const shipping = await shopModel.findOne({ id: req.params.shipping_id, vendor_id: req.currentUser.id }, DBTables.product_shippings);
+
+    if (Object.keys(shipping).length == 0) {
+      throw new AppError(403, "Shipping method not found");
+    }
+
+    await shopModel.deleteShippingMethod(req.params.shipping_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
 }
 
 module.exports = new ShopController();
