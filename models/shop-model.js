@@ -351,33 +351,12 @@ class ShopModel {
   }
 
   getProducts = async (params) => {
-    let sql = `SELECT p.*
+    let sql = `SELECT  p.*
               FROM ${DBTables.products} as p`;
 
     let queryParams = ` WHERE p.status = 'publish'`;
 
     let values = [];
-
-    // set order by
-    let queryOrderby = '';
-    if (params.orderby && params.orderby != '') {
-      const orderBy = encodeURI(params.orderby);
-      queryOrderby = ` ORDER BY ${orderBy}`;
-
-      if (params.order && params.order != '') {
-        // TODO: do javascript validation
-        const order = encodeURI(params.order);
-        queryOrderby += ` ${order}`;
-      }
-    }
-
-    // set limit 
-    let queryLimit = '';
-    if (params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')) {
-      queryLimit = ` LIMIT ?, ?`;
-      values.push(params.offset);
-      values.push(params.limit);
-    }
 
     // set params
     if (params.params) {
@@ -385,12 +364,46 @@ class ShopModel {
 
       if (p.keyword && p.keyword != '') {
         // TODO: do javascript validation
-        queryParams += ` AND ( p.title LIKE '%${p.keyword}%' OR p.description LIKE '%${p.keyword}%' )`;
+        queryParams += ` AND ( p.title LIKE '%${encodeURI(p.keyword)}%' OR p.description LIKE '%${encodeURI(p.keyword)}%' )`;
       }
 
       if (p.category && p.category != '') {
         // TODO: do javascript validation
-        queryParams += ` AND p.category_id = ${p.category}`;
+        sql += ` LEFT JOIN ${DBTables.product_category_relationships} as pcr ON pcr.product_id=p.id`
+        queryParams += ` AND pcr.category_id = ?`;
+        values.push(p.category);
+      }
+
+      if (p.price_min) {
+        queryParams += ` AND (p.price >= ? OR p.discounted_price >= ?)`;
+        values.push(p.price_min);
+        values.push(p.price_min);
+      }
+
+      if (p.price_max) {
+        queryParams += ` AND (p.price <= ? OR p.discounted_price <= ?)`;
+        values.push(p.price_max);
+        values.push(p.price_max);
+      }
+
+      if (p.rating) {
+        queryParams += ` AND p.rating_average >= ?`;
+        values.push(p.rating);
+      }
+
+      if (p.choices && p.choices.length) {
+        sql += ` LEFT JOIN ${DBTables.product_option_relationships} as por ON por.product_id=p.id`
+
+        const choiceParams = p.choices.map((choice) => `por.choice_id=?`);
+
+        queryParams += ` AND ${choiceParams.join(' OR ')}`;
+        values.push(...p.choices);
+      }
+
+      if (p.brands && p.brands.length) {
+        const ids = encodeURI(p.brands.join(','));
+
+        queryParams += ` AND p.user_id IN (${ids})`;
       }
 
       if (p.tag && p.tag != '') {
@@ -422,6 +435,27 @@ class ShopModel {
 
         queryParams += ` AND p.id IN (${ids})`;
       }
+    }
+
+    // set order by
+    let queryOrderby = '';
+    if (params.orderby && params.orderby != '') {
+      const orderBy = encodeURI(params.orderby);
+      queryOrderby = ` ORDER BY ${orderBy}`;
+
+      if (params.order && params.order != '') {
+        // TODO: do javascript validation
+        const order = encodeURI(params.order);
+        queryOrderby += ` ${order}`;
+      }
+    }
+
+    // set limit 
+    let queryLimit = '';
+    if (params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')) {
+      queryLimit = ` LIMIT ?, ?`;
+      values.push(params.offset);
+      values.push(params.limit);
     }
 
     sql += `${queryParams}${queryOrderby}${queryLimit}`;
@@ -658,9 +692,11 @@ class ShopModel {
 
   getOrders = async (params = {}, page = 1, limit = -1) => {
     let sql = `SELECT Orders.*, 
-      Promo.code as promo_code, Promo.discount as discount
+      Promo.code as promo_code, Promo.discount as discount,
+      Shipping.title as shipping_title, Shipping.fee as shipping_fee
       FROM ${this.tableOrders} as Orders 
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
+      LEFT JOIN ${DBTables.product_shippings} as Shipping ON Shipping.id=Orders.shipping_id
       `;
 
     const paramArray = [];
@@ -684,9 +720,11 @@ class ShopModel {
 
   getOrder = async (params = {}) => {
     let sql = `SELECT Orders.*, 
-      Promo.code as promo_code, Promo.discount as discount
+      Promo.code as promo_code, Promo.discount as discount,
+      Shipping.title as shipping_title, Shipping.fee as shipping_fee
       FROM ${this.tableOrders} as Orders
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
+      LEFT JOIN ${DBTables.product_shippings} as Shipping ON Shipping.id=Orders.shipping_id
       `;
 
     const { columnSet, values } = multipleColumnSet(params)
@@ -749,8 +787,8 @@ class ShopModel {
     let output = {};
 
     const sql = `INSERT INTO ${this.tableOrders} 
-        (parent_id, user_id, vendor_id, subtotal, total, earned, promo_id, additional_info, created_at, updated_at) 
-        VALUES (?,?,?,?,?,?,?,?,?,?)`;
+        (parent_id, user_id, vendor_id, subtotal, total, earned, promo_id, shipping_id, additional_info, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
 
     const values = [
       parent_id,
@@ -760,6 +798,7 @@ class ShopModel {
       order.total,
       order.total * 0.95,
       order.promo_id,
+      order.shipping_method,
       order.additional_info,
       current_date,
       current_date
@@ -960,12 +999,79 @@ class ShopModel {
   }
 
   getBrands = async () => {
-    let sql = `SELECT DISTINCT u.display_name as display_name, u.username as username
+    let sql = `SELECT DISTINCT u.id as id, u.display_name as display_name, u.username as username
       FROM ${DBTables.products} as p
       LEFT JOIN ${DBTables.users} as u ON u.id=p.user_id
       ORDER BY u.display_name`;
 
     return await query(sql);
+  }
+
+  getShippingMethods = async (currentUser) => {
+    let sql = `SELECT *
+      FROM ${DBTables.product_shippings}
+      WHERE vendor_id=?
+      ORDER BY shipping_order`;
+
+    return await query(sql, [currentUser.id]);
+  }
+
+  getShippingMethodsById = async (ids) => {
+    let sql = `SELECT *
+    FROM ${DBTables.product_shippings}
+    WHERE id IN (${encodeURI(ids.join(','))})`;
+    
+    return await query(sql);
+  }
+
+  addShippingMethod = async (body, currentUser) => {
+    const user_id = currentUser.id;
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_shippings} 
+            (vendor_id, title, fee, shipping_order) 
+            VALUES (?,?,?,?)`;
+
+    const values = [
+      user_id,
+      body.title,
+      body.fee || 0,
+      body.shipping_order || 1
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+  
+  editShippingMethod = async (shipping_id, body) => {
+    const sqlParamsArr = [];
+    const values = [];
+
+    Object.entries(body).forEach(([key, val]) => {
+      sqlParamsArr.push(`${key} = ?`);
+      values.push(val);
+    });
+
+    const sqlParams = sqlParamsArr.join(',');
+    const sql = `UPDATE ${DBTables.product_shippings} SET ${sqlParams} WHERE id=?`;
+    values.push(shipping_id);
+
+    return await query(sql, values);
+  }
+
+  deleteShippingMethod = async (shipping_id, currentUser) => {
+    const sql = `DELETE FROM ${DBTables.product_shippings} WHERE id=? AND vendor_id=?`;
+    const values = [shipping_id, currentUser.id];
+
+    return await query(sql, values);
   }
 }
 

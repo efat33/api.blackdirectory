@@ -27,6 +27,7 @@ exports.DBTables = {
   'product_option_relationships': 'product_option_relationships',
   'product_category_option_relationships': 'product_category_option_relationships',
   'product_wishlists': 'product_wishlists',
+  'product_shippings': 'product_shippings',
 
   // event tables
   'events': 'events',

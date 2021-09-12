@@ -402,6 +402,13 @@ class ShopController {
       }
     }
 
+    let shipping_methods = [];
+    if (req.body.shipping_methods && req.body.shipping_methods.length) {
+      const shipping_ids = req.body.shipping_methods.map(method => method.shipping_id);
+      
+      shipping_methods = await shopModel.getShippingMethodsById(shipping_ids);
+    }
+
     let items = req.body.items;
 
     const productIds = items.map(item => item.product_id);
@@ -434,12 +441,22 @@ class ShopController {
           total = total * (1 - promo[0].discount / 100);
         }
 
+        let shipping_method = {};
+        if (shipping_methods.length) {
+          shipping_method = shipping_methods.find(shipping => shipping.vendor_id === vendor_id) || {};
+
+          if (shipping_method.fee) {
+            total += parseFloat(shipping_method.fee);
+          }
+        }
+
         subOrders.push({
           items,
           subtotal,
           total,
           vendor_id,
           shipping: req.body.shipping,
+          shipping_method: shipping_method.id,
           promo_id: req.body.promo_id,
           additional_info: req.body.additional_info
         });
@@ -458,6 +475,7 @@ class ShopController {
         subtotal: subOrderSubtotal,
         total: subOrderTotal,
         shipping: req.body.shipping,
+        shipping_method: null,
         promo_id: req.body.promo_id,
         additional_info: req.body.additional_info
       };
@@ -474,12 +492,22 @@ class ShopController {
         total = total * (1 - promo[0].discount / 100);
       }
 
+      let shipping_method = {};
+      if (shipping_methods.length) {
+        shipping_method = shipping_methods.find(shipping => shipping.vendor_id === items[0].user_id) || {};
+
+        if (shipping_method.fee) {
+          total += parseFloat(shipping_method.fee);
+        }
+      }
+
       body = [{
         items,
         subtotal,
         total,
         vendor_id: items[0].user_id,
         shipping: req.body.shipping,
+        shipping_method: shipping_method.id,
         promo_id: req.body.promo_id,
         additional_info: req.body.additional_info
       }];
@@ -628,6 +656,62 @@ class ShopController {
     options.brands = brandResult;
 
     new AppSuccess(res, 200, "200_successful", null, options);
+  };
+
+  getShippingMethods = async (req, res, next) => {
+    const shippings = await shopModel.getShippingMethodsById(req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful", null, shippings);
+  };
+
+  addShippingMethod = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await shopModel.addShippingMethod(req.body, req.currentUser);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  }
+
+  editShippingMethod = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+    const shipping = await shopModel.findOne({ id: req.params.shipping_id, vendor_id: req.currentUser.id }, DBTables.product_shippings);
+
+    if (Object.keys(shipping).length == 0) {
+      throw new AppError(403, "Shipping method not found");
+    }
+
+    const result = await shopModel.editShippingMethod(req.params.shipping_id, req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    if (result) {
+      new AppSuccess(res, 200, "200_updated_successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  deleteShippingMethod = async (req, res, next) => {
+    const shipping = await shopModel.findOne({ id: req.params.shipping_id, vendor_id: req.currentUser.id }, DBTables.product_shippings);
+
+    if (Object.keys(shipping).length == 0) {
+      throw new AppError(403, "Shipping method not found");
+    }
+
+    await shopModel.deleteShippingMethod(req.params.shipping_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
   };
 }
 
