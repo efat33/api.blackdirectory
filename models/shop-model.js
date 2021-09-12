@@ -1073,6 +1073,54 @@ class ShopModel {
 
     return await query(sql, values);
   }
+
+  addCategory = async (body) => {
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_categories} 
+            (parent_id, title, image) 
+            VALUES (?,?,?)`;
+
+    const values = [
+      body.parent_id,
+      body.title,
+      body.image
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+  
+  editCategory = async (category_id, body) => {
+    const sqlParamsArr = [];
+    const values = [];
+
+    Object.entries(body).forEach(([key, val]) => {
+      sqlParamsArr.push(`${key} = ?`);
+      values.push(val);
+    });
+
+    const sqlParams = sqlParamsArr.join(',');
+    const sql = `UPDATE ${DBTables.product_categories} SET ${sqlParams} WHERE id=?`;
+    values.push(category_id);
+
+    return await query(sql, values);
+  }
+
+  deleteCategory = async (category_id, currentUser) => {
+    const sql = `DELETE FROM ${DBTables.product_categories} WHERE id=?`;
+    const values = [category_id];
+
+    return await query(sql, values);
+  }
 }
 
 module.exports = new ShopModel;

@@ -8,6 +8,7 @@ const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
 const validation = require('../utils/validators/shopValidator');
+const { isAdmin } = require('../utils/common');
 
 
 // router.post('/products/:limit?/:offset?/:orderby?/:all?', apiKey(), awaitHandlerFactory(listingController.searchListing));
@@ -52,5 +53,9 @@ router.get('/shippings', apiKey(), authVerified(), awaitHandlerFactory(ShopContr
 router.post('/shipping', apiKey(), authVerified(), awaitHandlerFactory(ShopController.addShippingMethod));
 router.put('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.editShippingMethod));
 router.delete('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteShippingMethod));
+
+router.post('/category', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addCategory));
+router.put('/category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editCategory));
+router.delete('/category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteCategory));
 
 module.exports = router;
