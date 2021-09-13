@@ -660,10 +660,13 @@ class ShopController {
 
   getShippingMethods = async (req, res, next) => {
     let user_id;
-    if (req.currentUser) {
+    
+    if (req.query.user_id) {
+      user_id = req.query.user_id;
+    } else if (req.currentUser) {
       user_id = req.currentUser.id;
-    } else {
-      user_id = req.params.user_id;
+    }  else {
+      throw new AppError(403, "403_unknownError");
     }
 
     const shippings = await shopModel.getShippingMethods(user_id);
