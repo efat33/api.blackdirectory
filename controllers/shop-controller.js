@@ -659,7 +659,14 @@ class ShopController {
   };
 
   getShippingMethods = async (req, res, next) => {
-    const shippings = await shopModel.getShippingMethodsById(req.currentUser);
+    let user_id;
+    if (req.currentUser) {
+      user_id = req.currentUser.id;
+    } else {
+      user_id = req.params.user_id;
+    }
+
+    const shippings = await shopModel.getShippingMethods(user_id);
 
     new AppSuccess(res, 200, "200_successful", null, shippings);
   };
@@ -710,6 +717,58 @@ class ShopController {
     }
 
     await shopModel.deleteShippingMethod(req.params.shipping_id, req.currentUser);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
+
+  addCategory = async (req, res, next) => {
+    console.log("🚀 ~ file: shop-controller.js ~ line 719 ~ ShopController ~ addCategory= ~ req.body", req.body)
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await shopModel.addCategory(req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  }
+
+  editCategory = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const category = await shopModel.findOne({ id: req.params.category_id }, DBTables.product_categories);
+
+    if (Object.keys(category).length == 0) {
+      throw new AppError(403, "Category not found");
+    }
+
+    const result = await shopModel.editCategory(req.params.category_id, req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    if (result) {
+      new AppSuccess(res, 200, "200_updated_successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  deleteCategory = async (req, res, next) => {
+    const shipping = await shopModel.findOne({ id: req.params.category_id }, DBTables.product_categories);
+
+    if (Object.keys(shipping).length == 0) {
+      throw new AppError(403, "Category not found");
+    }
+
+    await shopModel.deleteCategory(req.params.category_id);
 
     new AppSuccess(res, 200, "200_successful");
   };
