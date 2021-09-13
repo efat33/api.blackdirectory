@@ -50,6 +50,7 @@ router.delete('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(Sho
 router.get('/filter-options', apiKey(), awaitHandlerFactory(ShopController.getFilterOptions));
 
 router.get('/shippings', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getShippingMethods));
+router.get('/shippings/:user_id', apiKey(), awaitHandlerFactory(ShopController.getShippingMethods));
 router.post('/shipping', apiKey(), authVerified(), awaitHandlerFactory(ShopController.addShippingMethod));
 router.put('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.editShippingMethod));
 router.delete('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteShippingMethod));

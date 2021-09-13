@@ -659,7 +659,14 @@ class ShopController {
   };
 
   getShippingMethods = async (req, res, next) => {
-    const shippings = await shopModel.getShippingMethodsById(req.currentUser);
+    let user_id;
+    if (req.currentUser) {
+      user_id = req.currentUser.id;
+    } else {
+      user_id = req.params.user_id;
+    }
+
+    const shippings = await shopModel.getShippingMethods(user_id);
 
     new AppSuccess(res, 200, "200_successful", null, shippings);
   };

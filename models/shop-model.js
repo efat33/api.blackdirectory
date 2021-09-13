@@ -1007,13 +1007,13 @@ class ShopModel {
     return await query(sql);
   }
 
-  getShippingMethods = async (currentUser) => {
+  getShippingMethods = async (user_id) => {
     let sql = `SELECT *
       FROM ${DBTables.product_shippings}
       WHERE vendor_id=?
       ORDER BY shipping_order`;
 
-    return await query(sql, [currentUser.id]);
+    return await query(sql, [user_id]);
   }
 
   getShippingMethodsById = async (ids) => {
