@@ -405,7 +405,7 @@ class ShopController {
     let shipping_methods = [];
     if (req.body.shipping_methods && req.body.shipping_methods.length) {
       const shipping_ids = req.body.shipping_methods.map(method => method.shipping_id);
-      
+
       shipping_methods = await shopModel.getShippingMethodsById(shipping_ids);
     }
 
@@ -660,12 +660,12 @@ class ShopController {
 
   getShippingMethods = async (req, res, next) => {
     let user_id;
-    
+
     if (req.query.user_id) {
       user_id = req.query.user_id;
     } else if (req.currentUser) {
       user_id = req.currentUser.id;
-    }  else {
+    } else {
       throw new AppError(403, "403_unknownError");
     }
 
@@ -725,7 +725,6 @@ class ShopController {
   };
 
   addCategory = async (req, res, next) => {
-    console.log("🚀 ~ file: shop-controller.js ~ line 719 ~ ShopController ~ addCategory= ~ req.body", req.body)
     if (!req.body.title) {
       throw new AppError(403, "Title is required");
     }
@@ -765,13 +764,147 @@ class ShopController {
   }
 
   deleteCategory = async (req, res, next) => {
-    const shipping = await shopModel.findOne({ id: req.params.category_id }, DBTables.product_categories);
+    const category = await shopModel.findOne({ id: req.params.category_id }, DBTables.product_categories);
 
-    if (Object.keys(shipping).length == 0) {
+    if (Object.keys(category).length == 0) {
       throw new AppError(403, "Category not found");
     }
 
     await shopModel.deleteCategory(req.params.category_id);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
+
+  getCategoryOptions = async (req, res, next) => {
+    const options = await shopModel.getCategoryOptions();
+
+    let groups = options.reduce((acc, val) => {
+      if (!acc[val.id]) {
+        acc[val.id] = {
+          id: val.id,
+          title: val.title,
+          choices: []
+        };
+      }
+
+      if (val.choice_id) {
+        acc[val.id].choices.push({
+          id: val.choice_id,
+          title: val.choice,
+          choice_order: val.choice_order
+        });
+      }
+
+      return acc;
+    }, {});
+
+    groups = Object.values(groups).sort((a, b) => a.title.localeCompare(b.title));
+
+    for (const group of groups) {
+      group.choices.sort((a, b) => a.choice_order - b.choice_order);
+    }
+
+    new AppSuccess(res, 200, "200_successful", null, groups);
+  };
+
+  addCategoryOption = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await shopModel.addCategoryOption(req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  }
+
+  editCategoryOption = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const option = await shopModel.findOne({ id: req.params.option_id }, DBTables.product_options);
+
+    if (Object.keys(option).length == 0) {
+      throw new AppError(403, "Option not found");
+    }
+
+    const result = await shopModel.editCategoryOption(req.params.option_id, req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    if (result) {
+      new AppSuccess(res, 200, "200_updated_successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  deleteCategoryOption = async (req, res, next) => {
+    const option = await shopModel.findOne({ id: req.params.option_id }, DBTables.product_options);
+
+    if (Object.keys(option).length == 0) {
+      throw new AppError(403, "Option not found");
+    }
+
+    await shopModel.deleteCategoryOption(req.params.option_id);
+
+    new AppSuccess(res, 200, "200_successful");
+  };
+
+  addOptionChoice = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const result = await shopModel.addOptionChoice(req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    new AppSuccess(res, 200, "200_successful", null, result);
+  }
+
+  editOptionChoice = async (req, res, next) => {
+    if (!req.body.title) {
+      throw new AppError(403, "Title is required");
+    }
+
+    const option = await shopModel.findOne({ id: req.params.choice_id }, DBTables.product_option_choices);
+
+    if (Object.keys(option).length == 0) {
+      throw new AppError(403, "Choice not found");
+    }
+
+    const result = await shopModel.editOptionChoice(req.params.choice_id, req.body);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    if (result) {
+      new AppSuccess(res, 200, "200_updated_successfully");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  deleteOptionChoice = async (req, res, next) => {
+    const option = await shopModel.findOne({ id: req.params.choice_id }, DBTables.product_option_choices);
+
+    if (Object.keys(option).length == 0) {
+      throw new AppError(403, "Choice not found");
+    }
+
+    await shopModel.deleteOptionChoice(req.params.choice_id);
 
     new AppSuccess(res, 200, "200_successful");
   };

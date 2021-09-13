@@ -1121,6 +1121,114 @@ class ShopModel {
 
     return await query(sql, values);
   }
+
+  getCategoryOptions = async () => {
+    let sql = `SELECT Options.*,
+      Choices.id as choice_id, Choices.title as choice, Choices.choice_order as choice_order
+      FROM ${DBTables.product_options} as Options
+      LEFT JOIN ${DBTables.product_option_choices} as Choices ON Choices.option_id=Options.id
+      ORDER BY Options.title`;
+
+    return await query(sql);
+  }
+
+  addCategoryOption = async (body) => {
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_options} 
+            (title) 
+            VALUES (?)`;
+
+    const values = [
+      body.title,
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+  
+  editCategoryOption = async (option_id, body) => {
+    const sqlParamsArr = [];
+    const values = [];
+
+    Object.entries(body).forEach(([key, val]) => {
+      sqlParamsArr.push(`${key} = ?`);
+      values.push(val);
+    });
+
+    const sqlParams = sqlParamsArr.join(',');
+    const sql = `UPDATE ${DBTables.product_options} SET ${sqlParams} WHERE id=?`;
+    values.push(option_id);
+
+    return await query(sql, values);
+  }
+
+  deleteCategoryOption = async (option_id) => {
+    const sql = `DELETE FROM ${DBTables.product_options} WHERE id=?`;
+    const choiceSql = `DELETE FROM ${DBTables.product_option_choices} WHERE option_id=?`;
+
+    const values = [option_id];
+
+    await query(choiceSql, values);
+    return await query(sql, values);
+  }
+
+  addOptionChoice = async (body) => {
+    const output = {}
+
+    const sql = `INSERT INTO ${DBTables.product_option_choices} 
+            (option_id, title, choice_order) 
+            VALUES (?,?,?)`;
+
+    const values = [
+      body.option_id,
+      body.title,
+      body.choice_order,
+    ];
+
+    const result = await query(sql, values);
+
+    if (result.insertId) {
+      output.status = 200
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
+  
+  editOptionChoice = async (choice_id, body) => {
+    const sqlParamsArr = [];
+    const values = [];
+
+    Object.entries(body).forEach(([key, val]) => {
+      sqlParamsArr.push(`${key} = ?`);
+      values.push(val);
+    });
+
+    const sqlParams = sqlParamsArr.join(',');
+    const sql = `UPDATE ${DBTables.product_option_choices} SET ${sqlParams} WHERE id=?`;
+    values.push(choice_id);
+
+    return await query(sql, values);
+  }
+
+  deleteOptionChoice = async (choice_id) => {
+    const sql = `DELETE FROM ${DBTables.product_option_choices} WHERE id=?`;
+
+    const values = [choice_id];
+
+    return await query(sql, values);
+  }
 }
 
 module.exports = new ShopModel;

@@ -58,4 +58,13 @@ router.post('/category', apiKey(), authVerified(), isAdmin(), awaitHandlerFactor
 router.put('/category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editCategory));
 router.delete('/category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteCategory));
 
+router.get('/category-options', apiKey(), awaitHandlerFactory(ShopController.getCategoryOptions));
+router.post('/category-option', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addCategoryOption));
+router.put('/category-option/:option_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editCategoryOption));
+router.delete('/category-option/:option_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteCategoryOption));
+
+router.post('/option-choice', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addOptionChoice));
+router.put('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editOptionChoice));
+router.delete('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteOptionChoice));
+
 module.exports = router;
