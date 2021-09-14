@@ -267,9 +267,12 @@ class ShopModel {
   }
 
   getProduct = async (slug) => {
-    let sql = `SELECT p.*
-              FROM ${DBTables.products} as p
-              WHERE p.slug=?`;
+    let sql = `SELECT p.*, store.store_name as store_name, 
+      users.username as user_username, users.display_name as user_display_name
+      FROM ${DBTables.products} as p
+      LEFT JOIN ${DBTables.store_details} as store ON store.user_id=p.user_id
+      LEFT JOIN ${DBTables.users} as users ON users.id=p.user_id
+      WHERE p.slug=?`;
 
     const result = await query(sql, [slug]);
     const product = result[0] ? result[0] : {};
@@ -351,8 +354,11 @@ class ShopModel {
   }
 
   getProducts = async (params) => {
-    let sql = `SELECT  p.*
-              FROM ${DBTables.products} as p`;
+    let sql = `SELECT DISTINCT p.*, store.store_name as store_name, 
+      users.username as user_username, users.display_name as user_display_name
+      FROM ${DBTables.products} as p
+      LEFT JOIN ${DBTables.store_details} as store ON store.user_id=p.user_id
+      LEFT JOIN ${DBTables.users} as users ON users.id=p.user_id`;
 
     let queryParams = ` WHERE p.status = 'publish'`;
 
@@ -375,13 +381,13 @@ class ShopModel {
       }
 
       if (p.price_min) {
-        queryParams += ` AND (p.price >= ? OR p.discounted_price >= ?)`;
+        queryParams += ` AND (p.price >= ? OR (p.discounted_price >= ? AND p.discount_start <= NOW() AND p.discount_end >= NOW()))`;
         values.push(p.price_min);
         values.push(p.price_min);
       }
 
       if (p.price_max) {
-        queryParams += ` AND (p.price <= ? OR p.discounted_price <= ?)`;
+        queryParams += ` AND (p.price <= ? OR (p.discounted_price <= ? AND p.discount_start <= NOW() AND p.discount_end >= NOW()))`;
         values.push(p.price_max);
         values.push(p.price_max);
       }
@@ -483,9 +489,12 @@ class ShopModel {
     let catRelatedRows = [];
     if (catIds.length) {
 
-      let catRelatedSql = `SELECT DISTINCT p.*
-      FROM ${DBTables.product_category_relationships} as pcr 
-      LEFT JOIN ${DBTables.products} as p ON pcr.product_id = p.id`;
+      let catRelatedSql = `SELECT DISTINCT p.*, store.store_name as store_name, 
+        users.username as user_username, users.display_name as user_display_name
+        FROM ${DBTables.product_category_relationships} as pcr 
+        LEFT JOIN ${DBTables.products} as p ON pcr.product_id = p.id
+        LEFT JOIN ${DBTables.store_details} as store ON store.user_id=p.user_id
+        LEFT JOIN ${DBTables.users} as users ON users.id=p.user_id`;
 
       let catRelatedQueryParams = ` WHERE p.slug != ? AND pcr.category_id IN (${catIds.join(',')})`;
 
@@ -499,9 +508,12 @@ class ShopModel {
 
     let tagRelatedRows = [];
     if (tagIds.length) {
-      let tagRelatedSql = `SELECT DISTINCT p.*
-      FROM ${DBTables.product_tag_relationships} as ptr 
-      LEFT JOIN ${DBTables.products} as p ON ptr.product_id = p.id`;
+      let tagRelatedSql = `SELECT DISTINCT p.*, store.store_name as store_name, 
+        users.username as user_username, users.display_name as user_display_name
+        FROM ${DBTables.product_tag_relationships} as ptr 
+        LEFT JOIN ${DBTables.products} as p ON ptr.product_id = p.id
+        LEFT JOIN ${DBTables.store_details} as store ON store.user_id=p.user_id
+        LEFT JOIN ${DBTables.users} as users ON users.id=p.user_id`;
 
       let tagRelatedQueryParams = ` WHERE p.slug != ? AND ptr.tag_id IN (${tagIds.join(',')})`;
 
@@ -631,9 +643,11 @@ class ShopModel {
     let sql = `SELECT Cart.*, 
     Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image,
     Product.discounted_price as product_discounted_price, Product.discount_start as product_discount_start, 
-    Product.discount_end as product_discount_end 
+    Product.discount_end as product_discount_end, Product.user_id as vendor_id,
+    Users.username as vendor_username, Users.display_name as vendor_display_name 
     FROM ${this.tableNameCartItems} as Cart  
     LEFT JOIN ${this.tableName} as Product ON Product.id=Cart.product_id
+    LEFT JOIN ${DBTables.users} as Users ON Users.id=Product.user_id
     WHERE Cart.user_id=?`;
 
     return await query(sql, [user_id]);
