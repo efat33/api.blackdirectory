@@ -62,19 +62,15 @@ class ListingModel {
 
   createListing = async (params, currentUser) => {
 
-
-
     const current_date = commonfn.dateTimeNow();
     const user_id = currentUser.id;
     const user_role = currentUser.role;
-    let claimer_id = '';
+    let claimer_id = user_id;
     const output = {}
 
 
 
-    if (user_role == 'candidate' || user_role == 'employer') claimer_id = user_id;
-    // console.log(params.galleries);
-    // return output;
+    if (user_role == 'admin') claimer_id = null;
 
     let slug = await commonfn.generateSlug(params.title, this.tableName);
 
@@ -84,6 +80,20 @@ class ListingModel {
       for (const item of params.galleries) {
         if (item.image != '') galleries.push(item.image);
       }
+    }
+
+    // process video urls data
+    const video_urls = [];
+    if (params.video_urls.length > 0) {
+      for (const item of params.video_urls) {
+        if (item != '') video_urls.push(item);
+      }
+    }
+
+    // process products data
+    let products = [];
+    if (params.products.length > 0) {
+      products = JSON.stringify(params.products)
     }
 
 
@@ -105,7 +115,7 @@ class ListingModel {
     const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo,
       params.cover_img, params.description, params.address, params.lat, params.lng,
       params.price_range, params.price_min, params.price_max, params.featured_img, JSON.stringify(galleries),
-      params.business_hour, JSON.stringify(params.video_urls), JSON.stringify(params.products), params.button_icon, params.button_link,
+      params.business_hour, JSON.stringify(video_urls), products, params.button_icon, params.button_link,
       params.coupon_title, params.coupon_description, params.coupon_image, params.coupon_code, params.coupon_popup_desc, params.coupon_link, params.coupon_expiry_date,
       params.button_name, 'draft', current_date, current_date]);
 
@@ -289,6 +299,20 @@ class ListingModel {
       }
     }
 
+    // process video urls data
+    const video_urls = [];
+    if (params.video_urls.length > 0) {
+      for (const item of params.video_urls) {
+        if (item != '') video_urls.push(item);
+      }
+    }
+
+    // process products data
+    let products = [];
+    if (params.products.length > 0) {
+      products = JSON.stringify(params.products)
+    }
+
     // update listing table
     const basic_info = {
       'title': params.title,
@@ -304,8 +328,8 @@ class ListingModel {
       'price_max': params.price_max,
       'featured_img': params.featured_img,
       'galleries': JSON.stringify(galleries),
-      'video_urls': JSON.stringify(params.video_urls),
-      'products': JSON.stringify(params.products),
+      'video_urls': JSON.stringify(video_urls),
+      'products': products,
       'business_hour': params.business_hour,
       'button_icon': params.button_icon,
       'button_link': params.button_link,
@@ -337,11 +361,11 @@ class ListingModel {
         // Monday business hour
         const mondayHour = params.businsessHourMonday;
 
-        const sqlHmMonday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmMonday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                               UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                               second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesMonday = [
-          [mondayHour.id, mondayHour.is_open, mondayHour.times[0].open, mondayHour.times[0].closes]
+          [mondayHour.id, listing_id, 'monday', mondayHour.is_open, mondayHour.times[0].open, mondayHour.times[0].closes]
         ];
 
         if (mondayHour.times.length > 1) {
@@ -357,11 +381,11 @@ class ListingModel {
 
         // Tuesday business hour
         const tuesdayHour = params.businsessHourTuesday;
-        const sqlHmTuesday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmTuesday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                               UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                               second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesTuesday = [
-          [tuesdayHour.id, tuesdayHour.is_open, tuesdayHour.times[0].open, tuesdayHour.times[0].closes]
+          [tuesdayHour.id, listing_id, 'tuesday', tuesdayHour.is_open, tuesdayHour.times[0].open, tuesdayHour.times[0].closes]
         ];
 
         if (tuesdayHour.times.length > 1) {
@@ -377,11 +401,11 @@ class ListingModel {
 
         // Wednesday business hour
         const wednesdayHour = params.businsessHourWednesday;
-        const sqlHmWednesday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmWednesday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                 UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                 second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesWednesday = [
-          [wednesdayHour.id, wednesdayHour.is_open, wednesdayHour.times[0].open, wednesdayHour.times[0].closes]
+          [wednesdayHour.id, listing_id, 'wednesday', wednesdayHour.is_open, wednesdayHour.times[0].open, wednesdayHour.times[0].closes]
         ];
 
         if (wednesdayHour.times.length > 1) {
@@ -397,11 +421,11 @@ class ListingModel {
 
         // Thursday business hour
         const thursdayHour = params.businsessHourThursday;
-        const sqlHmThursday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmThursday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                 UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                 second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesThursday = [
-          [thursdayHour.id, thursdayHour.is_open, thursdayHour.times[0].open, thursdayHour.times[0].closes]
+          [thursdayHour.id, listing_id, 'thursday', thursdayHour.is_open, thursdayHour.times[0].open, thursdayHour.times[0].closes]
         ];
 
         if (thursdayHour.times.length > 1) {
@@ -417,11 +441,11 @@ class ListingModel {
 
         // Friday business hour
         const fridayHour = params.businsessHourFriday;
-        const sqlHmFriday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmFriday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                 UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                 second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesFriday = [
-          [fridayHour.id, fridayHour.is_open, fridayHour.times[0].open, fridayHour.times[0].closes]
+          [fridayHour.id, listing_id, 'friday', fridayHour.is_open, fridayHour.times[0].open, fridayHour.times[0].closes]
         ];
 
         if (fridayHour.times.length > 1) {
@@ -437,11 +461,11 @@ class ListingModel {
 
         // Saturday business hour
         const saturdayHour = params.businsessHourSaturday;
-        const sqlHmSaturday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmSaturday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                 UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                 second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesSaturday = [
-          [saturdayHour.id, saturdayHour.is_open, saturdayHour.times[0].open, saturdayHour.times[0].closes]
+          [saturdayHour.id, listing_id, 'saturday', saturdayHour.is_open, saturdayHour.times[0].open, saturdayHour.times[0].closes]
         ];
 
         if (saturdayHour.times.length > 1) {
@@ -457,11 +481,11 @@ class ListingModel {
 
         // Sunday business hour
         const sundayHour = params.businsessHourSunday;
-        const sqlHmSunday = `INSERT INTO ${this.tableListingHours} (id, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
+        const sqlHmSunday = `INSERT INTO ${this.tableListingHours} (id, listing_id, day_of_week, is_open, first_hour_start, first_hour_end, second_hour_start, second_hour_end) VALUES ? ON DUPLICATE KEY 
                 UPDATE is_open=VALUES(is_open), first_hour_start=VALUES(first_hour_start), first_hour_end=VALUES(first_hour_end),
                 second_hour_start=VALUES(second_hour_start), second_hour_end=VALUES(second_hour_end)`;
         const valuesSunday = [
-          [sundayHour.id, sundayHour.is_open, sundayHour.times[0].open, sundayHour.times[0].closes]
+          [sundayHour.id, listing_id, 'sunday', sundayHour.is_open, sundayHour.times[0].open, sundayHour.times[0].closes]
         ];
 
         if (sundayHour.times.length > 1) {
@@ -591,8 +615,7 @@ class ListingModel {
       queryParams += ` AND l.recommended = 1`;
     }
     if(params.price && params.price != ''){
-      queryParams += ` AND l.price_range = ?`;
-      values.push(params.price);
+      queryParams += ` AND l.price_range = '${encodeURI(params.price)}'`;
     }
  
     if(params.discount){
@@ -738,6 +761,17 @@ class ListingModel {
                           JOIN ${this.tableCategories} c ON lc.listing_categories_id = c.id  
                           WHERE lc.listing_id = ?`;
       output.categories = await query(sqlListCat, [listing_id]);
+
+      
+      // fetch products
+      output.allproducts = [];
+      const prod_arr = JSON.parse(output.listing.products);
+      if(output.listing.products && prod_arr.length > 0){
+        const sqlListProd = `SELECT * FROM ${DBTables.products} 
+                            WHERE id IN (${prod_arr.join()})`;
+        output.allproducts = await query(sqlListProd);
+      }
+      
 
 
       // fetch contacts
