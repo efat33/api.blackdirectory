@@ -49,8 +49,7 @@ router.delete('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(Sho
 
 router.get('/filter-options', apiKey(), awaitHandlerFactory(ShopController.getFilterOptions));
 
-router.get('/shippings', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getShippingMethods));
-router.get('/shippings/:user_id', apiKey(), awaitHandlerFactory(ShopController.getShippingMethods));
+router.get('/shippings', apiKey(), currentUser(), awaitHandlerFactory(ShopController.getShippingMethods));
 router.post('/shipping', apiKey(), authVerified(), awaitHandlerFactory(ShopController.addShippingMethod));
 router.put('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.editShippingMethod));
 router.delete('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.deleteShippingMethod));
@@ -58,5 +57,14 @@ router.delete('/shipping/:shipping_id', apiKey(), authVerified(), awaitHandlerFa
 router.post('/category', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addCategory));
 router.put('/category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editCategory));
 router.delete('/category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteCategory));
+
+router.get('/category-options', apiKey(), awaitHandlerFactory(ShopController.getCategoryOptions));
+router.post('/category-option', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addCategoryOption));
+router.put('/category-option/:option_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editCategoryOption));
+router.delete('/category-option/:option_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteCategoryOption));
+
+router.post('/option-choice', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addOptionChoice));
+router.put('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editOptionChoice));
+router.delete('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteOptionChoice));
 
 module.exports = router;
