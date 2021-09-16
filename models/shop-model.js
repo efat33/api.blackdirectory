@@ -1243,6 +1243,29 @@ class ShopModel {
 
     return await query(sql, values);
   }
+  
+  assignCategoryOptions = async (body) => {
+    let ids = body.selectedOptions.map(option => option.id);
+    ids = encodeURI(ids.join(','));
+
+    let remove_sql = `DELETE FROM ${DBTables.product_category_option_relationships} 
+      WHERE category_id=?`;
+    
+    if (ids) {
+      remove_sql += ` AND option_id NOT IN (${ids})`;
+    }
+
+    await query(remove_sql, [body.category_id]);
+
+    if (body.selectedOptions && body.selectedOptions.length > 0) {
+      const sql = `INSERT INTO ${DBTables.product_category_option_relationships} 
+        (category_id, option_id) 
+        VALUES ? ON DUPLICATE KEY UPDATE id=id`;
+
+      const values = body.selectedOptions.map(option => ([body.category_id, option.id]));
+      await query2(sql, [values]);
+    }
+  }
 }
 
 module.exports = new ShopModel;

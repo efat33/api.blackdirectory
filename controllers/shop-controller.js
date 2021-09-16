@@ -908,6 +908,12 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_successful");
   };
+
+  assignCategoryOptions = async (req, res, next) => {
+    await shopModel.assignCategoryOptions(req.body);
+
+    new AppSuccess(res, 200, "200_updated_successfully");
+  }
 }
 
 module.exports = new ShopController();

@@ -67,4 +67,6 @@ router.post('/option-choice', apiKey(), authVerified(), isAdmin(), awaitHandlerF
 router.put('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editOptionChoice));
 router.delete('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteOptionChoice));
 
+router.put('/assign-category-options', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.assignCategoryOptions));
+
 module.exports = router;
