@@ -566,7 +566,9 @@ class EventModel {
                     LEFT JOIN ${DBTables.event_tag_relationships} t ON t.event_id = e.id 
                     LEFT JOIN ${DBTables.event_organiser_relationships} o ON o.event_id = e.id`;
 
-    let queryParams = ` WHERE e.id != ${event_id}`;
+    let queryParams = ` WHERE e.id != ${event_id}`; // exclude the current page event
+
+    queryParams += ` AND e.end_time > NOW()`; // remove expired events
 
     if (event.is_virtual == 1) {
       queryParams += ` AND e.is_virtual = 1`;
