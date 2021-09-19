@@ -32,6 +32,7 @@ router.delete('/cart/:item_id', apiKey(), auth(), awaitHandlerFactory(ShopContro
 router.delete('/cart-clear', apiKey(), auth(), awaitHandlerFactory(ShopController.clearCartItems));
 
 router.get('/vendor-orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getVendorOrders));
+router.get('/all-orders', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.getAllOrders));
 router.get('/orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrders));
 router.get('/order/:order_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrder));
 router.put('/order/:order_id/status', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateOrderStatus));
