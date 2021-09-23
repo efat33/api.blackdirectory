@@ -358,6 +358,12 @@ class ShopController {
     new AppSuccess(res, 200, "200_successful", null, orders);
   };
 
+  getAllOrders = async (req, res, next) => {
+    const orders = await shopModel.getOrders();
+
+    new AppSuccess(res, 200, "200_successful", null, orders);
+  };
+
   getVendorOrders = async (req, res, next) => {
     const orders = await shopModel.getOrders({ vendor_id: req.currentUser.id });
 
@@ -369,7 +375,13 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    const order = await shopModel.getOrder({ 'Orders.id': req.params.order_id, "Orders.user_id": req.currentUser.id });
+    const body = { 'Orders.id': req.params.order_id };
+
+    if (req.currentUser.role !== 'admin') {
+      body['Orders.user_id'] = req.currentUser.id;
+    }
+
+    const order = await shopModel.getOrder(body);
 
     if (Object.keys(order).length === 0) {
       throw new AppError(403, "Order not found")
@@ -618,6 +630,12 @@ class ShopController {
     };
 
     new AppSuccess(res, 200, "200_successful", null, output);
+  };
+
+  getWithdrawRequestsAll = async (req, res, next) => {
+    const withdraw_requests = await shopModel.getWithdrawRequests(req.currentUser);
+    
+    new AppSuccess(res, 200, "200_successful", null, withdraw_requests);
   };
 
   getWishlistProducts = async (req, res, next) => {
@@ -908,6 +926,12 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_successful");
   };
+
+  assignCategoryOptions = async (req, res, next) => {
+    await shopModel.assignCategoryOptions(req.body);
+
+    new AppSuccess(res, 200, "200_updated_successfully");
+  }
 }
 
 module.exports = new ShopController();
