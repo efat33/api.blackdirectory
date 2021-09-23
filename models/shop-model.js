@@ -929,7 +929,13 @@ class ShopModel {
   }
 
   getWithdrawRequests = async (currentUser) => {
-    let sql = `SELECT * FROM ${this.tableWithdrawRequests} WHERE user_id=?`;
+    let sql = `SELECT * FROM ${this.tableWithdrawRequests}`;
+
+    if (currentUser.role === 'admin') {
+      return await query(sql);
+    }
+
+    sql += ` WHERE user_id=?`;
 
     return await query(sql, [currentUser.id]);
   }

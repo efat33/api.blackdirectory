@@ -41,6 +41,7 @@ router.get('/promo-code/:promo_code', apiKey(), authVerified(), awaitHandlerFact
 
 router.get('/countries', apiKey(), awaitHandlerFactory(ShopController.getCountries));
 
+router.get('/withdraw-requests-all', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.getWithdrawRequestsAll));
 router.get('/withdraw-requests', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getWithdrawRequests));
 router.post('/withdraw-request', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newWithdrawRequest));
 

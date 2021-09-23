@@ -632,6 +632,12 @@ class ShopController {
     new AppSuccess(res, 200, "200_successful", null, output);
   };
 
+  getWithdrawRequestsAll = async (req, res, next) => {
+    const withdraw_requests = await shopModel.getWithdrawRequests(req.currentUser);
+    
+    new AppSuccess(res, 200, "200_successful", null, withdraw_requests);
+  };
+
   getWishlistProducts = async (req, res, next) => {
     const result = await shopModel.getWishlistProducts(req.currentUser);
 
