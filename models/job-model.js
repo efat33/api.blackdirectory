@@ -271,7 +271,7 @@ class JobModel {
 
   getUserJobs = async (params = {}) => {
     let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.deadline as deadline, Job.job_apply_type as job_apply_type, 
-        JobSector.title as job_sector, Job.filled as filled, Job.status as status, Job.views as views, 
+        JobSector.title as job_sector, JobSector.id as job_sector_id, Job.filled as filled, Job.status as status, Job.views as views, 
         Job.expiry_date as expiry_date, Job.featured as featured, Job.applicants_number as applicants_number,
         Job.created_at as created_at  
         FROM ${this.tableName} as Job 
