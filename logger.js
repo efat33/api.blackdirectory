@@ -8,7 +8,7 @@ const logger = createLogger({
   format: logFormat,
   transports: [
     // new transports.Console(),
-    new transports.File({ filename: 'logs/app.log', maxsize: 10000000 })
+    new transports.File({ filename: 'logs/app.log', maxsize: 1000000 })
   ]
 });
 

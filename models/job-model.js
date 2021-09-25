@@ -157,11 +157,13 @@ class JobModel {
       latitude = null,
       longitude = null,
       salary = null,
-      sector = null
+      sector = null,
+      user_id = null,
+      exclude = null
     } = params;
 
     let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
-                JobSector.title as job_sector, Job.filled as filled, Job.address as address, 
+                JobSector.title as job_sector, JobSector.id as job_sector_id, Job.filled as filled, Job.address as address, 
                 Users.username as username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo, 
                 Job.created_at as created_at 
                 FROM ${this.tableName} as Job 
@@ -171,7 +173,7 @@ class JobModel {
 
     if (latitude && longitude) {
       sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
-                        JobSector.title as job_sector, Job.filled as filled, Job.address as address, 
+                        JobSector.title as job_sector, JobSector.id as job_sector_id, Job.filled as filled, Job.address as address, 
                         Users.username as username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo, 
                         Job.created_at as created_at, 
                         ( 6371 * acos( cos( radians('${latitude}') ) * cos( radians( Job.latitude ) ) * cos( radians( Job.longitude ) - radians('${longitude}') ) + sin( radians('${latitude}') ) * sin( radians( Job.latitude ) ) ) ) as listing_distance 
@@ -204,6 +206,16 @@ class JobModel {
     if (sector) {
       conditions.push('Job.job_sector_id = ?');
       values.push(sector)
+    }
+
+    if (user_id) {
+      conditions.push('Job.user_id = ?');
+      values.push(user_id)
+    }
+
+    if (exclude && exclude.length > 0) {
+      const excludeIds = encodeURI(exclude.join(','));
+      conditions.push(`Job.id NOT IN (${excludeIds})`);
     }
 
     if (salary) {
