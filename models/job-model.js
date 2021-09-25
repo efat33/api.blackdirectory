@@ -661,6 +661,25 @@ class JobModel {
       const result = await query(freePackageSql);
 
       output.currentPackage = result[0];
+
+      let registeredDateSql = `SELECT created_at FROM ${this.tableUsers} WHERE id=?`;
+      const registeredDateResult = await query(registeredDateSql, [currentUser.id]);
+
+      const purchaseDate = registeredDateResult[0].created_at;
+
+      let expireDate = new Date(purchaseDate);
+      expireDate = commonfn.dateTime(new Date(expireDate.setMonth(expireDate.getMonth() + 1)));
+
+      output.meta_values = [
+        {
+          meta_key: "package_purchase_date",
+          meta_value: purchaseDate
+        },
+        {
+          meta_key: "package_expire_date",
+          meta_value: expireDate
+        }
+      ];
     }
 
     return output;
