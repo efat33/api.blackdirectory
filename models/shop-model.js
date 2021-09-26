@@ -741,8 +741,20 @@ class ShopModel {
       LEFT JOIN ${DBTables.product_shippings} as Shipping ON Shipping.id=Orders.shipping_id
       `;
 
+    let orCondition = '';
+    if (params['Orders.user_id'] && params['Orders.vendor_id']) {
+      orCondition = ` (Orders.user_id = ${params['Orders.user_id']} OR Orders.vendor_id = ${params['Orders.vendor_id']})`;
+
+      delete params['Orders.user_id'];
+      delete params['Orders.vendor_id'];
+    }
+
     const { columnSet, values } = multipleColumnSet(params)
     sql += ` WHERE ${columnSet}`;
+
+    if (orCondition) {
+      sql += ` AND ${orCondition}`
+    }
 
     const result = await query(sql, [...values]);
 

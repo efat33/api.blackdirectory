@@ -379,6 +379,7 @@ class ShopController {
 
     if (req.currentUser.role !== 'admin') {
       body['Orders.user_id'] = req.currentUser.id;
+      body['Orders.vendor_id'] = req.currentUser.id;
     }
 
     const order = await shopModel.getOrder(body);
