@@ -25,6 +25,8 @@ const stripeRouter = require('./routes/stripe-routes');
 const StripeController = require('./controllers/stripe-controller');
 const awaitHandlerFactory = require('./utils/awaitHandlerFactory');
 
+global.__basedir = __dirname;
+
 const app = express();
 
 // enabling cors for all requests by using cors middleware
