@@ -569,6 +569,17 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       throw new AppError(403, "Application not found");
     };
 
+    const currentPackage = await jobModel.getCurrentPackage(req.currentUser);
+
+    const cvDownloadCount = currentPackage.meta_values.find(meta => meta.meta_key === 'cv_download');
+
+    if (cvDownloadCount && 
+      currentPackage.currentPackage.cv_download > -1 && 
+      cvDownloadCount.meta_value >= currentPackage.currentPackage.cv_download
+    ) {
+      throw new AppError(403, "Please upgrade your package");
+    }
+
     const cv = userInfo.meta_data.find(meta => meta.meta_key === 'candidate_cv');
 
     if (!cv || !cv.meta_value) {
@@ -578,6 +589,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     const cv_url = `${__basedir}/uploads/users/${cv.meta_value}`;
 
     if (fs.existsSync(cv_url)) {
+      // increase cv download count
+      await UserModel.increaseCVDownloadCount(req.currentUser);
+
       res.download(cv_url);
     } else {
       throw new AppError(403, "CV does not exists");

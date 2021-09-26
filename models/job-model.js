@@ -639,7 +639,7 @@ class JobModel {
   getCurrentPackage = async (currentUser) => {
     let output = {};
 
-    let sql = `SELECT * FROM ${this.tableUsersMeta} WHERE user_id=? AND meta_key in ('package', 'package_price', 'package_purchase_date', 'package_expire_date')`;
+    let sql = `SELECT * FROM ${this.tableUsersMeta} WHERE user_id=? AND meta_key in ('package', 'package_price', 'package_purchase_date', 'package_expire_date', 'cv_download')`;
 
     const meta_values = await query(sql, [currentUser.id]);
 
