@@ -121,7 +121,8 @@ exports.sendEmail = (options, successCallback = null, errorCallback = null) => {
     mailOptions['attachments'] = options.attachments;
   }
 
-  const body = mailTemplate.replace('{{mailBody}}', options.body);
+  let body = options.body.replace(/(?:\r\n|\r|\n)/g, '<br>');
+  body = mailTemplate.replace('{{mailBody}}', body);
 
   mailOptions['html'] = body;
 

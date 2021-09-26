@@ -571,10 +571,10 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
 
     const currentPackage = await jobModel.getCurrentPackage(req.currentUser);
 
-    const cvDownloadCount = currentPackage.meta_values.find(meta => meta.meta_key === 'cv_download');
+    const cvDownload = currentPackage.meta_values.find(meta => meta.meta_key === 'cv_download');
+    const cvDownloadCount = cvDownload ? cvDownload.meta_value : 0;
 
-    if (cvDownloadCount && 
-      currentPackage.currentPackage.cv_download > -1 && 
+    if (currentPackage.currentPackage.cv_download > -1 && 
       cvDownloadCount.meta_value >= currentPackage.currentPackage.cv_download
     ) {
       throw new AppError(403, "Please upgrade your package");
