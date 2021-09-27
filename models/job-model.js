@@ -574,7 +574,7 @@ class JobModel {
             (user_id, job_id, created_at) 
             VALUES ? ON DUPLICATE KEY UPDATE id=id`;
 
-    const values = [user_id, params.job_id, current_date];
+    const values = [user_id, params.jobId, current_date];
 
     const result = await query2(sql, [[values]]);
 
