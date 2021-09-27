@@ -7,6 +7,7 @@ const apiKey = require('../utils/api-key');
 const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
 const validation = require('../utils/userValidator');
+const authVerified = require('../utils/authVerified');
 
 // router.get('/', auth(), userController.getAllUsers);
 // router.get('/:id', auth(), awaitHandlerFactory(userController.getUserById));
@@ -43,6 +44,8 @@ router.put('/update-notification/:notification_id', apiKey(), auth(), awaitHandl
 router.delete('/notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.deleteNotification));
 
 router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.getUsersByIds));
+
+router.get('/get-candidate-cv/:application_id', apiKey(), authVerified(), awaitHandlerFactory(userController.getCandidateCV));
 
 router.get('/verify-email/:verification_key', awaitHandlerFactory(userController.verifiyEmail));
 
