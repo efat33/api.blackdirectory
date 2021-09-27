@@ -228,19 +228,19 @@ class JobModel {
 
     if (datePosted) {
       if (datePosted === '1hour') {
-        sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR) AND Job.created_at <= NOW()';
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 HOUR) AND Job.created_at <= UTC_TIMESTAMP()';
       }
       else if (datePosted === '24hours') {
-        sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 1 DAY) AND Job.created_at <= NOW()';
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
       }
       else if (datePosted === '7days') {
-        sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY) AND Job.created_at <= NOW()';
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
       }
       else if (datePosted === '14days') {
-        sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) AND Job.created_at <= NOW()';
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 14 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
       }
       else if (datePosted === '30days') {
-        sql += ' AND Job.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY) AND Job.created_at <= NOW()';
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
       }
     }
 
