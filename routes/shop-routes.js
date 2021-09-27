@@ -32,6 +32,7 @@ router.delete('/cart/:item_id', apiKey(), auth(), awaitHandlerFactory(ShopContro
 router.delete('/cart-clear', apiKey(), auth(), awaitHandlerFactory(ShopController.clearCartItems));
 
 router.get('/vendor-orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getVendorOrders));
+router.get('/all-orders', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.getAllOrders));
 router.get('/orders', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrders));
 router.get('/order/:order_id', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getOrder));
 router.put('/order/:order_id/status', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateOrderStatus));
@@ -40,6 +41,7 @@ router.get('/promo-code/:promo_code', apiKey(), authVerified(), awaitHandlerFact
 
 router.get('/countries', apiKey(), awaitHandlerFactory(ShopController.getCountries));
 
+router.get('/withdraw-requests-all', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.getWithdrawRequestsAll));
 router.get('/withdraw-requests', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getWithdrawRequests));
 router.post('/withdraw-request', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newWithdrawRequest));
 
@@ -66,5 +68,7 @@ router.delete('/category-option/:option_id', apiKey(), authVerified(), isAdmin()
 router.post('/option-choice', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.addOptionChoice));
 router.put('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.editOptionChoice));
 router.delete('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.deleteOptionChoice));
+
+router.put('/assign-category-options', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.assignCategoryOptions));
 
 module.exports = router;
