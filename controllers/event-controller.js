@@ -209,7 +209,7 @@ class EventController {
     // validate if the guest no is greater than available Number
     const rsvp = await EventModel.findOne({ id: req.body.rsvp_id }, DBTables.event_tickets);
 
-    if (req.body.guest_no > rsvp.available) {
+    if (rsvp.available && req.body.guest_no > rsvp.available) {
       throw new AppError(403, "Guest number cannot be greater than available RSVP");
     }
 
