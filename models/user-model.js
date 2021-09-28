@@ -775,6 +775,13 @@ class UserModel {
     
     return false;
   }
+
+  increaseCVDownloadCount = async (currentUser) => {
+    const sql = `INSERT INTO ${this.tableNameMeta} (user_id, meta_key, meta_value)
+      VALUES ? ON DUPLICATE KEY UPDATE meta_value = meta_value + 1`;
+
+    return await query2(sql, [[[currentUser.id, 'cv_download', 1]]]);
+  }
 }
 
 module.exports = new UserModel;
