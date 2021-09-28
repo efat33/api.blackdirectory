@@ -130,7 +130,7 @@ class EventModel {
           const end_sale = item.end_sale ? item.end_sale : params.end_time;
           const tmp = [event_id, 'ticket', item.title, price, capacity, capacity, start_sale, end_sale, current_date, current_date];
           values.push(tmp);
-      }
+        }
 
         await query2(sql, [values]);
 
@@ -254,20 +254,71 @@ class EventModel {
 
       // update data in tickets table
       if (params.tickets.length > 0) {
-        const sql = `INSERT INTO ${DBTables.event_tickets} (id, title, price, capacity, start_sale, end_sale, updated_at) VALUES ? ON DUPLICATE KEY 
-                                        UPDATE title=VALUES(title), price=VALUES(price), capacity=VALUES(capacity), start_sale=VALUES(start_sale), end_sale=VALUES(end_sale), updated_at=VALUES(updated_at)`;
-        const values = [];
+        
+        const new_tickets = params.tickets.filter(item => item.id == null);
+        const existing_tickets = params.tickets.filter(item => item.id != null);
+        const existing_tickets_ids = existing_tickets.map(item => item.id);
 
-        for (let item of params.tickets) {
-          const price = item.price ? item.price : 0;
-          const capacity = item.capacity ? item.capacity : null;
-          const start_sale = item.start_sale ? item.start_sale : params.start_time;
-          const end_sale = item.end_sale ? item.end_sale : params.end_time;
-          const tmp = [item.id, item.title, price, capacity, start_sale, end_sale, current_date];
-          values.push(tmp);
+        // update existing tickets
+        if(existing_tickets.length > 0){
+          // fetch tickets
+          let sqlTicket = '';
+          sqlTicket = `SELECT COUNT(*) AS sold, event_ticket_id FROM ${DBTables.event_ticket_attendees} WHERE event_ticket_id IN (${existing_tickets_ids.join()}) GROUP BY event_ticket_id`;
+
+          const ticketsD = await query(sqlTicket);
+
+          const sql = `INSERT INTO ${DBTables.event_tickets} (id, title, price, capacity, available, start_sale, end_sale, updated_at) VALUES ? ON DUPLICATE KEY 
+          UPDATE title=VALUES(title), price=VALUES(price), capacity=VALUES(capacity), available=VALUES(available), start_sale=VALUES(start_sale), end_sale=VALUES(end_sale), updated_at=VALUES(updated_at)`;
+          const values = [];
+
+          for (let item of existing_tickets) {
+            const price = item.price ? item.price : 0;
+            const capacity = item.capacity ? item.capacity : null;
+            const start_sale = item.start_sale ? item.start_sale : params.start_time;
+            const end_sale = item.end_sale ? item.end_sale : params.end_time;
+
+            // calculate available
+            let available = null;
+            if(capacity){
+              const ticketDsingle = ticketsD.find(element => element.event_ticket_id == item.id);
+              if(ticketDsingle){
+                if(capacity > ticketDsingle.sold){
+                  available = capacity - ticketDsingle.sold;
+                }
+                else{
+                  available = 0;
+                }
+              }
+              else{
+                available = capacity;
+              }
+            }
+            
+            const tmp = [item.id, item.title, price, capacity, available, start_sale, end_sale, current_date];
+            values.push(tmp);
+          }
+
+          await query2(sql, [values]);
+
         }
 
-        await query2(sql, [values]);
+        // insert new tickets
+        if(new_tickets.length > 0){
+          const sql = `INSERT INTO ${DBTables.event_tickets} (event_id, type, title, price, capacity, available, start_sale, end_sale, created_at, updated_at) VALUES ?`;
+          const values = [];
+  
+          for (let item of new_tickets) {
+            const price = item.price ? item.price : 0;
+            const capacity = item.capacity ? item.capacity : null;
+            const start_sale = item.start_sale ? item.start_sale : params.start_time;
+            const end_sale = item.end_sale ? item.end_sale : params.end_time;
+            const tmp = [event_id, 'ticket', item.title, price, capacity, capacity, start_sale, end_sale, current_date, current_date];
+            values.push(tmp);
+          }
+  
+          await query2(sql, [values]);
+        }
+        
 
       }
 
@@ -288,19 +339,70 @@ class EventModel {
       // update data in rsvp table
       if (params.rsvp.length > 0) {
 
-        const sql = `INSERT INTO ${DBTables.event_tickets} (id, title, capacity, start_sale, end_sale, updated_at) VALUES ? ON DUPLICATE KEY 
-                                        UPDATE title=VALUES(title), capacity=VALUES(capacity), start_sale=VALUES(start_sale), end_sale=VALUES(end_sale), updated_at=VALUES(updated_at)`;
-        const values = [];
+        const new_rsvp = params.rsvp.filter(item => item.id == null);
+        const existing_rsvp = params.rsvp.filter(item => item.id != null);
 
-        for (let item of params.rsvp) {
-          const capacity = item.capacity ? item.capacity : null;
-          const start_sale = item.start_sale ? item.start_sale : params.start_time;
-          const end_sale = item.end_sale ? item.end_sale : params.end_time;
-          const tmp = [item.id, item.title, capacity, start_sale, end_sale, current_date];
-          values.push(tmp);
+        const existing_rsvp_ids = existing_rsvp.map(item => item.id);
+
+        // update existing rsvp
+        if(existing_rsvp.length > 0){
+
+          // fetch rsvp
+          let sqlRsvp = '';
+          sqlRsvp = `SELECT COUNT(*) AS sold, event_ticket_id FROM ${DBTables.event_rsvp_attendees} WHERE event_ticket_id IN (${existing_rsvp_ids.join()}) GROUP BY event_ticket_id`;
+
+          const rsvpD = await query(sqlRsvp);
+
+          const sql = `INSERT INTO ${DBTables.event_tickets} (id, title, capacity, available, start_sale, end_sale, updated_at) VALUES ? ON DUPLICATE KEY 
+                    UPDATE title=VALUES(title), capacity=VALUES(capacity), available=VALUES(available), start_sale=VALUES(start_sale), end_sale=VALUES(end_sale), updated_at=VALUES(updated_at)`;
+          const values = [];
+
+          for (let item of existing_rsvp) {
+            const capacity = item.capacity ? item.capacity : null;
+            const start_sale = item.start_sale ? item.start_sale : params.start_time;
+            const end_sale = item.end_sale ? item.end_sale : params.end_time;
+
+            // calculate available
+            let available = null;
+            if(capacity){
+              const rsvpDsingle = rsvpD.find(element => element.event_ticket_id == item.id);
+              if(rsvpDsingle){
+                if(capacity > rsvpDsingle.sold){
+                  available = capacity - rsvpDsingle.sold;
+                }
+                else{
+                  available = 0;
+                }
+              }
+              else{
+                available = capacity;
+              }
+            }
+
+            const tmp = [item.id, item.title, capacity, available, start_sale, end_sale, current_date];
+            values.push(tmp);
+          }
+
+          await query2(sql, [values]);
+        }
+
+        // insert new rsvp
+        if(new_rsvp.length > 0){
+          const sql = `INSERT INTO ${DBTables.event_tickets} (event_id, type, title, price, capacity, available, start_sale, end_sale, created_at, updated_at) VALUES ?`;
+          const values = [];
+  
+                  
+          for (let item of new_rsvp) {
+            const capacity = item.capacity ? item.capacity : null;
+            const start_sale = item.start_sale ? item.start_sale : params.start_time;
+            const end_sale = item.end_sale ? item.end_sale : params.end_time;
+            const tmp = [event_id, 'rsvp', item.title, 0, capacity, capacity, start_sale, end_sale, current_date, current_date];
+            values.push(tmp);
+          }
+  
+          await query2(sql, [values]);
         }
         
-        await query2(sql, [values]);
 
       }
 
@@ -366,7 +468,7 @@ class EventModel {
       else {
         sqlTicket = `SELECT * 
                         FROM ${DBTables.event_tickets} 
-                        WHERE event_id = ? AND type = ? AND end_sale > NOW()`;
+                        WHERE event_id = ? AND type = ?`;
       }
 
       event.tickets = await query(sqlTicket, [event_id, 'ticket']);
@@ -381,12 +483,12 @@ class EventModel {
       else {
         sqlRsvp = `SELECT * 
                         FROM ${DBTables.event_tickets} 
-                        WHERE event_id = ? AND type = ? AND end_sale > NOW()`;
+                        WHERE event_id = ? AND type = ? AND start_sale < NOW() AND end_sale > NOW() AND (available > 0 OR available IS NULL) `;
       }
 
       event.rsvp = await query(sqlRsvp, [event_id, 'rsvp']);
 
-      event.comments = await this.getEventComments(event.id);
+      event.comments = await this.getEventComments(event.id); 
     }
 
     return event;
@@ -645,16 +747,19 @@ class EventModel {
 
 
       // finally update available rsvp
-      const updated_available = rsvp.available - params.guest_no;
-      const basic_info = {
-        'available': updated_available,
-        'updated_at': current_date
+      if(rsvp.available){
+        const updated_available = rsvp.available - params.guest_no;
+        const basic_info = {
+          'available': updated_available,
+          'updated_at': current_date
+        }
+  
+        const basic_colset = multipleColumnSet(basic_info, ',');
+        const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
+  
+        const result = await query(sql, [...basic_colset.values, rsvp.id]);
       }
-
-      const basic_colset = multipleColumnSet(basic_info, ',');
-      const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
-
-      const result = await query(sql, [...basic_colset.values, rsvp.id]);
+      
 
 
       output.status = 200;
