@@ -442,7 +442,64 @@ class UserModel {
     return false;
   }
 
+  registerImport = async ({ email, username, password, auth_type, role, created_at, updated_at, verification_key, display_name, verified }) => {
 
+    // const user = await query(`SELECT email, username, referral_code FROM ${this.tableName}`);
+
+    const sql = `INSERT INTO ${this.tableName}
+    (email, username, display_name, password, auth_type, role, verified, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)`;
+    const regResult = await query(sql, [email, username, display_name, password, auth_type, role, verified, created_at, updated_at]);
+
+
+    // return data to controller
+    const output = {}
+
+    if (regResult.insertId) {
+      // insert data to users meta table
+      const user_id = regResult.insertId;
+      const sql_meta = `INSERT INTO ${this.tableNameMeta} (user_id, meta_key, meta_value) VALUES ?`;
+      const values = [
+        [user_id, 'verification_key', verification_key],
+        [user_id, 'reset_passwork_key', ''],
+        [user_id, 'facebook_link', ''],
+        [user_id, 'twitter_link', ''],
+        [user_id, 'linkedin_link', ''],
+        [user_id, 'instagram_link', '']
+      ];
+
+      // prepare other meta data
+      if (role == 'employer') {
+        values.push(
+          [user_id, 'website', ''],
+          [user_id, 'founded_date', '']
+        );
+      }
+      else if (role == 'candidate') {
+        values.push(
+          [user_id, 'job_title', ''],
+          [user_id, 'job_industry', ''],
+          [user_id, 'salary_type', ''],
+          [user_id, 'salary_amount', ''],
+          [user_id, 'age', ''],
+          [user_id, 'academics', ''],
+          [user_id, 'gender', ''],
+          [user_id, 'availble_now', ''],
+          [user_id, 'cover_letter', ''],
+          [user_id, 'candidate_cv', '']
+        );
+      }
+
+      const regMetaResult = await query2(sql_meta, [values]);
+
+      output.status = 200
+      output.data = { 'user_id': regResult.insertId }
+    }
+    else {
+      output.status = 401
+    }
+
+    return output;
+  }
 
   importUsers = async () => {
 
@@ -471,29 +528,49 @@ class UserModel {
                   FROM wplc_usermeta um`;
     const users_meta = await query(sql_meta);
 
-    const sql_post = `SELECT p.post_type as type, pm.* 
-                  FROM wplc_posts p 
-                  LEFT JOIN wplc_postmeta pm ON pm.post_id = p.ID 
-                  WHERE p.post_type  = 'employer' OR p.post_type = 'candidate' `;
-    const post_meta = await query(sql_post);
+    // const sql_post = `SELECT p.post_type as type, pm.* 
+    //               FROM wplc_posts p 
+    //               LEFT JOIN wplc_postmeta pm ON pm.post_id = p.ID 
+    //               WHERE p.post_type  = 'employer' OR p.post_type = 'candidate' `;
+    // const post_meta = await query(sql_post);
 
     // console.log(PHPUnserialize.unserialize(users_meta[46].meta_value));
     // console.log(commonfn.filterUserMetaItems(users_meta, 244, 'wplc_capabilities'));
 
     // check the user role
-    let user_role = '';
-    const user_roles_obj = PHPUnserialize.unserialize(commonfn.filterUserMetaItems(users_meta, 247, 'wplc_capabilities'));
-    const user_roles_arr = Object.keys(user_roles_obj);
-    if (user_roles_arr.includes("jobsearch_candidate")) {
-      user_role = 'candidate';
+    for (const [i, item] of users.entries()) {
+      let user_role = '';
+      const user_roles_obj = PHPUnserialize.unserialize(commonfn.filterUserMetaItems(users_meta, item.id, 'wplc_capabilities'));
+      const user_roles_arr = Object.keys(user_roles_obj);
+      if (user_roles_arr.includes("administrator")) {
+        user_role = 'admin';
+      }
+      else if (user_roles_arr.includes("jobsearch_employer")) {
+        user_role = 'employer';
+      }
+      else {
+        user_role = 'candidate';
+      }
+      users[i].role = user_role;
+
+      let user_verified = commonfn.filterUserMetaItems(users_meta, item.id, 'wilcity_confirmed')
+      users[i].verified = user_verified == 1 ? 1 : 0;
+
+      const registerInfo = {
+        "email": item.email,
+        "username": item.username,
+        "password": item.password,
+        "auth_type": "general",
+        "role": user_role,
+        "created_at": item.created_at,
+        "updated_at": item.created_at,
+        "verification_key": item.verification_key,
+        "display_name": item.display_name,
+        "verified": user_verified == 1 ? 1 : 0
+      }
+      // await this.registerImport(registerInfo);
     }
-    else if (user_roles_arr.includes("jobsearch_employer")) {
-      user_role = 'employer';
-    }
-    else {
-      user_role = 'subscriber';
-    }
-    console.log(user_role);
+    
 
 
     return users_meta;

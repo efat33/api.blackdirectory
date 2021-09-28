@@ -6,7 +6,7 @@ exports.validateLoginTypeFacebook = [
       .withMessage('Email is required')
       .isEmail()
       .withMessage('Must be a valid email')
-      .normalizeEmail()
+      .normalizeEmail({ gmail_remove_dots: false })
 ];  
 
 exports.validateLogin = [
@@ -15,7 +15,7 @@ exports.validateLogin = [
       .withMessage('Email is required')
       .isEmail()
       .withMessage('Must be a valid email')
-      .normalizeEmail(),
+      .normalizeEmail({ gmail_remove_dots: false }),
   check('password')
       .exists()
       .withMessage('Password is required')
@@ -29,7 +29,7 @@ exports.validateRegister = [
       .withMessage('Email is required')
       .isEmail()
       .withMessage('Must be a valid email')
-      .normalizeEmail(),
+      .normalizeEmail({ gmail_remove_dots: false }),
   check('username')
       .exists()
       .withMessage('Username is required')
