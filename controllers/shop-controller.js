@@ -311,7 +311,11 @@ class ShopController {
       if (item.product_discounted_price) {
         const now = new Date();
 
-        if (new Date(item.product_discount_start) < now && now < new Date(item.product_discount_end)) {
+        if (item.product_discount_start && item.product_discount_end) {
+          if (new Date(item.product_discount_start) < now && now < new Date(item.product_discount_end)) {
+            item.product_price = item.product_discounted_price;
+          }
+        } else {
           item.product_price = item.product_discounted_price;
         }
       }
