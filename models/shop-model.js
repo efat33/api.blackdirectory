@@ -381,13 +381,27 @@ class ShopModel {
       }
 
       if (p.price_min) {
-        queryParams += ` AND (p.price >= ? OR (p.discounted_price >= ? AND p.discount_start <= NOW() AND p.discount_end >= NOW()))`;
+        queryParams += ` AND (p.price >= ? OR 
+          (p.discounted_price >= ? AND 
+            ((p.discount_start <= UTC_TIMESTAMP() AND p.discount_end >= UTC_TIMESTAMP()) 
+              OR p.discount_start IS NULL OR p.discount_end IS NULL
+            )
+          )
+        )`;
+
         values.push(p.price_min);
         values.push(p.price_min);
       }
 
       if (p.price_max) {
-        queryParams += ` AND (p.price <= ? OR (p.discounted_price <= ? AND p.discount_start <= NOW() AND p.discount_end >= NOW()))`;
+        queryParams += ` AND (p.price <= ? OR 
+          (p.discounted_price <= ? AND 
+            ((p.discount_start <= UTC_TIMESTAMP() AND p.discount_end >= UTC_TIMESTAMP())
+              OR p.discount_start IS NULL OR p.discount_end IS NULL
+            )
+          )
+        )`;
+
         values.push(p.price_max);
         values.push(p.price_max);
       }
