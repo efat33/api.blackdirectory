@@ -112,7 +112,7 @@ const transporter = nodemailer.createTransport({
 
 exports.sendEmail = (options, successCallback = null, errorCallback = null) => {
   const mailOptions = {
-    from: process.env.ADMIN_EMAIL_ADDRESS,
+    from: `Black Directory <${process.env.ADMIN_EMAIL_ADDRESS}>`,
     to: options.to || process.env.ADMIN_EMAIL_ADDRESS,
     subject: options.subject,
   };
