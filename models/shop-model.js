@@ -84,9 +84,14 @@ class ShopModel {
                     ?,?,?,?,
                     ?,?,?,?,?,
                     ?,?,?,?)`;
-    const values = [user_id, params.title, slug, params.price, params.discounted_price, params.discount_start, params.discount_end, params.image,
-      JSON.stringify(params.galleries), params.short_desc, params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
-      current_date, current_date];
+    const values = [
+      user_id, params.title, slug, params.price, params.discounted_price, 
+      params.discount_start ? commonfn.dateTime(new Date(params.discount_start)) : null, 
+      params.discount_end ? commonfn.dateTime(new Date(params.discount_end)) : null,
+      params.image, JSON.stringify(params.galleries), params.short_desc, 
+      params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
+      current_date, current_date
+    ];
 
     const result_product = await query(sql, values);
 
@@ -166,8 +171,8 @@ class ShopModel {
       'title': params.title,
       'price': params.price,
       'discounted_price': params.discounted_price,
-      'discount_start': params.discount_start,
-      'discount_end': params.discount_end,
+      'discount_start': params.discount_start ? commonfn.dateTime(new Date(params.discount_start)) : null,
+      'discount_end': params.discount_end ? commonfn.dateTime(new Date(params.discount_end)) : null,
       'image': params.image,
       'galleries': JSON.stringify(params.galleries),
       'short_desc': params.short_desc,
