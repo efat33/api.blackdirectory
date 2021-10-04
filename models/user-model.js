@@ -704,6 +704,7 @@ class UserModel {
 
     if (result.insertId) {
       output.status = 200;
+      output.id = result.insertId;
     }
     else {
       output.status = 401;
@@ -714,7 +715,7 @@ class UserModel {
 
   getNotifications = async (currentUser) => {
     let sql = `SELECT Notifications.*, 
-        ActedUser.display_name as user_display_name, ActedUser.username as user_username 
+        ActedUser.display_name as user_display_name, ActedUser.username as user_username
         FROM ${this.tableNameNotifications} as Notifications 
         LEFT JOIN ${this.tableName} as User ON User.id=Notifications.user_id 
         LEFT JOIN ${this.tableName} as ActedUser ON ActedUser.id=Notifications.acted_user_id
@@ -722,6 +723,19 @@ class UserModel {
         ORDER BY Notifications.created_at DESC`;
 
     return await query(sql, [currentUser.id]);
+  }
+
+  getNotification = async (id) => {
+    let sql = `SELECT Notifications.*, 
+        ActedUser.display_name as user_display_name, ActedUser.username as user_username,
+        User.email as email 
+        FROM ${this.tableNameNotifications} as Notifications 
+        LEFT JOIN ${this.tableName} as User ON User.id=Notifications.user_id 
+        LEFT JOIN ${this.tableName} as ActedUser ON ActedUser.id=Notifications.acted_user_id
+        WHERE Notifications.id=?
+        ORDER BY Notifications.created_at DESC`;
+
+    return await query(sql, [id]);
   }
 
   updateNotification = async (notificationId, params) => {
