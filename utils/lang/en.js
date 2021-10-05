@@ -80,6 +80,8 @@ exports.ENTITIES = Object.freeze({
   entity_details: "Details",
   entity_provider: "Provider",
   entity_page: "Page",
+  entity_category: "Category",
+  entity_tag: "Tag",
 
   // Users
   entity_apiKey: "API Key",
@@ -112,11 +114,11 @@ exports.ENTITIES = Object.freeze({
 
   // news
   entity_news: "News",
-  entity_category: "Category",
 
   // event
   entity_event: "Event",
   entity_eventID: "Event ID",
+  entity_organiser: "Organizer",
   
   // mobiles
   entity_mobile: "Mobile",
