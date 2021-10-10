@@ -30,4 +30,6 @@ router.post('/image-mobiles', storageImage.storageImageMobiles, awaitHandlerFact
 
 router.post('/image-pages-ckeditor', storageImage.storageImagePagesCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
 
+router.post('/image-gallery', storageImage.storageImageGallery,  awaitHandlerFactory(UploadController.uploadImage));
+
 module.exports = router;
