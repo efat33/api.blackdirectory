@@ -49,6 +49,7 @@ exports.DBTables = {
   'event_comments': 'event_comments',
   
   'users': 'users',
+  'hero_slider': 'hero_slider',
 };
 
 exports.multipleColumnSet = (object, joinBy = 'AND') => {

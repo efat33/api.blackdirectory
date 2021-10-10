@@ -499,51 +499,7 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
   };
 
   createNotification = async (notificationBody) => {
-    const result = await UserModel.createNotification(notificationBody);
-
-    if (result.status !== 200) {
-      return;
-    }
-
-    // send email
-    const notification = (await UserModel.getNotification(result.id))[0];
-    const notificationText = await this.getJobNotificationText(notification);
-
-    const mailOptions = {
-      to: notification.email,
-      subject: 'Job Notification',
-      body: notificationText,
-    }
-
-    mailHandler.sendEmail(mailOptions);
-  }
-
-  
-  getJobNotificationText = async (notification) => {
-    const job = (await jobModel.getJobsByIds([notification.notification_type_id]))[0];
-
-    let websiteUrl;;
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
-
-    if (notification.notification_trigger === 'shortlisted') {
-      return `You are shortlisted for interview the job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you applied.`;
-    }
-
-    if (notification.notification_trigger === 'rejected') {
-      return `You are rejected for interview the job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you applied.`;
-    }
-
-    if (notification.notification_trigger === 'new job application') {
-      return `A new application is submitted on your job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you applied.`;
-    }
-
-    if (notification.notification_trigger === 'new job') {
-      return `A new job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' is posted by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you are following.`;
-    }
+    await UserModel.createNotification(notificationBody);
   }
 
   getNotifications = async (req, res, next) => {
