@@ -260,6 +260,28 @@ class EventController {
 
   };
 
+  updateOrganiser = async (req, res, next) => {
+      const result = await EventModel.updateOrganiser(req.params.organiser_id, req.body);
+
+      if (Object.keys(result).length === 0) {
+          throw new AppError(403, "403_unknownError")
+      };
+
+      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_organiser' });
+  };
+
+  deleteOrganiser = async (req, res, next) => {
+      const result = await EventModel.getOrganiser(req.params.organiser_id);
+
+      if (Object.keys(result).length === 0) {
+          throw new AppError(403, "403_unknownError")
+      };
+
+      await EventModel.deleteOrganiser(req.params.organiser_id);
+
+      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_organiser' });
+  };
+
   // add new category
   newCategory = async (req, res, next) => {
 
@@ -290,6 +312,28 @@ class EventController {
 
   };
 
+  updateCategory = async (req, res, next) => {
+      const result = await EventModel.updateCategory(req.params.category_id, req.body);
+
+      if (Object.keys(result).length === 0) {
+          throw new AppError(403, "403_unknownError")
+      };
+
+      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_category' });
+  };
+
+  deleteCategory = async (req, res, next) => {
+      const result = await EventModel.getCategory(req.params.category_id);
+
+      if (Object.keys(result).length === 0) {
+          throw new AppError(403, "403_unknownError")
+      };
+
+      await EventModel.deleteCategory(req.params.category_id);
+
+      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
+  };
+
   // add new tag
   newTag = async (req, res, next) => {
 
@@ -318,6 +362,28 @@ class EventController {
 
     new AppSuccess(res, 200, "200_retrieved", '', result);
 
+  };
+
+  updateTag = async (req, res, next) => {
+      const result = await EventModel.updateTag(req.params.tag_id, req.body);
+
+      if (Object.keys(result).length === 0) {
+          throw new AppError(403, "403_unknownError")
+      };
+
+      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_tag' });
+  };
+
+  deleteTag = async (req, res, next) => {
+      const result = await EventModel.getTag(req.params.tag_id);
+
+      if (Object.keys(result).length === 0) {
+          throw new AppError(403, "403_unknownError")
+      };
+
+      await EventModel.deleteTag(req.params.tag_id);
+
+      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_tag' });
   };
 
   newEventComment = async (req, res, next) => {

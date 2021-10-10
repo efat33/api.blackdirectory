@@ -785,6 +785,45 @@ class EventModel {
     return output;
   }
 
+  getOrganiser = async (organizerId) => {
+      let sql = `SELECT * FROM ${DBTables.event_organisers} WHERE id=?`;
+
+      return await query(sql, [organizerId]);
+  }
+
+  updateOrganiser = async (organizerId, params) => {
+      const current_date = commonfn.dateTimeNow();
+      let sql = `UPDATE ${DBTables.event_organisers} SET`;
+
+      const paramArray = [];
+      for (let param in params) {
+          paramArray.push(` ${param} = ?`);
+      }
+
+      paramArray.push(` updated_at = ?`);
+
+      sql += paramArray.join(', ');
+
+      sql += ` WHERE id = ?`;
+
+      const values = [
+          ...Object.values(params),
+          current_date,
+          organizerId
+      ];
+
+      const result = await query(sql, values);
+
+      return result;
+  }
+
+  deleteOrganiser = async (organizerId) => {
+      const sql = `DELETE FROM ${DBTables.event_organisers} WHERE id=?`;
+      const values = [organizerId];
+
+      return await query(sql, values);
+  }
+
   newCategory = async (params) => {
 
     const current_date = commonfn.dateTimeNow();
@@ -802,6 +841,41 @@ class EventModel {
     return output;
   }
 
+  getCategory = async (categoryId) => {
+      let sql = `SELECT * FROM ${DBTables.event_categories} WHERE id=?`;
+
+      return await query(sql, [categoryId]);
+  }
+
+  updateCategory = async (categoryId, params) => {
+      let sql = `UPDATE ${DBTables.event_categories} SET`;
+
+      const paramArray = [];
+      for (let param in params) {
+          paramArray.push(` ${param} = ?`);
+      }
+
+      sql += paramArray.join(', ');
+
+      sql += ` WHERE id = ?`;
+
+      const values = [
+          ...Object.values(params),
+          categoryId
+      ];
+
+      const result = await query(sql, values);
+
+      return result;
+  }
+
+  deleteCategory = async (categoryId) => {
+      const sql = `DELETE FROM ${DBTables.event_categories} WHERE id=?`;
+      const values = [categoryId];
+
+      return await query(sql, values);
+  }
+
   newTag = async (params) => {
 
     const current_date = commonfn.dateTimeNow();
@@ -817,6 +891,41 @@ class EventModel {
       output.data = result.insertId;
     }
     return output;
+  }
+
+  getTag = async (tagId) => {
+    let sql = `SELECT * FROM ${DBTables.event_tags} WHERE id=?`;
+
+    return await query(sql, [tagId]);
+  }
+
+  updateTag = async (tagId, params) => {
+      let sql = `UPDATE ${DBTables.event_tags} SET`;
+
+      const paramArray = [];
+      for (let param in params) {
+          paramArray.push(` ${param} = ?`);
+      }
+
+      sql += paramArray.join(', ');
+
+      sql += ` WHERE id = ?`;
+
+      const values = [
+          ...Object.values(params),
+          tagId
+      ];
+
+      const result = await query(sql, values);
+
+      return result;
+  }
+
+  deleteTag = async (tagId) => {
+      const sql = `DELETE FROM ${DBTables.event_tags} WHERE id=?`;
+      const values = [tagId];
+
+      return await query(sql, values);
   }
 
   createEventComment = async (params, currentUser) => {

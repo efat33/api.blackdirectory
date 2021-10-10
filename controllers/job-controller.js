@@ -158,10 +158,6 @@ class JobController {
 
     const result = await JobModel.getUserJobs(body);
 
-    if (Object.keys(result).length === 0) {
-      throw new AppError(403, "403_unknownError")
-    };
-
     result.forEach(job => {
       job.featured = !!job.featured;
       job.filled = !!job.filled;

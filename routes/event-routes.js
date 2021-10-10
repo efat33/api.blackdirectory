@@ -25,12 +25,18 @@ router.get('/get-user-rsvp/:id', apiKey(), currentUser(),  awaitHandlerFactory(E
 
 router.post('/new-organiser', apiKey(), authVerified(), awaitHandlerFactory(EventController.newOrganiser));
 router.get('/organisers', apiKey(),  awaitHandlerFactory(EventController.getOrganisers));
+router.put('/update-organiser/:organiser_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.updateOrganiser));
+router.delete('/delete-organiser/:organiser_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.deleteOrganiser));
 
-router.post('/new-category', apiKey(), authVerified(), awaitHandlerFactory(EventController.newCategory));
+router.post('/new-category', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.newCategory));
 router.get('/categories', apiKey(),  awaitHandlerFactory(EventController.getCategories));
+router.put('/update-category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.updateCategory));
+router.delete('/delete-category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.deleteCategory));
 
 router.post('/new-tag', apiKey(), authVerified(), awaitHandlerFactory(EventController.newTag));
 router.get('/tags', apiKey(),  awaitHandlerFactory(EventController.getTags));
+router.put('/update-tag/:tag_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.updateTag));
+router.delete('/delete-tag/:tag_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(EventController.deleteTag));
 
 router.post('/add-comment', apiKey(), authVerified(), awaitHandlerFactory(EventController.newEventComment));
 router.delete('/delete-comment/:comment_id', apiKey(), authVerified(), awaitHandlerFactory(EventController.deleteEventComment));
