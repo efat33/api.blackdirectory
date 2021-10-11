@@ -19,8 +19,10 @@ const mailRouter = require('./routes/mail-routes');
 const shopRouter = require('./routes/shop-routes');
 const eventRouter = require('./routes/event-routes');
 const mobilesRouter = require('./routes/mobiles-routes');
+const dealsRouter = require('./routes/deals-routes');
 const pagesRouter = require('./routes/pages-routes');
 const stripeRouter = require('./routes/stripe-routes');
+const commonRouter = require('./routes/common-routes');
 
 const StripeController = require('./controllers/stripe-controller');
 const awaitHandlerFactory = require('./utils/awaitHandlerFactory');
@@ -74,8 +76,10 @@ app.use('/mail', mailRouter);
 app.use('/shop', shopRouter);
 app.use('/events', eventRouter);
 app.use('/mobiles', mobilesRouter);
+app.use('/deals', dealsRouter);
 app.use('/pages', pagesRouter);
 app.use('/stripe', stripeRouter);
+app.use('/common', commonRouter);
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Blackdirectory!!!" });

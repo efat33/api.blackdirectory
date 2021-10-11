@@ -49,6 +49,25 @@ const storageImageListing = multer({ storage: diskStorageListing, fileFilter: fi
     'image'
 );
 
+// home hero storage
+const diskStorageGallery = multer.diskStorage({
+    destination: (reqm, file, cb) => {
+        cb(null, `uploads/gallery`);
+    },
+    filename: (reqm, file, cb) => {
+        const mimeType = file.mimetype.split('/');
+        const fileType = mimeType[1];
+        const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        cb(null, fileName);
+    },
+});
+
+
+const storageImageGallery = multer({ storage: diskStorageGallery, fileFilter: fileFilter }).single(
+    'image'
+);
+
 // event storage
 const diskStorageEvent = multer.diskStorage({
     destination: (reqm, file, cb) => {
@@ -177,19 +196,55 @@ const storageImagePagesCkeditor = multer({ storage: diskStoragePagesCkeditor, fi
     'upload'
 );
 
-// exports.storageImageUser = storageImageUser;
-// exports.storageImageListing = storageImageListing;
-// exports.storageImageNews = storageImageNews;
-// exports.storageImageNewsCkeditor = storageImageNewsCkeditor;
+
+// deal storage
+const diskStorageDeal = multer.diskStorage({
+  destination: (reqm, file, cb) => {
+      cb(null, `uploads/deal`);
+  },
+  filename: (reqm, file, cb) => {
+      const mimeType = file.mimetype.split('/');
+      const fileType = mimeType[1];
+      const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+      const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+      cb(null, fileName);
+  },
+});
+
+
+const storageImageDeal = multer({ storage: diskStorageDeal, fileFilter: fileFilter }).single(
+  'image'
+);
+
+// ckeditor storage
+const diskStorageDealCkeditor = multer.diskStorage({
+  destination: (reqm, file, cb) => {
+      cb(null, `uploads/deal`);
+  },
+  filename: (reqm, file, cb) => {
+      const mimeType = file.mimetype.split('/');
+      const fileType = mimeType[1];
+      const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+      const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+      cb(null, fileName);
+  },
+});
+
+const storageImageDealCkeditor = multer({ storage: diskStorageDealCkeditor, fileFilter: fileFilter }).single(
+  'upload'
+);
 
 module.exports = {
     storageImageUser,
     storageImageListing,
+    storageImageGallery,
     storageImageNews,
     storageImageNewsCkeditor,
     storageImageProduct,
     storageImageEvent,
     storageImageShop,
     storageImageMobiles,
-    storageImagePagesCkeditor
+    storageImagePagesCkeditor,
+    storageImageDeal,
+    storageImageDealCkeditor
 }
