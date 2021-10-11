@@ -132,6 +132,15 @@ class EventController {
 
   };
 
+  // get single event details by event ID
+  getEventByID = async (req, res, next) => {
+
+    const result = await EventModel.findOne({id: req.params.id});
+    
+    new AppSuccess(res, 200, "200_retrieved", '', result);
+
+  };
+
   searchEvents = async (req, res, next) => {
 
     const result = await EventModel.searchEvents(req.body);
@@ -139,6 +148,21 @@ class EventController {
     if (result.status && result.status == 200) {
 
       new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_event' }, result.data);
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+  getAttendees = async (req, res, next) => {
+
+    const result = await EventModel.getAttendees(req.body);
+
+    if (result.status && result.status == 200) {
+
+      new AppSuccess(res, 200, "200_retrieved", '', result.data);
 
     }
     else {
@@ -189,6 +213,14 @@ class EventController {
 
   };
 
+  // get rsvp tickets of an event
+  getRsvpTickets = async (req, res, next) => {
+    const result = await EventModel.getRsvpTickets(req.params.event_id);
+
+    new AppSuccess(res, 200, "200_retrieved", '', result);
+
+  };
+
   // submit rsvp application form
   rsvpApply = async (req, res, next) => {
 
@@ -218,6 +250,42 @@ class EventController {
     if (result.status && result.status == 200) {
 
       new AppSuccess(res, 200, "200_successful");
+
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+
+  };
+
+
+  // attendee check in
+  attendeeCheckin = async (req, res, next) => {
+
+    // do validation
+    if (!req.body.code) {
+      throw new AppError(403, "Code is required");
+    }
+
+    // get attendee details with event user id
+    const attendee_table = req.body.attendee_type == 'rsvp' ? DBTables.event_rsvp_attendees : DBTables.event_ticket_attendees;
+    const attendee = await EventModel.getAttendeeEvent(req.body.code, attendee_table);
+
+    if (req.currentUser.role != 'admin' && attendee.event_user_id != req.currentUser.id ) {
+      throw new AppError(401, "Unauthorised Request");
+    }
+
+    const data = {
+      id: attendee.id,
+      checked_in: attendee.checked_in ? null : commonfn.dateTimeNow(),
+      table: attendee_table
+    }
+
+    const result = await EventModel.attendeeCheckin(data);
+
+    if (result.affectedRows == 1) {
+
+      new AppSuccess(res, 200, "200_updated_successfully", '', {checked_in: data.checked_in});
 
     }
     else {
