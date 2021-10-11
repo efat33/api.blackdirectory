@@ -196,6 +196,44 @@ const storageImagePagesCkeditor = multer({ storage: diskStoragePagesCkeditor, fi
     'upload'
 );
 
+
+// deal storage
+const diskStorageDeal = multer.diskStorage({
+  destination: (reqm, file, cb) => {
+      cb(null, `uploads/deal`);
+  },
+  filename: (reqm, file, cb) => {
+      const mimeType = file.mimetype.split('/');
+      const fileType = mimeType[1];
+      const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+      const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+      cb(null, fileName);
+  },
+});
+
+
+const storageImageDeal = multer({ storage: diskStorageDeal, fileFilter: fileFilter }).single(
+  'image'
+);
+
+// ckeditor storage
+const diskStorageDealCkeditor = multer.diskStorage({
+  destination: (reqm, file, cb) => {
+      cb(null, `uploads/deal`);
+  },
+  filename: (reqm, file, cb) => {
+      const mimeType = file.mimetype.split('/');
+      const fileType = mimeType[1];
+      const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+      const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+      cb(null, fileName);
+  },
+});
+
+const storageImageDealCkeditor = multer({ storage: diskStorageDealCkeditor, fileFilter: fileFilter }).single(
+  'upload'
+);
+
 module.exports = {
     storageImageUser,
     storageImageListing,
@@ -206,5 +244,7 @@ module.exports = {
     storageImageEvent,
     storageImageShop,
     storageImageMobiles,
-    storageImagePagesCkeditor
+    storageImagePagesCkeditor,
+    storageImageDeal,
+    storageImageDealCkeditor
 }

@@ -123,4 +123,10 @@ exports.ENTITIES = Object.freeze({
   // mobiles
   entity_mobile: "Mobile",
   entity_provider: "Provider",
+
+  // deals
+  entity_deal: "Deal",
+  entity_deals: "Deals",
+  entity_dealer: "Dealer",
+  entity_dealers: "Dealers",
 });
