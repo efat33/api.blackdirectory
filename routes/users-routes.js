@@ -49,6 +49,7 @@ router.put('/update-notification/:notification_id', apiKey(), auth(), awaitHandl
 router.delete('/notification/:notification_id', apiKey(), auth(), awaitHandlerFactory(userController.deleteNotification));
 
 router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.getUsersByIds));
+router.get('/get-all-users', apiKey(), auth(), awaitHandlerFactory(userController.getAllUsers));
 
 router.get('/get-candidate-cv/:application_id', apiKey(), authVerified(), awaitHandlerFactory(userController.getCandidateCV));
 
