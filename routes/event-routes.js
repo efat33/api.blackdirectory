@@ -13,6 +13,7 @@ const validation = require('../utils/validators/eventValidator');
 router.post('/new', apiKey(), authVerified(), validation.validateNewEvent, awaitHandlerFactory(EventController.newEvent));
 router.post('/edit', apiKey(), authVerified(), validation.validateNewEvent, awaitHandlerFactory(EventController.editEvent));
 router.get('/get-event/:edit?/:slug/', apiKey(),  awaitHandlerFactory(EventController.getEvent));
+router.get('/get-event-by-id/:id/', apiKey(),  awaitHandlerFactory(EventController.getEventByID));
 router.get('/get-related-events/:id', apiKey(),  awaitHandlerFactory(EventController.getRelatedEvents));
 router.post('/search-events', apiKey(), awaitHandlerFactory(EventController.searchEvents));
 
@@ -20,6 +21,10 @@ router.post('/rsvp-apply', apiKey(), authVerified(), awaitHandlerFactory(EventCo
 
 router.get('/get-user-tickets/:id', apiKey(), currentUser(),  awaitHandlerFactory(EventController.getUserTickets));
 router.get('/get-user-rsvp/:id', apiKey(), currentUser(),  awaitHandlerFactory(EventController.getUserRsvp));
+
+router.post('/attendees', apiKey(), authVerified(), awaitHandlerFactory(EventController.getAttendees));
+router.post('/attendee-checkin', apiKey(), authVerified(), awaitHandlerFactory(EventController.attendeeCheckin));
+router.get('/get-rsvp-tickets/:event_id', apiKey(), authVerified(),  awaitHandlerFactory(EventController.getRsvpTickets));
 
 
 
