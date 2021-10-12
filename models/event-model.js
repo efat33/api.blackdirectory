@@ -635,6 +635,83 @@ class EventModel {
     return output;
   }
 
+  getAttendees = async (params = {}) => {
+
+    const keyword = params.keyword ? params.keyword : '';
+
+    const output = {}
+    let values = [];
+
+    let sql = '';
+ 
+
+    let queryParams = ``;
+
+    if(params.attendee_type == 'rsvp'){
+      sql = `SELECT a.* FROM ${DBTables.event_rsvp_attendees} AS a`;
+    }
+    else {
+      sql = `SELECT a.* FROM ${DBTables.event_ticket_attendees} AS a`;
+    }
+
+    queryParams += ` WHERE a.event_id = ${encodeURI(params.event_id)}`;
+
+    if (keyword != '') {
+      queryParams += ` AND ( a.name LIKE '%${encodeURI(keyword)}%' OR a.email LIKE '%${encodeURI(keyword)}%' OR a.code LIKE '%${encodeURI(keyword)}%' )`;
+    }
+
+    if(params.params && params.params.checked_in){
+      queryParams += ` AND a.checked_in IS NOT NULL `;
+    }
+
+    let queryOrderby = ` ORDER BY a.id DESC`;
+
+    // set limit 
+    let queryLimit = '';
+    if (params.limit) {
+      queryLimit = ` LIMIT ?, ?`;
+      const offset = (params.page - 1) * params.limit;
+      values.push(offset);
+      values.push(params.limit);
+    }
+
+    const count_sql = `${sql}${queryParams}`;
+    sql += `${queryParams}${queryOrderby}${queryLimit}`;
+    
+    const attendees = await query(sql, values);
+    let total_attendees = 0;
+
+    if (attendees.length > 0) {
+
+      const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;
+      const resultCount = await query(count_sql_final, values);
+
+      total_attendees = resultCount[0].count;
+
+    }
+
+    output.status = 200;
+    const data = {
+      attendees: attendees,
+      total_attendees: total_attendees
+    }
+    output.data = data;
+
+    return output;
+
+  
+  }
+
+  getAttendeeEvent = async (code, table) => {
+    const sql = `SELECT a.*, e.user_id as event_user_id
+                          FROM ${table} a
+                          JOIN ${DBTables.events} e ON e.id = a.event_id  
+                          WHERE a.code = ? limit 1`;
+    const event = await query(sql, [code]);
+
+    return event[0];
+  }
+
   // get related events
   getRelatedEvents = async (id) => {
     const event_id = id;
@@ -706,6 +783,12 @@ class EventModel {
     return result;
   }
 
+  // get all rsvp tickets of an event
+  getRsvpTickets = async (event_id) => {
+    const result = await this.find({ event_id }, DBTables.event_tickets);
+    return result;
+  }
+
   // rsvp application form submitted
   rsvpApply = async (params, currentUser, rsvp) => {
 
@@ -747,18 +830,19 @@ class EventModel {
 
 
       // finally update available rsvp
-      if(rsvp.available){
-        const updated_available = rsvp.available - params.guest_no;
-        const basic_info = {
-          'available': updated_available,
-          'updated_at': current_date
-        }
-  
-        const basic_colset = multipleColumnSet(basic_info, ',');
-        const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
-  
-        const result = await query(sql, [...basic_colset.values, rsvp.id]);
+      const updated_sold = rsvp.sold + parseInt(params.guest_no);
+      const basic_info = {
+        'sold': updated_sold,
+        'updated_at': current_date
       }
+      if(rsvp.available){
+        const updated_available = rsvp.available - parseInt(params.guest_no);
+        basic_info.available = updated_available;
+      }
+      const basic_colset = multipleColumnSet(basic_info, ',');
+      const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
+
+      const result = await query(sql, [...basic_colset.values, rsvp.id]);
       
 
 
@@ -1077,27 +1161,43 @@ class EventModel {
       const tickets = await this.getTickets(ids);
 
       for (const ticket of tickets) {
-        if (ticket.available != null) {
-          const item = items.find(t => t.ticketId === ticket.id);
 
-          const updated_available = ticket.available - item.quantity;
-          const basic_info = {
-            'available': updated_available,
-            'updated_at': current_date
-          }
-    
-          const basic_colset = multipleColumnSet(basic_info, ',');
-          const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
-    
-          const result = await query(sql, [...basic_colset.values, ticket.id]);
-    
+        const item = items.find(t => t.ticketId === ticket.id);
+
+        const updated_sold = ticket.sold + parseInt(item.quantity);
+        const basic_info = {
+          'sold': updated_sold,
+          'updated_at': current_date
         }
+        if (ticket.available != null) {
+          const updated_available = ticket.available - item.quantity;
+          basic_info.available = updated_available;
+        }
+        const basic_colset = multipleColumnSet(basic_info, ',');
+        const sql = `UPDATE ${DBTables.event_tickets} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+        const result = await query(sql, [...basic_colset.values, ticket.id]);
       }
 
       output.status = 200;
 
     }
     return output;
+  }
+
+  attendeeCheckin = async (params) => {
+    const basic_info = {
+      'checked_in': params.checked_in
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${params.table} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const result = await query(sql, [...basic_colset.values, params.id]);
+    
+    return result;
+    
   }
 }
 

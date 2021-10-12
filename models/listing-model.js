@@ -70,7 +70,7 @@ class ListingModel {
 
 
 
-    if (user_role == 'admin') claimer_id = null;
+    if (user_role == 'admin') claimer_id = params.claimer_id ? params.claimer_id : null;
 
     let slug = await commonfn.generateSlug(params.title, this.tableName);
 
@@ -91,9 +91,9 @@ class ListingModel {
     }
 
     // process products data
-    let products = [];
+    let products = JSON.stringify([]);
     if (params.products.length > 0) {
-      products = JSON.stringify(params.products)
+      products = JSON.stringify(params.products);
     }
 
 
@@ -111,15 +111,14 @@ class ListingModel {
         ?,?,?,?,?,
         ?,?,?,?,?,?,?,
         ?,?,?,?)`;
-
+        
     const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo,
       params.cover_img, params.description, params.address, params.lat, params.lng,
       params.price_range, params.price_min, params.price_max, params.featured_img, JSON.stringify(galleries),
       params.business_hour, JSON.stringify(video_urls), products, params.button_icon, params.button_link,
       params.coupon_title, params.coupon_description, params.coupon_image, params.coupon_code, params.coupon_popup_desc, params.coupon_link, params.coupon_expiry_date,
       params.button_name, 'draft', current_date, current_date]);
-
-
+      
     if (regResult.insertId) {
 
       const listing_id = regResult.insertId;
@@ -308,14 +307,15 @@ class ListingModel {
     }
 
     // process products data
-    let products = [];
+    let products = JSON.stringify([]);
     if (params.products.length > 0) {
-      products = JSON.stringify(params.products)
+      products = JSON.stringify(params.products);
     }
 
     // update listing table
     const basic_info = {
       'title': params.title,
+      'claimer_id': params.claimer_id,
       'tagline': params.tagline,
       'logo': params.logo,
       'cover_img': params.cover_img,
