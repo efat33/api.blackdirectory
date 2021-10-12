@@ -8,6 +8,7 @@ const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
 const validation = require('../utils/userValidator');
 const authVerified = require('../utils/authVerified');
+const { isAdmin } = require('../utils/common');
 
 // router.get('/', auth(), userController.getAllUsers);
 // router.get('/:id', auth(), awaitHandlerFactory(userController.getUserById));
@@ -20,10 +21,14 @@ router.post('/reset-password', apiKey(), validation.validateResetPassword, await
 router.post('/change-password', apiKey(), validation.validateChangePassword, auth(), awaitHandlerFactory(userController.changePassword));
 router.post('/confirm-account', apiKey(), awaitHandlerFactory(userController.confirmAccount));
 router.post('/user-update', apiKey(), auth(), awaitHandlerFactory(userController.updateUser));
+router.post('/user-update/:id', apiKey(), auth(), isAdmin(), awaitHandlerFactory(userController.updateUser));
 router.get('/authenticated', apiKey(), currentUser(), awaitHandlerFactory(userController.checkAuthentication));
 
 router.get('/logout', apiKey(), awaitHandlerFactory(userController.logout));
+
 router.get('/user-profile', apiKey(), auth(), awaitHandlerFactory(userController.userProfile));
+router.get('/user-profile/:id', apiKey(), auth(), isAdmin(), awaitHandlerFactory(userController.userProfile));
+
 router.get('/user-details/:username', apiKey(), awaitHandlerFactory(userController.userDetails));
 router.get('/user-details-by-id/:id', apiKey(), awaitHandlerFactory(userController.userDetailsByID));
 
@@ -48,5 +53,7 @@ router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.g
 router.get('/get-candidate-cv/:application_id', apiKey(), authVerified(), awaitHandlerFactory(userController.getCandidateCV));
 
 router.get('/verify-email/:verification_key', awaitHandlerFactory(userController.verifiyEmail));
+
+router.get('/get-all-users', apiKey(), auth(), isAdmin(), awaitHandlerFactory(userController.getAllUsers));
 
 module.exports = router;

@@ -350,6 +350,10 @@ class UserModel {
       'meta_data': userMeta
     }
 
+    if (!role) {
+      role = userDetails.role;
+    }
+
     if (role == 'candidate') {
       const sqlUserEdu = `SELECT * FROM ${this.tableNameEducation}  WHERE user_id = ? ORDER BY sequence`;
       output.educations = await query(sqlUserEdu, [id]);
