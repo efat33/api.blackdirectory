@@ -156,7 +156,8 @@ class JobModel {
       loc_radius = 50,
       latitude = null,
       longitude = null,
-      salary = null,
+      salaryMin = null,
+      salaryMax = null,
       sector = null,
       user_id = null,
       exclude = null
@@ -218,10 +219,14 @@ class JobModel {
       conditions.push(`Job.id NOT IN (${excludeIds})`);
     }
 
-    if (salary) {
-      conditions.push('(Job.salary >= ? AND Job.salary <= ?)');
-      values.push(salary[0]);
-      values.push(salary[1]);
+    if (salaryMin) {
+      conditions.push('Job.salary >= ?');
+      values.push(salaryMin);
+    }
+
+    if (salaryMax) {
+      conditions.push('Job.salary <= ?');
+      values.push(salaryMax);
     }
 
     sql += ' WHERE ' + conditions.join(' AND ');
