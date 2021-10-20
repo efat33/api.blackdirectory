@@ -262,6 +262,7 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'display_name': req.body.display_name,
       'dob': req.body.dob,
       'phone': req.body.phone,
+      'is_business': req.body.is_business,
       'description': req.body.description,
       'profile_photo': req.body.profile_photo_name,
       'cover_photo': req.body.cover_photo_name,
