@@ -269,7 +269,7 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'address': req.body.address,
       'latitude': req.body.latitude,
       'longitude': req.body.longitude,
-      'job_sectors_id': req.body.job_sectors_id,
+      'job_sectors_id': req.body.job_sectors_id || null,
       'pubic_view': req.body.pubic_view,
       'updated_at': current_date
     }
