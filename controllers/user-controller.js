@@ -456,9 +456,14 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
   };
 
   checkAuthentication = async (req, res, next) => {
-
     let user = '';
-    if (req.currentUser) user = await UserModel.findOne({ 'id': req.currentUser.id });
+
+    if (req.currentUser) {
+      user = await UserModel.findOne({ 'id': req.currentUser.id })
+
+      const { password, ...userWithoutPassword } = user;
+      new AppSuccess(res, 200, "200_successful", "", userWithoutPassword);
+    };
 
     new AppSuccess(res, 200, "200_successful", "", user);
 
