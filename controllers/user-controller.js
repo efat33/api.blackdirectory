@@ -248,6 +248,11 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
   }
 
   updateUser = async (req, res, next) => {
+    let currentUser = req.currentUser;
+    if (req.params.id) {
+      const user = await UserModel.getUserDetailsByID({ id: req.params.id });
+      currentUser = { id: user.data.id, role: user.data.role };
+    }
 
     const current_date = commonfn.dateTimeNow();
 
@@ -257,13 +262,14 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'display_name': req.body.display_name,
       'dob': req.body.dob,
       'phone': req.body.phone,
+      'is_business': req.body.is_business,
       'description': req.body.description,
       'profile_photo': req.body.profile_photo_name,
       'cover_photo': req.body.cover_photo_name,
       'address': req.body.address,
       'latitude': req.body.latitude,
       'longitude': req.body.longitude,
-      'job_sectors_id': req.body.job_sectors_id,
+      'job_sectors_id': req.body.job_sectors_id || null,
       'pubic_view': req.body.pubic_view,
       'updated_at': current_date
     }
@@ -288,7 +294,7 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     // }
 
     // prepare employer and candidate data
-    if (req.currentUser.role == 'employer') {
+    if (currentUser.role == 'employer' || currentUser.role == 'admin') {
       employer_info.facebook_link = req.body.facebook_link;
       employer_info.twitter_link = req.body.twitter_link;
       employer_info.linkedin_link = req.body.linkedin_link;
@@ -296,7 +302,7 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       employer_info.website = req.body.website;
       employer_info.founded_date = req.body.founded_date;
     }
-    else if (req.currentUser.role == 'candidate') {
+    else if (currentUser.role == 'candidate') {
       candidate_info.facebook_link = req.body.facebook_link;
       candidate_info.twitter_link = req.body.twitter_link;
       candidate_info.linkedin_link = req.body.linkedin_link;
@@ -334,7 +340,7 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     }
 
     // it can be partial edit
-    const result = await UserModel.updateProfile(basic_info, employer_info, candidate_info, req.currentUser, candidate_others);
+    const result = await UserModel.updateProfile(basic_info, employer_info, candidate_info, currentUser, candidate_others);
 
     if (result) {
       new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_user' });
@@ -348,8 +354,15 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
 
 
   userProfile = async (req, res, next) => {
+    let body;
 
-    const user = await UserModel.getUserProfile({ "id": req.currentUser.id, "role": req.currentUser.role });
+    if (req.params.id) {
+      body = { "id": req.params.id }
+    } else {
+      body = { "id": req.currentUser.id, "role": req.currentUser.role };
+    }
+
+    const user = await UserModel.getUserProfile(body);
 
     new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_user' }, user);
 

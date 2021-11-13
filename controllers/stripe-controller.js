@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(process.env.STRIPE_TEST_SECRET_KEY);
 const commonfn = require('../utils/common');
 const UserModel = require('../models/user-model');
 const EventModel = require('../models/event-model');
@@ -14,7 +14,7 @@ class StripeController {
     let event;
 
     try {
-      const webhookSecret = process.env.NODE_ENV === "development" ? process.env.STRIPE_WEBHOOK_SECRET_LOCALHOST : process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = process.env.NODE_ENV === "development" ? process.env.STRIPE_WEBHOOK_SECRET_LOCALHOST : process.env.STRIPE_TEST_WEBHOOK_SECRET;
       event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
     } catch (err) {
       return res.status(400).send(`Webhook Error: ${err.message}`);
