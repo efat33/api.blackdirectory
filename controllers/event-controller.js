@@ -11,7 +11,7 @@ const dotenv = require("dotenv");
 const EventModel = require("../models/event-model");
 dotenv.config();
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(process.env.STRIPE_TEST_SECRET_KEY);
 
 class EventController {
   checkValidation = (req) => {
