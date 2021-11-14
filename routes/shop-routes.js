@@ -71,4 +71,6 @@ router.delete('/option-choice/:choice_id', apiKey(), authVerified(), isAdmin(), 
 
 router.put('/assign-category-options', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.assignCategoryOptions));
 
+router.post('/create-checkout-session', apiKey(), auth(), awaitHandlerFactory(ShopController.createStripeCheckoutSession));
+
 module.exports = router;

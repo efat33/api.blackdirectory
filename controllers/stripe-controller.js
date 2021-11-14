@@ -5,6 +5,7 @@ const stripe = require('stripe')(process.env.STRIPE_TEST_SECRET_KEY);
 const commonfn = require('../utils/common');
 const UserModel = require('../models/user-model');
 const EventModel = require('../models/event-model');
+const shopModel = require("../models/shop-model");
 
 class StripeController {
   stripeWebhook = async (req, res, next) => {
@@ -27,6 +28,8 @@ class StripeController {
         await this.jobPackageHook(session);
       } else if (session.metadata.type === 'event') {
         await this.eventPackageHook(session);
+      } else if (session.metadata.type === 'shop') {
+        await this.shopPackageHook(session);
       }
     }
 
@@ -56,6 +59,15 @@ class StripeController {
     }
 
     await EventModel.buyEventTickets(meta.items, meta.event_id, meta.user_id);
+  }
+
+  shopPackageHook = async (session) => {
+    const meta = {
+      order: JSON.parse(session.metadata.order),
+      user: parseInt(session.metadata.user)
+    }
+
+    await shopModel.createOrder(order, user);
   }
 }
 

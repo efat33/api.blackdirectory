@@ -12,6 +12,8 @@ const shopModel = require("../models/shop-model");
 const userModel = require("../models/user-model");
 dotenv.config();
 
+const stripe = require('stripe')(process.env.STRIPE_TEST_SECRET_KEY);
+
 class ShopController {
 
   checkValidation = (req) => {
@@ -409,10 +411,10 @@ class ShopController {
     new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
   };
 
-  newOrder = async (req, res, next) => {
+  processNewOrderData = async (order) => {
     let promo;
-    if (req.body.promo_id) {
-      promo = await shopModel.getPromo({ 'Promo.id': req.body.promo_id });
+    if (order.promo_id) {
+      promo = await shopModel.getPromo({ 'Promo.id': order.promo_id });
 
       if (!promo.length) {
         throw new AppError(403, "Invalid promo code")
@@ -420,13 +422,13 @@ class ShopController {
     }
 
     let shipping_methods = [];
-    if (req.body.shipping_methods && req.body.shipping_methods.length) {
-      const shipping_ids = req.body.shipping_methods.map(method => method.shipping_id);
+    if (order.shipping_methods && order.shipping_methods.length) {
+      const shipping_ids = order.shipping_methods.map(method => method.shipping_id);
 
       shipping_methods = await shopModel.getShippingMethodsById(shipping_ids);
     }
 
-    let items = req.body.items;
+    let items = order.items;
 
     const productIds = items.map(item => item.product_id);
 
@@ -472,10 +474,10 @@ class ShopController {
           subtotal,
           total,
           vendor_id,
-          shipping: req.body.shipping,
+          shipping: order.shipping,
           shipping_method: shipping_method.id,
-          promo_id: req.body.promo_id,
-          additional_info: req.body.additional_info
+          promo_id: order.promo_id,
+          additional_info: order.additional_info
         });
       }
 
@@ -491,10 +493,10 @@ class ShopController {
         items: [],
         subtotal: subOrderSubtotal,
         total: subOrderTotal,
-        shipping: req.body.shipping,
+        shipping: order.shipping,
         shipping_method: null,
-        promo_id: req.body.promo_id,
-        additional_info: req.body.additional_info
+        promo_id: order.promo_id,
+        additional_info: order.additional_info
       };
 
       body = [order, ...subOrders];
@@ -523,13 +525,18 @@ class ShopController {
         subtotal,
         total,
         vendor_id: items[0].user_id,
-        shipping: req.body.shipping,
+        shipping: order.shipping,
         shipping_method: shipping_method.id,
-        promo_id: req.body.promo_id,
-        additional_info: req.body.additional_info
+        promo_id: order.promo_id,
+        additional_info: order.additional_info
       }];
     }
 
+    return body;
+  }
+
+  newOrder = async (req, res, next) => {
+    const body = await this.processNewOrderData(req.body);
     const order = await shopModel.createOrder(body, req.currentUser);
 
     if (order.status !== 200) {
@@ -937,6 +944,39 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_updated_successfully");
   }
+
+  createStripeCheckoutSession = async (req, res, next) => {
+    if (!req.body.order) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    const order = await this.processNewOrderData(req.body.order);
+    const line_items = [{
+      price_data: {
+        currency: 'gbp',
+        unit_amount: parseFloat(order[0].total) * 100,
+        product_data: {
+          name: 'Checkout'
+        },
+      },
+      quantity: 1,
+    }];
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: line_items,
+      mode: 'payment',
+      success_url: `${req.body.returnUrl}?success=true`,
+      cancel_url: `${req.body.returnUrl}?success=false`,
+      metadata: {
+        type: 'shop',
+        order: JSON.stringify(order),
+        user: JSON.stringify(req.currentUser)
+      }
+    });
+
+    new AppSuccess(res, 200, "200_successful", null, session);
+  };
 }
 
 module.exports = new ShopController();
