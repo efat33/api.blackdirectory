@@ -463,6 +463,8 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
 
       const { password, ...userWithoutPassword } = user;
       new AppSuccess(res, 200, "200_successful", "", userWithoutPassword);
+
+      return;
     };
 
     new AppSuccess(res, 200, "200_successful", "", user);

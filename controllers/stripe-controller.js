@@ -1,7 +1,8 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
-const stripe = require('stripe')(process.env.STRIPE_TEST_SECRET_KEY);
+const stripeSecretKey = process.env.NODE_ENV === 'development' ? process.env.STRIPE_SECRET_KEY : process.env.STRIPE_TEST_SECRET_KEY;
+const stripe = require('stripe')(stripeSecretKey);
 const commonfn = require('../utils/common');
 const UserModel = require('../models/user-model');
 const EventModel = require('../models/event-model');
@@ -62,12 +63,22 @@ class StripeController {
   }
 
   shopPackageHook = async (session) => {
-    const meta = {
-      order: JSON.parse(session.metadata.order),
-      user: parseInt(session.metadata.user)
+    const user = JSON.parse(session.metadata.user);
+    
+    let order = '';
+    if (parseInt(session.metadata.orderParamCount) > 1) {
+      for (let i=1; i <= parseInt(session.metadata.orderParamCount); i++) {
+        order += session.metadata[`order${i}`]
+      }
+
+      order = JSON.parse(order);
+    } else {
+      order = JSON.parse(session.metadata.order1);
     }
 
+
     await shopModel.createOrder(order, user);
+    await shopModel.clearCartItems(user.id);
   }
 }
 
