@@ -87,7 +87,11 @@ class UserModel {
         [user_id, 'facebook_link', ''],
         [user_id, 'twitter_link', ''],
         [user_id, 'linkedin_link', ''],
-        [user_id, 'instagram_link', '']
+        [user_id, 'instagram_link', ''],
+        [user_id, 'pinterest_link', ''],
+        [user_id, 'snapchat_link', ''],
+        [user_id, 'tiktok_link', ''],
+        [user_id, 'youtube_link', '']
       ];
 
       // prepare other meta data
@@ -468,7 +472,11 @@ class UserModel {
         [user_id, 'facebook_link', ''],
         [user_id, 'twitter_link', ''],
         [user_id, 'linkedin_link', ''],
-        [user_id, 'instagram_link', '']
+        [user_id, 'instagram_link', ''],
+        [user_id, 'pinterest_link', ''],
+        [user_id, 'snapchat_link', ''],
+        [user_id, 'tiktok_link', ''],
+        [user_id, 'youtube_link', '']
       ];
 
       // prepare other meta data
