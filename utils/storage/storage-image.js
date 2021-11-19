@@ -1,6 +1,8 @@
 const multer = require('multer');
 const AppError = require("../appError");
 
+const regexPattern = /[ &\/\\#, +()$~%.'":*?<>{}]/g;
+
 const fileFilter = (reqm, file, cb) => {
     const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg'];
     if (allowedMimeTypes.includes(file.mimetype)) {
@@ -39,7 +41,7 @@ const diskStorageListing = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '_') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -58,7 +60,7 @@ const diskStorageGallery = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '_') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -77,7 +79,7 @@ const diskStorageEvent = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -96,7 +98,7 @@ const diskStorageNews = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -115,7 +117,7 @@ const diskStorageNewsCkeditor = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -132,7 +134,7 @@ const diskStorageProduct = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -150,7 +152,7 @@ const diskStorageShop = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -168,7 +170,7 @@ const diskStorageMobiles = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -187,7 +189,7 @@ const diskStoragePagesCkeditor = multer.diskStorage({
         const mimeType = file.mimetype.split('/');
         const fileType = mimeType[1];
         const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-        const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
         cb(null, fileName);
     },
 });
@@ -206,7 +208,7 @@ const diskStorageDeal = multer.diskStorage({
       const mimeType = file.mimetype.split('/');
       const fileType = mimeType[1];
       const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-      const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+      const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
       cb(null, fileName);
   },
 });
@@ -225,7 +227,7 @@ const diskStorageDealCkeditor = multer.diskStorage({
       const mimeType = file.mimetype.split('/');
       const fileType = mimeType[1];
       const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-      const fileName = onlyName.replace(' ', '-') + '-' + Date.now() + '.' + fileType;
+      const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
       cb(null, fileName);
   },
 });
