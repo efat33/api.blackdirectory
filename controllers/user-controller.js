@@ -271,8 +271,11 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'longitude': req.body.longitude,
       'job_sectors_id': req.body.job_sectors_id || null,
       'pubic_view': req.body.pubic_view,
-      'forum_role': req.body.forum_role,
       'updated_at': current_date
+    }
+
+    if (currentUser.role === 'admin') {
+      basic_info.forum_role = req.body.forum_role;
     }
 
     const employer_info = {};
