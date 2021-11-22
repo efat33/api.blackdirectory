@@ -12,6 +12,9 @@ const shopModel = require("../models/shop-model");
 const userModel = require("../models/user-model");
 dotenv.config();
 
+const stripeSecretKey = process.env.NODE_ENV === 'development' ? process.env.STRIPE_SECRET_KEY : process.env.STRIPE_TEST_SECRET_KEY;
+const stripe = require('stripe')(stripeSecretKey);
+
 class ShopController {
 
   checkValidation = (req) => {
@@ -409,10 +412,10 @@ class ShopController {
     new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
   };
 
-  newOrder = async (req, res, next) => {
+  processNewOrderData = async (orderBody) => {
     let promo;
-    if (req.body.promo_id) {
-      promo = await shopModel.getPromo({ 'Promo.id': req.body.promo_id });
+    if (orderBody.promo_id) {
+      promo = await shopModel.getPromo({ 'Promo.id': orderBody.promo_id });
 
       if (!promo.length) {
         throw new AppError(403, "Invalid promo code")
@@ -420,13 +423,13 @@ class ShopController {
     }
 
     let shipping_methods = [];
-    if (req.body.shipping_methods && req.body.shipping_methods.length) {
-      const shipping_ids = req.body.shipping_methods.map(method => method.shipping_id);
+    if (orderBody.shipping_methods && orderBody.shipping_methods.length) {
+      const shipping_ids = orderBody.shipping_methods.map(method => method.shipping_id);
 
       shipping_methods = await shopModel.getShippingMethodsById(shipping_ids);
     }
 
-    let items = req.body.items;
+    let items = orderBody.items;
 
     const productIds = items.map(item => item.product_id);
 
@@ -472,10 +475,10 @@ class ShopController {
           subtotal,
           total,
           vendor_id,
-          shipping: req.body.shipping,
+          shipping: orderBody.shipping,
           shipping_method: shipping_method.id,
-          promo_id: req.body.promo_id,
-          additional_info: req.body.additional_info
+          promo_id: orderBody.promo_id,
+          additional_info: orderBody.additional_info
         });
       }
 
@@ -491,10 +494,10 @@ class ShopController {
         items: [],
         subtotal: subOrderSubtotal,
         total: subOrderTotal,
-        shipping: req.body.shipping,
+        shipping: orderBody.shipping,
         shipping_method: null,
-        promo_id: req.body.promo_id,
-        additional_info: req.body.additional_info
+        promo_id: orderBody.promo_id,
+        additional_info: orderBody.additional_info
       };
 
       body = [order, ...subOrders];
@@ -523,13 +526,18 @@ class ShopController {
         subtotal,
         total,
         vendor_id: items[0].user_id,
-        shipping: req.body.shipping,
+        shipping: orderBody.shipping,
         shipping_method: shipping_method.id,
-        promo_id: req.body.promo_id,
-        additional_info: req.body.additional_info
+        promo_id: orderBody.promo_id,
+        additional_info: orderBody.additional_info
       }];
     }
 
+    return body;
+  }
+
+  newOrder = async (req, res, next) => {
+    const body = await this.processNewOrderData(req.body);
     const order = await shopModel.createOrder(body, req.currentUser);
 
     if (order.status !== 200) {
@@ -937,6 +945,55 @@ class ShopController {
 
     new AppSuccess(res, 200, "200_updated_successfully");
   }
+
+  createStripeCheckoutSession = async (req, res, next) => {
+    if (!req.body.order) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    const order = await this.processNewOrderData(req.body.order);
+    const line_items = [{
+      price_data: {
+        currency: 'gbp',
+        unit_amount: parseFloat(order[0].total) * 100,
+        product_data: {
+          name: 'Checkout'
+        },
+      },
+      quantity: 1,
+    }];
+
+    const orderMeta = {
+      type: 'shop',
+      order1: '',
+      orderParamCount: 1,
+      user: JSON.stringify(req.currentUser)
+    };
+
+    const orderString = JSON.stringify(order);
+
+    if (orderString.length > 500) {
+      let count = 1;
+      for (let i=0; i < orderString.length; i += 500, count++) {
+        orderMeta[`order${count}`] = orderString.substr(i, 500);
+      }
+
+      orderMeta.orderParamCount = count - 1;
+    } else {
+      orderMeta.order1 = orderString;
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: line_items,
+      mode: 'payment',
+      success_url: `${req.body.returnUrl}?success=true`,
+      cancel_url: `${req.body.returnUrl}?success=false`,
+      metadata: orderMeta
+    });
+
+    new AppSuccess(res, 200, "200_successful", null, session);
+  };
 }
 
 module.exports = new ShopController();
