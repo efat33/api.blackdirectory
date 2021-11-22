@@ -1,7 +1,8 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
-const stripe = require('stripe')(process.env.STRIPE_TEST_SECRET_KEY);
+const stripeSecretKey = process.env.NODE_ENV === 'development' ? process.env.STRIPE_SECRET_KEY : process.env.STRIPE_TEST_SECRET_KEY;
+const stripe = require('stripe')(stripeSecretKey);
 const AppError = require("../utils/appError");
 const AppSuccess = require("../utils/appSuccess");
 const { validationResult } = require("express-validator");

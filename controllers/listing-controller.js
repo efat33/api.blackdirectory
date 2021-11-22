@@ -51,7 +51,8 @@ class ListingController {
     if (!req.body.id) {
       throw new AppError(401, "400_paramMissing", { 'entity': 'entity_id' });
     }
-    if (req.body.user_id != req.currentUser.id && req.body.claimer_id != req.currentUser.id) {
+
+    if (req.currentUser.role !== 'admin' && req.body.user_id != req.currentUser.id && req.body.claimer_id != req.currentUser.id) {
       throw new AppError(401, "401_invalidCredentials");
     }
 
@@ -119,7 +120,7 @@ class ListingController {
   getFavorites = async (req, res, next) => {
 
     let favorites = [];
-    if(req.currentUser){
+    if (req.currentUser) {
       favorites = await ListingModel.getFavorites(req.currentUser.id);
     }
 
@@ -164,7 +165,7 @@ class ListingController {
       throw new AppError(401, "401_invalidRequest");
     }
 
-    if (listing.user_id != req.currentUser.id && listing.claimer_id != req.currentUser.id) {
+    if (req.currentUser.role !== 'admin' && listing.user_id != req.currentUser.id && listing.claimer_id != req.currentUser.id) {
       throw new AppError(401, "401_invalidCredentials");
     }
 
@@ -207,18 +208,18 @@ class ListingController {
 
   // get listing categories
   getCategories = async (req, res, next) => {
-    
+
     const result = await ListingModel.find('', DBTables.listing_categories);
     new AppSuccess(res, 200, "200_successful", '', result);
- 
+
   };
 
   // update view of a listing
   updateView = async (req, res, next) => {
-    
+
     const result = await ListingModel.updateView(req.params.id);
     new AppSuccess(res, 200, "200_successful");
- 
+
   };
 
   newReview = async (req, res, next) => {
@@ -441,7 +442,7 @@ class ListingController {
     if (req.body.listing_id == '') {
       throw new AppError(403, "Listing ID is required");
     }
-    if (req.body.firstname  == '') {
+    if (req.body.firstname == '') {
       throw new AppError(403, "Firstname is required");
     }
     if (req.body.lastname == '') {
@@ -455,9 +456,9 @@ class ListingController {
     }
 
     // check if the user has already applied for this listing
-    const claim = await ListingModel.findOne({listing_id: req.body.listing_id, user_id: req.currentUser.id}, DBTables.listing_claims);
+    const claim = await ListingModel.findOne({ listing_id: req.body.listing_id, user_id: req.currentUser.id }, DBTables.listing_claims);
 
-    if (Object.keys(claim).length > 0){
+    if (Object.keys(claim).length > 0) {
       throw new AppError(403, "You have already submitted claim request for this listing");
     }
 
@@ -502,7 +503,7 @@ class ListingController {
     else {
       throw new AppError(403, "403_unknownError");
     }
-    
+
   };
 
 }

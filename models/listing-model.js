@@ -765,7 +765,7 @@ class ListingModel {
       
       // fetch products
       output.allproducts = [];
-      const prod_arr = JSON.parse(output.listing.products);
+      const prod_arr = JSON.parse(output.listing.products || "[]");
       if(output.listing.products && prod_arr.length > 0){
         const sqlListProd = `SELECT * FROM ${DBTables.products} 
                             WHERE id IN (${prod_arr.join()})`;
