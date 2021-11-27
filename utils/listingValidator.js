@@ -6,16 +6,6 @@ exports.validateNewListing = [
       .withMessage('Title is required')
       .notEmpty()
       .withMessage('Title is required'),
-  check('logo')
-      .exists()
-      .withMessage('Logo is required')
-      .notEmpty()
-      .withMessage('Logo is required'),
-  check('cover_img')
-      .exists()
-      .withMessage('Cover image is required')
-      .notEmpty()
-      .withMessage('Cover image is required'),
   check('description')
       .exists()
       .withMessage('Description is required')
@@ -40,10 +30,5 @@ exports.validateNewListing = [
       .exists()
       .withMessage('Category is required')
       .notEmpty()
-      .withMessage('Category is required'),
-  check('featured_img')
-      .exists()
-      .withMessage('Featured image is required')
-      .notEmpty()
-      .withMessage('Featured image is required')
+      .withMessage('Category is required')
 ];
