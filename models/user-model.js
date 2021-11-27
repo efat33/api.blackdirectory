@@ -91,9 +91,9 @@ class UserModel {
         [user_id, 'pinterest_link', ''],
         [user_id, 'spotify_link', ''],
         [user_id, 'tiktok_link', ''],
-        [user_id, 'youtube_link', '']
-        [user_id, 'apple_music_link', '']
-        [user_id, 'tidal_link', '']
+        [user_id, 'youtube_link', ''],
+        [user_id, 'apple_music_link', ''],
+        [user_id, 'tidal_link', ''],
         [user_id, 'soundcloud_link', '']
       ];
 
@@ -479,9 +479,9 @@ class UserModel {
         [user_id, 'pinterest_link', ''],
         [user_id, 'spotify_link', ''],
         [user_id, 'tiktok_link', ''],
-        [user_id, 'youtube_link', '']
-        [user_id, 'apple_music_link', '']
-        [user_id, 'tidal_link', '']
+        [user_id, 'youtube_link', ''],
+        [user_id, 'apple_music_link', ''],
+        [user_id, 'tidal_link', ''],
         [user_id, 'soundcloud_link', '']
       ];
 
