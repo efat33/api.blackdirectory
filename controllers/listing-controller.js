@@ -80,6 +80,10 @@ class ListingController {
       delete req.body.user_id;
     }
 
+    if (req.body.status && !req.currentUser) {
+      delete req.body.status;
+    }
+
     const result = await ListingModel.searchListing(req.body);
 
     if (result.status && result.status == 200) {
