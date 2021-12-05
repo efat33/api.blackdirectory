@@ -35,6 +35,8 @@ class ListingModel {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if (orderby != '') sql += ` ${orderby}`;
+
       return await query(sql);
     }
 
