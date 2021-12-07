@@ -41,6 +41,7 @@ const authVerified = () => {
       req.currentUser = {
         id: parseInt(decoded.user_id),
         role: decoded.role,
+        forum_role: user.forum_role
       };
 
       next();

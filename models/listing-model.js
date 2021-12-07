@@ -238,8 +238,22 @@ class ListingModel {
       }
 
       // insert contacts
-      const sql_meta = `INSERT INTO ${this.tableListingContact} (listing_id, email, phone, website, facebook, tiktok, twitter, linkedin) VALUES (?,?,?,?,?,?,?,?)`;
-      const values = [listing_id, params.email, params.phone, params.website, params.facebook, params.tiktok, params.twitter, params.linkedin];
+      const socialLinks = {
+        instagram: params.instagram,
+        facebook: params.facebook,
+        twitter: params.twitter,
+        linkedin: params.linkedin,
+        tiktok: params.tiktok,
+        pinterest: params.pinterest,
+        youtube: params.youtube,
+        spotify: params.spotify,
+        apple_music: params.apple_music,
+        tidal: params.tidal,
+        soundcloud: params.soundcloud
+      };
+
+      const sql_meta = `INSERT INTO ${this.tableListingContact} (listing_id, email, phone, website, social_links) VALUES (?,?,?,?,?)`;
+      const values = [listing_id, params.email, params.phone, params.website, JSON.stringify(socialLinks)];
 
       const resultListingContact = await query(sql_meta, values);
 
@@ -522,9 +536,23 @@ class ListingModel {
       }
 
       // update contacts
-      const sql_contact = `INSERT INTO ${this.tableListingContact} (listing_id, email, phone, website, facebook, tiktok, twitter, linkedin) VALUES ? ON DUPLICATE KEY 
-                        UPDATE email=VALUES(email), phone=VALUES(phone), website=VALUES(website), facebook=VALUES(facebook), tiktok=VALUES(tiktok), twitter=VALUES(twitter), linkedin=VALUES(linkedin)`;
-      const values_contact = [[listing_id, params.email, params.phone, params.website, params.facebook, params.tiktok, params.twitter, params.linkedin]];
+      const socialLinks = {
+        instagram: params.instagram,
+        facebook: params.facebook,
+        twitter: params.twitter,
+        linkedin: params.linkedin,
+        tiktok: params.tiktok,
+        pinterest: params.pinterest,
+        youtube: params.youtube,
+        spotify: params.spotify,
+        apple_music: params.apple_music,
+        tidal: params.tidal,
+        soundcloud: params.soundcloud
+      };
+
+      const sql_contact = `INSERT INTO ${this.tableListingContact} (listing_id, email, phone, website, social_links) VALUES ? ON DUPLICATE KEY 
+                        UPDATE email=VALUES(email), phone=VALUES(phone), website=VALUES(website), social_links=VALUES(social_links)`;
+      const values_contact = [[listing_id, params.email, params.phone, params.website, JSON.stringify(socialLinks)]];
 
       const resultListingContact = await query2(sql_contact, [values_contact]);
 

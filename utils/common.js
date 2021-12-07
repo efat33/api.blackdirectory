@@ -50,6 +50,13 @@ exports.DBTables = {
   
   'users': 'users',
   'hero_slider': 'hero_slider',
+
+  'forums': 'forums',
+  'replies': 'replies',
+  'topics': 'topics',
+  'reply_notifications': 'reply_notifications',
+  'topic_tags': 'topic_tags',
+  'topic_tag_relationships': 'topic_tag_relationships',
 };
 
 exports.multipleColumnSet = (object, joinBy = 'AND') => {
@@ -200,6 +207,36 @@ exports.isAdmin = () => {
         next();
       } else {
         throw new AppError(401, "401_notAdmin");
+      }
+    } catch (e) {
+      e.status = 401;
+      next(e);
+    }
+  };
+};
+
+exports.canCreateForum = () => {
+  return async function (req, res, next) {
+    try {
+      if (req.currentUser.role === 'admin' || req.currentUser.forum_role === 'keymaster' || req.currentUser.forum_role === 'moderator') {
+        next();
+      } else {
+        throw new AppError(401, "401_notCreateForum");
+      }
+    } catch (e) {
+      e.status = 401;
+      next(e);
+    }
+  };
+};
+
+exports.canCreateTopic = () => {
+  return async function (req, res, next) {
+    try {
+      if (req.currentUser.role === 'admin' || req.currentUser.forum_role === 'keymaster' || req.currentUser.forum_role === 'moderator') {
+        next();
+      } else {
+        throw new AppError(401, "401_notCreateTopic");
       }
     } catch (e) {
       e.status = 401;

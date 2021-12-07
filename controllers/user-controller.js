@@ -304,9 +304,12 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       employer_info.linkedin_link = req.body.linkedin_link;
       employer_info.instagram_link = req.body.instagram_link;
       employer_info.pinterest_link = req.body.pinterest_link;
-      employer_info.snapchat_link = req.body.snapchat_link;
+      employer_info.spotify_link = req.body.spotify_link;
       employer_info.tiktok_link = req.body.tiktok_link;
       employer_info.youtube_link = req.body.youtube_link;
+      employer_info.apple_music_link = req.body.apple_music_link;
+      employer_info.tidal_link = req.body.tidal_link;
+      employer_info.soundcloud_link = req.body.soundcloud_link;
 
       employer_info.website = req.body.website;
       employer_info.founded_date = req.body.founded_date;
@@ -317,9 +320,13 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       candidate_info.linkedin_link = req.body.linkedin_link;
       candidate_info.instagram_link = req.body.instagram_link;
       candidate_info.pinterest_link = req.body.pinterest_link;
-      candidate_info.snapchat_link = req.body.snapchat_link;
+      candidate_info.spotify_link = req.body.spotify_link;
       candidate_info.tiktok_link = req.body.tiktok_link;
       candidate_info.youtube_link = req.body.youtube_link;
+      candidate_info.apple_music_link = req.body.apple_music_link;
+      candidate_info.tidal_link = req.body.tidal_link;
+      candidate_info.soundcloud_link = req.body.soundcloud_link;
+
       candidate_info.job_title = req.body.job_title;
       candidate_info.job_industry = req.body.job_industry;
       candidate_info.salary_type = req.body.salary_type;

@@ -12,6 +12,11 @@ exports.RESPONSE_CODES = Object.freeze({
   "401_invalidAge": "You must be 18 to register",
   "401_notEmployer": "You must be an employer",
   "401_notAdmin": "You must be an admin",
+  "401_notCreateForum": "You are not allowed to create forum",
+  "401_notUpdateForum": "You are not allowed to update forum",
+  "401_notCreateTopic": "You are not allowed to create topic",
+  "401_notUpdateTopic": "You are not allowed to update topic",
+  "401_notUpdateReply": "You are not allowed to update reply",
   "401_notAdminOrEmployer": "You must be an admin or an employer",
   "403_unknownError": "Something went wrong. Please try again.",
 
@@ -114,6 +119,15 @@ exports.ENTITIES = Object.freeze({
 
   // news
   entity_news: "News",
+
+  // forum
+  entity_forum: "Forum",
+
+  // topic
+  entity_topic: "Topic",
+
+  // reply
+  entity_reply: "Reply",
 
   // event
   entity_event: "Event",
