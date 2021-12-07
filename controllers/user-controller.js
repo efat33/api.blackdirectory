@@ -274,10 +274,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'updated_at': current_date
     }
 
-    if (currentUser.role === 'admin') {
-      basic_info.forum_role = req.body.forum_role;
-    }
-
     const employer_info = {};
     const candidate_info = {};
     const candidate_others = {};
@@ -338,11 +334,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       candidate_info.cover_letter = req.body.cover_letter;
       candidate_info.candidate_cv = req.body.candidate_cv_name;
     }
-
     if (req.body.candidateEducations && req.body.candidateEducations.length > 0) {
       candidate_others.educations = req.body.candidateEducations;
     }
-
     if (req.body.removedEducations && JSON.parse(req.body.removedEducations) && JSON.parse(req.body.removedEducations).length > 0) {
       candidate_others.educationsTobeRemoved = JSON.parse(req.body.removedEducations);
     }
@@ -350,7 +344,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     if (req.body.candidateExperiences && req.body.candidateExperiences.length > 0) {
       candidate_others.experiences = req.body.candidateExperiences;
     }
-
     if (req.body.removedExperiences && JSON.parse(req.body.removedExperiences) && JSON.parse(req.body.removedExperiences).length > 0) {
       candidate_others.experiencesTobeRemoved = JSON.parse(req.body.removedExperiences);
     }
@@ -358,7 +351,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     if (req.body.candidatePortfolios && req.body.candidatePortfolios.length > 0) {
       candidate_others.portfolios = req.body.candidatePortfolios;
     }
-
     if (req.body.removedPortfolios && JSON.parse(req.body.removedPortfolios) && JSON.parse(req.body.removedPortfolios).length > 0) {
       candidate_others.portfoliosTobeRemoved = JSON.parse(req.body.removedPortfolios);
     }
@@ -480,16 +472,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
   };
 
   checkAuthentication = async (req, res, next) => {
+
     let user = '';
-
-    if (req.currentUser) {
-      user = await UserModel.findOne({ 'id': req.currentUser.id })
-
-      const { password, ...userWithoutPassword } = user;
-      new AppSuccess(res, 200, "200_successful", "", userWithoutPassword);
-
-      return;
-    };
+    if (req.currentUser) user = await UserModel.findOne({ 'id': req.currentUser.id });
 
     new AppSuccess(res, 200, "200_successful", "", user);
 
