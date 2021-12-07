@@ -274,10 +274,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'updated_at': current_date
     }
 
-    if (currentUser.role === 'admin') {
-      basic_info.forum_role = req.body.forum_role;
-    }
-
     const employer_info = {};
     const candidate_info = {};
     const candidate_others = {};
@@ -303,11 +299,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       employer_info.twitter_link = req.body.twitter_link;
       employer_info.linkedin_link = req.body.linkedin_link;
       employer_info.instagram_link = req.body.instagram_link;
-      employer_info.pinterest_link = req.body.pinterest_link;
-      employer_info.snapchat_link = req.body.snapchat_link;
-      employer_info.tiktok_link = req.body.tiktok_link;
-      employer_info.youtube_link = req.body.youtube_link;
-
       employer_info.website = req.body.website;
       employer_info.founded_date = req.body.founded_date;
     }
@@ -316,10 +307,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       candidate_info.twitter_link = req.body.twitter_link;
       candidate_info.linkedin_link = req.body.linkedin_link;
       candidate_info.instagram_link = req.body.instagram_link;
-      candidate_info.pinterest_link = req.body.pinterest_link;
-      candidate_info.snapchat_link = req.body.snapchat_link;
-      candidate_info.tiktok_link = req.body.tiktok_link;
-      candidate_info.youtube_link = req.body.youtube_link;
       candidate_info.job_title = req.body.job_title;
       candidate_info.job_industry = req.body.job_industry;
       candidate_info.salary_type = req.body.salary_type;
@@ -331,11 +318,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       candidate_info.cover_letter = req.body.cover_letter;
       candidate_info.candidate_cv = req.body.candidate_cv_name;
     }
-
     if (req.body.candidateEducations && req.body.candidateEducations.length > 0) {
       candidate_others.educations = req.body.candidateEducations;
     }
-
     if (req.body.removedEducations && JSON.parse(req.body.removedEducations) && JSON.parse(req.body.removedEducations).length > 0) {
       candidate_others.educationsTobeRemoved = JSON.parse(req.body.removedEducations);
     }
@@ -343,7 +328,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     if (req.body.candidateExperiences && req.body.candidateExperiences.length > 0) {
       candidate_others.experiences = req.body.candidateExperiences;
     }
-
     if (req.body.removedExperiences && JSON.parse(req.body.removedExperiences) && JSON.parse(req.body.removedExperiences).length > 0) {
       candidate_others.experiencesTobeRemoved = JSON.parse(req.body.removedExperiences);
     }
@@ -351,7 +335,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     if (req.body.candidatePortfolios && req.body.candidatePortfolios.length > 0) {
       candidate_others.portfolios = req.body.candidatePortfolios;
     }
-
     if (req.body.removedPortfolios && JSON.parse(req.body.removedPortfolios) && JSON.parse(req.body.removedPortfolios).length > 0) {
       candidate_others.portfoliosTobeRemoved = JSON.parse(req.body.removedPortfolios);
     }
@@ -473,16 +456,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
   };
 
   checkAuthentication = async (req, res, next) => {
+
     let user = '';
-
-    if (req.currentUser) {
-      user = await UserModel.findOne({ 'id': req.currentUser.id })
-
-      const { password, ...userWithoutPassword } = user;
-      new AppSuccess(res, 200, "200_successful", "", userWithoutPassword);
-
-      return;
-    };
+    if (req.currentUser) user = await UserModel.findOne({ 'id': req.currentUser.id });
 
     new AppSuccess(res, 200, "200_successful", "", user);
 

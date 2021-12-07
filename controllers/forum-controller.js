@@ -4,7 +4,7 @@ dotenv.config();
 const AppError = require("../utils/appError");
 const AppSuccess = require("../utils/appSuccess");
 const { validationResult } = require("express-validator");
-const commonfn = require('../utils/common');
+const { DBTables } = require('../utils/common');
 const NewsModel = require('../models/news-model');
 const ForumModel = require('../models/forum-model');
 const TopicModel = require('../models/topic-model');
@@ -73,17 +73,21 @@ class ForumController {
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_forum' }, result);
     };
 
-    deleteNews = async (req, res, next) => {
-        const result = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
+    deleteForum = async (req, res, next) => {
+        const forum = await ForumModel.findOne({ 'id': req.params.forum_id });
 
-        if (Object.keys(result).length === 0) {
+        if (Object.keys(forum).length === 0) {
             throw new AppError(403, "403_unknownError")
         };
 
-        await NewsModel.deleteNews(req.params.news_id);
+        if(req.currentUser.role != 'admin' && req.currentUser.forum_role != 'keymaster' && req.currentUser.id != forum.user_id){
+            throw new AppError(401, "401_unauthorised")
+        }
 
-        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
-    };
+        await ForumModel.deleteForum(forum);
+
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_forum' });
+    }; 
 
 
     /**
@@ -151,6 +155,22 @@ class ForumController {
             throw new AppError(403, "403_unknownError");
         }
     }
+    deleteTopic = async (req, res, next) => {
+        const topic = await TopicModel.findOne({ 'id': req.params.topic_id });
+
+        if (Object.keys(topic).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        if(req.currentUser.role != 'admin' && req.currentUser.forum_role != 'keymaster' && req.currentUser.forum_role != 'moderator' &&
+            req.currentUser.id != topic.user_id){
+                throw new AppError(401, "401_unauthorised")
+        }
+
+        await TopicModel.deleteTopic(topic);
+
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_topic' });
+    };  
 
 
     /**
@@ -163,22 +183,31 @@ class ForumController {
         new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_reply' }, result);
     };
 
-    newReply = async (req, res, next) => {
+    getUserReplies = async (req, res, next) => {
+        const result = await ReplyModel.getUserReplies(req.body);
 
+        new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_reply' }, result);
+    };
+
+    newReply = async (req, res, next) => {
+        
         if (!req.body.content) {
             throw new AppError(403, "Content is required");
         }
         if (!req.body.topic_id) {
             throw new AppError(403, "Topic ID is required");
         }
+        if (!req.body.forum_id) {
+            throw new AppError(403, "Forum ID is required");
+        }
         
-        const forum = await ReplyModel.createReply(req.body, req.currentUser);
+        const reply = await ReplyModel.createReply(req.body, req.currentUser);
         
-        if (forum.status !== 200) {
+        if (reply.status !== 200) {
             throw new AppError(403, "403_unknownError")
         };
 
-        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_reply' }, forum);
+        new AppSuccess(res, 200, "200_added", { 'entity': 'entity_reply' }, reply.data);
     }
 
     getSingleReply = async (req, res, next) => {
@@ -215,6 +244,79 @@ class ForumController {
             throw new AppError(403, "403_unknownError");
         }
     }
+
+    deleteReply = async (req, res, next) => {
+        const reply = await ReplyModel.findOne({ 'id': req.params.reply_id });
+
+        if (Object.keys(reply).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+
+        if(req.currentUser.role != 'admin' && req.currentUser.forum_role != 'keymaster' && req.currentUser.forum_role != 'moderator' &&
+            req.currentUser.id != reply.user_id){
+                throw new AppError(401, "401_unauthorised")
+        }
+
+        await ReplyModel.deleteReply(reply);
+
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_reply' });
+    };
+
+
+    /**
+     * ******************************
+     * */ 
+
+    getCategories = async (req, res, next) => {
+
+        const result = await ForumModel.find('', DBTables.forum_categories, 'ORDER BY title ASC');
+    
+        new AppSuccess(res, 200, "200_retrieved", '', result);
+    
+    };
+
+    // add new category
+    newCategory = async (req, res, next) => {
+
+        // do validation
+        if (!req.body.title) {
+            throw new AppError(403, "Title is required");
+        }
+
+        const result = await ForumModel.newCategory(req.body);
+
+        if (result.status && result.status == 200) {
+
+            new AppSuccess(res, 200, "200_added_successfully", '', result.data);
+
+        }
+        else {
+            throw new AppError(403, "403_unknownError");
+        }
+
+    };
+
+    updateCategory = async (req, res, next) => {
+        const result = await ForumModel.updateCategory(req.params.category_id, req.body);
+  
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+  
+        new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_category' });
+    };
+  
+    deleteCategory = async (req, res, next) => {
+        const result = await ForumModel.getCategory(req.params.category_id);
+  
+        if (Object.keys(result).length === 0) {
+            throw new AppError(403, "403_unknownError")
+        };
+  
+        await ForumModel.deleteCategory(req.params.category_id);
+  
+        new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
+    };
 
 }
 
