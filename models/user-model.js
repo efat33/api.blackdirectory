@@ -89,9 +89,12 @@ class UserModel {
         [user_id, 'linkedin_link', ''],
         [user_id, 'instagram_link', ''],
         [user_id, 'pinterest_link', ''],
-        [user_id, 'snapchat_link', ''],
+        [user_id, 'spotify_link', ''],
         [user_id, 'tiktok_link', ''],
-        [user_id, 'youtube_link', '']
+        [user_id, 'youtube_link', ''],
+        [user_id, 'apple_music_link', ''],
+        [user_id, 'tidal_link', ''],
+        [user_id, 'soundcloud_link', '']
       ];
 
       // prepare other meta data
@@ -474,9 +477,12 @@ class UserModel {
         [user_id, 'linkedin_link', ''],
         [user_id, 'instagram_link', ''],
         [user_id, 'pinterest_link', ''],
-        [user_id, 'snapchat_link', ''],
+        [user_id, 'spotify_link', ''],
         [user_id, 'tiktok_link', ''],
-        [user_id, 'youtube_link', '']
+        [user_id, 'youtube_link', ''],
+        [user_id, 'apple_music_link', ''],
+        [user_id, 'tidal_link', ''],
+        [user_id, 'soundcloud_link', '']
       ];
 
       // prepare other meta data
