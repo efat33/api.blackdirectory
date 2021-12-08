@@ -644,7 +644,10 @@ class ListingModel {
     }
 
     if(keyword != ''){
-      queryParams += ` AND ( l.title LIKE '%${encodeURI(keyword)}%' OR l.description LIKE '%${encodeURI(keyword)}%' )`;
+      let encodedKeyword = encodeURI(keyword);
+      encodedKeyword = encodedKeyword.replace(/%20/g, ' ');
+      
+      queryParams += ` AND ( l.title LIKE '%${encodedKeyword}%' OR l.description LIKE '%${encodedKeyword}%' )`;
     }
     if(params.recommended){
       queryParams += ` AND l.recommended = 1`;
