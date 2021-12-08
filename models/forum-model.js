@@ -26,16 +26,32 @@ class ForumModel {
 
     }
 
+    find = async (params = {}, table = `${DBTables.forums}`, orderby = '') => {
+        let sql = `SELECT * FROM ${table}`;
+    
+        if (!Object.keys(params).length) {
+            if (orderby != '') sql += ` ${orderby}`;
+            return await query(sql);
+        }
+    
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+    
+        if (orderby != '') sql += ` ${orderby}`;
+    
+        return await query(sql, [...values]);
+      }
+
     createForum = async (params, user) => {
         const current_date = commonfn.dateTimeNow();
         let slug = await commonfn.generateSlug(params.title, DBTables.forums);
         let output = {};
 
         const sql = `INSERT INTO ${this.tableName} 
-            (user_id, title, slug, description, status, created_at, updated_at) 
-            VALUES (?,?,?,?,?,?,?)`;
+            (user_id, category_id, title, slug, description, status, created_at, updated_at) 
+            VALUES (?,?,?,?,?,?,?,?)`;
 
-        const values = [user.id, params.title, slug, params.description, params.status, current_date, current_date];
+        const values = [user.id, params.category_id, params.title, slug, params.description, params.status, current_date, current_date];
 
         const result = await query(sql, values);
 
@@ -75,7 +91,6 @@ class ForumModel {
     getForums = async (params = {}) => {
         const keyword = params.keyword ? params.keyword : '';
 
-
         const output = {}
         let values = [];
 
@@ -90,6 +105,9 @@ class ForumModel {
         }
         if(params.status){
             queryParams += ` AND f.status = '${encodeURI(params.status)}'`;
+        }
+        if(params.cat_id){
+            queryParams += ` AND f.category_id = ${encodeURI(params.cat_id)}`;
         }
 
         let queryOrderby = ` ORDER BY f.created_at DESC`;
@@ -114,16 +132,68 @@ class ForumModel {
         // console.log(sql);
         const forums = await query(sql, values);
         let total_forums = 0;
-
+        
         if(forums.length > 0){
-
+            
             const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;
             const resultCount = await query(count_sql_final, values);
             
             total_forums = resultCount[0].count;
 
-        }
+            // prepare last post data
+            const topic_ids = [];
+            const reply_ids = [];
+            let result_replies = [];
+            let result_topics = [];
 
+            for (let index = 0; index < forums.length; index++) {
+                const item = forums[index];
+                if(item.last_activity_type == 'topic'){
+                    topic_ids.push(item.last_activity_id);
+                }
+                else if(item.last_activity_type == 'reply'){
+                    reply_ids.push(item.last_activity_id);
+                }
+            }
+
+            if(reply_ids.length > 0){
+                const sql_replies = `SELECT * FROM ${DBTables.replies} WHERE id IN (?)`;
+                result_replies = await query2(sql_replies, [reply_ids]);
+    
+                for (let index = 0; index < result_replies.length; index++) {
+                    const item = result_replies[index];
+                    topic_ids.push(item.topic_id);
+                }
+            }
+            
+            if(topic_ids.length > 0){
+                const sql_topics = `SELECT * FROM ${DBTables.topics} WHERE id IN (?)`;
+                result_topics = await query2(sql_topics, [topic_ids]);
+            }
+            
+
+            for (let index = 0; index < forums.length; index++) {
+                const item = forums[index];
+                if(item.last_activity_type == 'topic' && result_topics.length > 0){
+                    const found = result_topics.find(element => element.id == item.last_activity_id);
+                    const tmp = {
+                        'topic': found,
+                    }
+                    forums[index]['last_post'] = tmp;
+                }
+                else if(item.last_activity_type == 'reply' && result_replies.length > 0){
+                    const found_reply = result_replies.find(element => element.id == item.last_activity_id);
+                    const found_topic = result_topics.find(element => element.id == found_reply.topic_id);
+                    const tmp = {
+                        'reply': found_reply,
+                        'topic': found_topic,
+                    }
+                    forums[index]['last_post'] = tmp;
+                }
+            }
+            
+        }
+        
         output.status = 200;
         const data = {
             forums: forums,
@@ -151,222 +221,161 @@ class ForumModel {
         return result;
     }
 
-    deleteNews = async (id) => {
-        const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
-        const values = [id];
+    deleteForum = async (forum) => {
+        const current_date = commonfn.dateTimeNow();
+        const forum_id = forum.id;
+        const user_id = forum.user_id;
 
-        return await query(sql, values);
+        const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
+        const result = await query(sql, [forum_id]);
+
+        if(result.affectedRows > 0){
+            
+             // get all the associated topic ids
+            const sql_topic_ids = `SELECT id FROM ${DBTables.topics} WHERE forum_id = ?`;
+            const result_topic_ids = await query(sql_topic_ids, [forum_id]);
+            const topic_ids = [];
+            if(result_topic_ids.length > 0){
+                for (let index = 0; index < result_topic_ids.length; index++) {
+                    const element = result_topic_ids[index];
+                    topic_ids.push(element.id);
+                }
+            }
+
+            // delete all the associate replies
+            if(topic_ids.length > 0){
+                const sql_delete_reply = `DELETE FROM ${DBTables.replies} WHERE topic_id IN (?)`;
+                const result_delete_reply = await query2(sql_delete_reply, [topic_ids]);
+            }
+
+            // delete all the associate topics
+            const sql_delete_topic = `DELETE FROM ${DBTables.topics} WHERE forum_id = ?`;
+            const result_delete_topic = await query(sql_delete_topic, [forum_id]);
+
+
+            // update user last activity
+            const user_last_reply = await this.findOne({'user_id': user_id}, DBTables.replies, 'ORDER BY created_at DESC');
+            const user_topic_last = await this.findOne({'user_id': user_id}, DBTables.topics, 'ORDER BY created_at DESC');
+
+            let user_last_reply_time = null;
+            let user_last_topic_time = null;
+            let user_last_activity_time = null;
+
+            if (Object.keys(user_last_reply).length > 0) {
+                user_last_reply_time = user_last_reply.created_at;
+            }
+            if (Object.keys(user_topic_last).length > 0) {
+                user_last_topic_time = user_topic_last.created_at;
+            }
+
+            if(user_last_reply_time && user_last_topic_time){
+                const time1 = new Date(user_last_reply_time);
+                const time2 = new Date(user_last_topic_time);
+                
+                const difference =  time1 - time2;  
+
+                if(difference > 0){
+                    user_last_activity_time = user_last_reply_time;
+                }
+                else{
+                    user_last_activity_time = user_last_topic_time;
+                }
+            }
+            else if(user_last_reply_time){
+                user_last_activity_time = user_last_reply_time;
+            }
+            else if(user_last_topic_time){
+                user_last_activity_time = user_last_topic_time;
+            }
+
+            // get user total topic no
+            const sql_count_topic = `SELECT COUNT(id) AS user_total_topic FROM ${DBTables.topics} WHERE user_id = ?`;
+            const result_count_topic = await query(sql_count_topic, [user_id]);
+
+            let user_topic_no = 0;
+            if (result_count_topic.length > 0) {
+                user_topic_no = result_count_topic[0].user_total_topic;
+            }
+            
+            // get user total reply no
+            const sql_count_reply = `SELECT COUNT(id) AS user_total_reply FROM ${DBTables.replies} WHERE user_id = ?`;
+            const result_count_reply = await query(sql_count_reply, [user_id]);
+
+            let user_reply_no = 0;
+            if (result_count_reply.length > 0) {
+                user_reply_no = result_count_reply[0].user_total_reply;
+            }
+
+            const sqlMeta = `INSERT INTO ${DBTables.users_meta} (user_id, meta_key, meta_value) VALUES ? ON DUPLICATE KEY 
+                                    UPDATE meta_value=VALUES(meta_value)`;
+            const valuesMeta = [
+                [user_id, 'topics_no', user_topic_no],
+                [user_id, 'replies_no', user_reply_no],
+                [user_id, 'forum_last_activity', user_last_activity_time]
+            ];
+            
+            await query2(sqlMeta, [valuesMeta]);
+        }
+
+        return result;
     }
 
-    createNewsCategory = async (params) => {
-        let slug = await commonfn.generateSlug(params.name, this.tableNameCategories);
-        let output = {};
+    /**
+     *  Category
+     * */ 
 
-        const sql = `INSERT INTO ${this.tableNameCategories} 
-            (name, slug, category_order) 
-            VALUES (?,?,?)`;
+    getCategory = async (categoryId) => {
+        let sql = `SELECT * FROM ${DBTables.forum_categories} WHERE id=?`;
+  
+        return await query(sql, [categoryId]);
+    }
 
-        const result = await query(sql, [params.name, slug, params.category_order]);
+    newCategory = async (params) => {
 
-
+        const current_date = commonfn.dateTimeNow();
+        const output = {}
+    
+        const sql = `INSERT INTO ${DBTables.forum_categories} (title) VALUES (?)`;
+        const values = [params.title];
+    
+        const result = await query(sql, values);
+    
         if (result.insertId) {
-            const news_category_id = result.insertId;
-
-            output.status = 200
-            output.data = { 'news_category_id': news_category_id, 'slug': slug }
+          output.status = 200;
+          output.data = result.insertId;
         }
-        else {
-            output.status = 401
-        }
-
         return output;
     }
 
-    updateNewsCategory = async (categoryId, params) => {
-        let sql = `UPDATE ${this.tableNameCategories} SET`;
-
+    updateCategory = async (categoryId, params) => {
+        let sql = `UPDATE ${DBTables.forum_categories} SET`;
+  
         const paramArray = [];
         for (let param in params) {
             paramArray.push(` ${param} = ?`);
         }
-
+  
         sql += paramArray.join(', ');
-
+  
         sql += ` WHERE id = ?`;
-
+  
         const values = [
             ...Object.values(params),
             categoryId
         ];
-
+  
         const result = await query(sql, values);
-
+  
         return result;
     }
-
-    getNewsCategories = async () => {
-        let sql = `SELECT *, (SELECT count(*) FROM ${this.tableName} WHERE category_id=${this.tableNameCategories}.id) as count 
-            FROM ${this.tableNameCategories} 
-            ORDER BY category_order`;
-
-        return await query(sql);
-    }
-
-    getNewsCategory = async (categoryId) => {
-        let sql = `SELECT * FROM ${this.tableNameCategories} WHERE id=?`;
-
-        return await query(sql, [categoryId]);
-    }
-
-    deleteNewsCategory = async (categoryId) => {
-        const sql = `DELETE FROM ${this.tableNameCategories} WHERE id=?`;
+  
+    deleteCategory = async (categoryId) => {
+        const sql = `DELETE FROM ${DBTables.forum_categories} WHERE id=?`;
         const values = [categoryId];
-
+  
         return await query(sql, values);
     }
 
-    getTopNews = async () => {
-        let sql = `SELECT * FROM ${this.tableNameTopNews}`;
-
-        return await query(sql);
-    }
-
-    updateTopNews = async (params) => {
-        const sql = `INSERT INTO ${this.tableNameTopNews} (category_id, news_id) VALUES ? ON DUPLICATE KEY UPDATE news_id=VALUES(news_id)`;
-        const values = [];
-
-        for (const categoryId in params) {
-            values.push([categoryId, params[categoryId]]);
-        }
-
-        if (values.length) {
-            await query2(sql, [values]);
-        }
-    }
-
-    createNewsComment = async (params, currentUser) => {
-        let output = {};
-
-        const sql = `INSERT INTO ${this.tableNameComments} 
-            (news_id, user_id, comment, parent_id) 
-            VALUES (?,?,?,?)`;
-
-        const values = [params.news_id, currentUser.id, params.comment, params.parent_id || null];
-
-        const result = await query(sql, values);
-
-        if (result.insertId) {
-            output.status = 200
-
-            await this.updateNewsCommentCount(params.news_id);
-
-            const comment = await this.getNewsComment(result.insertId);
-            output.data = comment[0];
-        }
-        else {
-            output.status = 401
-        }
-
-        return output;
-    }
-
-    getNewsComments = async (newsId) => {
-        let sql = `SELECT Comment.*, User.username as username, User.display_name as display_name, User.profile_photo as profile_photo 
-        FROM ${this.tableNameComments} as Comment
-        LEFT JOIN ${this.tableNameUsers} as User ON User.id=Comment.user_id
-        WHERE Comment.news_id=?
-        ORDER BY Comment.created_at ASC
-        `;
-
-        return await query(sql, [newsId]);
-    }
-
-    getNewsComment = async (commentId) => {
-        let sql = `SELECT Comment.*, User.username as username, User.display_name as display_name, User.profile_photo as profile_photo 
-        FROM ${this.tableNameComments} as Comment
-        LEFT JOIN ${this.tableNameUsers} as User ON User.id=Comment.user_id
-        WHERE Comment.id=?
-        `;
-
-        return await query(sql, [commentId]);
-    }
-
-    updateNewsComment = async (commentId, comment) => {
-        let sql = `UPDATE ${this.tableNameComments} 
-            SET comment = ?
-            WHERE id = ?`;
-
-        const result = await query(sql, [comment, commentId]);
-
-        return result;
-    }
-
-    updateNewsCommentCount = async (newsId) => {
-        let sql = `UPDATE ${this.tableName} 
-            SET total_comments = (
-                SELECT count(*) FROM ${this.tableNameComments} WHERE news_id = ?
-            ) 
-            WHERE id = ?`;
-
-
-        const result = await query(sql, [newsId, newsId]);
-
-        return result;
-    }
-
-    updateNewsCommentLikeCount = async (newsCommentId) => {
-        let sql = `UPDATE ${this.tableNameComments} 
-            SET likes = (
-                SELECT count(*) FROM ${this.tableNameCommentLikes} WHERE news_comment_id = ?
-            ) 
-            WHERE id = ?`;
-
-
-        const result = await query(sql, [newsCommentId, newsCommentId]);
-
-        return result;
-    }
-
-    deleteNewsComment = async (commentId, newsId) => {
-        const sql = `DELETE FROM ${this.tableNameComments} WHERE id=? OR parent_id=?`;
-        const values = [commentId, commentId];
-
-        await query(sql, values);
-        await this.updateNewsCommentCount(newsId);
-    }
-
-    updateNewsCommentLike = async (params = {}) => {
-        const news_comment_id = params.news_comment_id;
-        const user_id = params.user_id;
-
-        const data = { news_comment_id, user_id }
-        const likeExist = await this.findOne(data, this.tableNameCommentLikes);
-
-        if (Object.keys(likeExist).length > 0) {
-            // delete like
-            const sql = `DELETE FROM ${this.tableNameCommentLikes} WHERE id = ?`;
-            await query(sql, [likeExist.id]);
-
-            this.updateNewsCommentLikeCount(news_comment_id);
-        }
-        else {
-            // add like
-            const sql = `INSERT INTO ${this.tableNameCommentLikes} (news_comment_id, news_id, user_id) VALUES (?,?,?)`;
-            const values = [news_comment_id, params.news_id, user_id];
-
-            await query(sql, values);
-
-            this.updateNewsCommentLikeCount(news_comment_id);
-        }
-
-        return;
-    }
-
-    getUserCommentLikes = async (userId = '') => {
-        let sql = `SELECT * FROM ${this.tableNameCommentLikes} WHERE user_id = ?`;
-
-        return await query(sql, [userId]);
-    }
 }
 
 module.exports = new ForumModel;
