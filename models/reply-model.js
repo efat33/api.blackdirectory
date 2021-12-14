@@ -215,12 +215,43 @@ class ReplyModel {
         let total_replies = 0;
 
         if(replies.length > 0){
-
+            
             const count_sql_final = `SELECT COUNT(*) as count FROM (${count_sql}) as custom_table`;
             const resultCount = await query(count_sql_final, values);
             
             total_replies = resultCount[0].count;
 
+            // get reply_to rows 
+            const reply_to_ids = [];
+            for (let index = 0; index < replies.length; index++) {
+                const element = replies[index];
+                if(element.reply_to){
+                    const found = replies.find(item => item.id == element.reply_to);
+                    if(found){
+                        replies[index]['reply_to_details'] = found;
+                    }
+                    else{
+                        replies[index]['reply_to_details'] = null;
+                        reply_to_ids.push(element.reply_to);
+                    }
+                }
+            }
+            
+            if(reply_to_ids.length > 0){
+                const sql = `SELECT r.*, u.username, u.display_name, u.profile_photo FROM ${DBTables.replies} AS r 
+                    LEFT JOIN ${DBTables.users} u ON r.user_id = u.id WHERE r.id IN (?)`;
+                const to_replies = await query2(sql, [reply_to_ids]);
+                
+                for (let index = 0; index < replies.length; index++) {
+                    const element = replies[index];
+                    if(element.reply_to && !element.reply_to_details){
+                        const found = to_replies.find(item => item.id == element.reply_to);
+                        if(found){
+                            replies[index]['reply_to_details'] = found;
+                        }
+                    }
+                }
+            }
         }
 
         output.status = 200;
