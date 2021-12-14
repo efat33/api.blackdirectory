@@ -80,6 +80,10 @@ class ListingController {
       delete req.body.user_id;
     }
 
+    if (req.body.status && !req.currentUser) {
+      delete req.body.status;
+    }
+
     const result = await ListingModel.searchListing(req.body);
 
     if (result.status && result.status == 200) {
@@ -209,7 +213,7 @@ class ListingController {
   // get listing categories
   getCategories = async (req, res, next) => {
 
-    const result = await ListingModel.find('', DBTables.listing_categories);
+    const result = await ListingModel.find('', DBTables.listing_categories, 'ORDER BY title');
     new AppSuccess(res, 200, "200_successful", '', result);
 
   };

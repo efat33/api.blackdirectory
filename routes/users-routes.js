@@ -14,6 +14,7 @@ const { isAdmin } = require('../utils/common');
 // router.get('/:id', auth(), awaitHandlerFactory(userController.getUserById));
 
 router.post('/register', apiKey(), validation.validateRegister, awaitHandlerFactory(userController.userRegister));
+router.get('/resend-email', apiKey(), auth(), awaitHandlerFactory(userController.resendVerificationEmail));
 router.post('/login', apiKey(), validation.validateLogin, awaitHandlerFactory(userController.userLogin));
 router.post('/login-facebook', apiKey(), validation.validateLoginTypeFacebook, awaitHandlerFactory(userController.userLoginWithFacebook));
 router.post('/forgot-password', apiKey(), awaitHandlerFactory(userController.forgotPassword));

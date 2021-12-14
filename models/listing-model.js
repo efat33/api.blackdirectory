@@ -35,6 +35,8 @@ class ListingModel {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if (orderby != '') sql += ` ${orderby}`;
+
       return await query(sql);
     }
 
@@ -117,7 +119,7 @@ class ListingModel {
       params.price_range, params.price_min, params.price_max, params.featured_img, JSON.stringify(galleries),
       params.business_hour, JSON.stringify(video_urls), products, params.button_icon, params.button_link,
       params.coupon_title, params.coupon_description, params.coupon_image, params.coupon_code, params.coupon_popup_desc, params.coupon_link, params.coupon_expiry_date,
-      params.button_name, 'draft', current_date, current_date]);
+      params.button_name, 'publish', current_date, current_date]);
       
     if (regResult.insertId) {
 
@@ -356,7 +358,7 @@ class ListingModel {
       'coupon_popup_desc': params.coupon_popup_desc,
       'coupon_link': params.coupon_link,
       'coupon_expiry_date': params.coupon_expiry_date,
-      'status': 'draft',
+      'status': 'publish',
       'updated_at': current_date
     }
 
@@ -626,6 +628,11 @@ class ListingModel {
     
 
     let queryParams = ` WHERE l.status = 'publish'`;
+
+    if (params.status === 'all') {
+      queryParams = ` WHERE 1=1`;
+    }
+
     if(params.user_id){
       queryParams += ` AND (l.user_id = ${encodeURI(params.user_id)} OR l.claimer_id = ${encodeURI(params.user_id)})`;
     }
@@ -637,7 +644,10 @@ class ListingModel {
     }
 
     if(keyword != ''){
-      queryParams += ` AND ( l.title LIKE '%${encodeURI(keyword)}%' OR l.description LIKE '%${encodeURI(keyword)}%' )`;
+      let encodedKeyword = encodeURI(keyword);
+      encodedKeyword = encodedKeyword.replace(/%20/g, ' ');
+      
+      queryParams += ` AND ( l.title LIKE '%${encodedKeyword}%' OR l.description LIKE '%${encodedKeyword}%' )`;
     }
     if(params.recommended){
       queryParams += ` AND l.recommended = 1`;

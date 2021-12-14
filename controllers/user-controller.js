@@ -68,23 +68,7 @@ class UserController {
 
       res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
 
-      let websiteUrl;;
-      if (process.env.NODE_ENV === 'development') {
-        websiteUrl = 'http://localhost:4200';
-      } else {
-        websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-      }
-
-      const mailOptions = {
-        to: req.body.email,
-        subject: 'Email Verification',
-        body: `Welcome to Blackdirectory!<br><br>
-Please click on the following link to verify your email.<br>
-${websiteUrl}/verify/${registerInfo.verification_key}
-              `,
-      }
-
-      mailHandler.sendEmail(mailOptions);
+      this.sendActivationMail(req.body.email, registerInfo.verification_key);
 
       new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
@@ -94,6 +78,39 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     }
 
   };
+
+  resendVerificationEmail = async (req, res, next) => {
+    const user = await UserModel.getUserProfile({ "id": req.currentUser.id });
+
+    const email = user.data.email;
+    const key = user.meta_data.find((data) => data.meta_key === 'verification_key');
+
+    if (email && key) {
+      this.sendActivationMail(email, key.meta_value);
+    }
+    
+    new AppSuccess(res, 200, "Sent");
+  }
+
+  sendActivationMail = (email, key) => {
+    let websiteUrl;;
+    if (process.env.NODE_ENV === 'development') {
+      websiteUrl = 'http://localhost:4200';
+    } else {
+      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
+    }
+
+    const mailOptions = {
+      to: email,
+      subject: 'Email Verification',
+      body: `Welcome to Blackdirectory!<br><br>
+Please click on the following link to verify your email.<br>
+${websiteUrl}/verify/${key}
+            `,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
 
   userLogin = async (req, res, next) => {
 
