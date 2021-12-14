@@ -672,6 +672,10 @@ class ListingModel {
     }
 
     // set limit 
+    if (params.limit && params.page) {
+      params.offset = params.limit * (params.page - 1);
+    }
+
     let queryLimit = '';
     if(params.limit && params.limit != '' && (params.offset == 0 || params.offset != '')){
       queryLimit = ` LIMIT ?, ?`;
