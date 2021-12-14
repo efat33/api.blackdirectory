@@ -68,23 +68,7 @@ class UserController {
 
       res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
 
-      let websiteUrl;;
-      if (process.env.NODE_ENV === 'development') {
-        websiteUrl = 'http://localhost:4200';
-      } else {
-        websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-      }
-
-      const mailOptions = {
-        to: req.body.email,
-        subject: 'Email Verification',
-        body: `Welcome to Blackdirectory!<br><br>
-Please click on the following link to verify your email.<br>
-${websiteUrl}/verify/${registerInfo.verification_key}
-              `,
-      }
-
-      mailHandler.sendEmail(mailOptions);
+      this.sendActivationMail(req.body.email, registerInfo.verification_key);
 
       new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
@@ -94,6 +78,39 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     }
 
   };
+
+  resendVerificationEmail = async (req, res, next) => {
+    const user = await UserModel.getUserProfile({ "id": req.currentUser.id });
+
+    const email = user.data.email;
+    const key = user.meta_data.find((data) => data.meta_key === 'verification_key');
+
+    if (email && key) {
+      this.sendActivationMail(email, key.meta_value);
+    }
+    
+    new AppSuccess(res, 200, "Sent");
+  }
+
+  sendActivationMail = (email, key) => {
+    let websiteUrl;;
+    if (process.env.NODE_ENV === 'development') {
+      websiteUrl = 'http://localhost:4200';
+    } else {
+      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
+    }
+
+    const mailOptions = {
+      to: email,
+      subject: 'Email Verification',
+      body: `Welcome to Blackdirectory!<br><br>
+Please click on the following link to verify your email.<br>
+${websiteUrl}/verify/${key}
+            `,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
 
   userLogin = async (req, res, next) => {
 
@@ -274,10 +291,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       'updated_at': current_date
     }
 
-    if (currentUser.role === 'admin') {
-      basic_info.forum_role = req.body.forum_role;
-    }
-
     const employer_info = {};
     const candidate_info = {};
     const candidate_others = {};
@@ -338,11 +351,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
       candidate_info.cover_letter = req.body.cover_letter;
       candidate_info.candidate_cv = req.body.candidate_cv_name;
     }
-
     if (req.body.candidateEducations && req.body.candidateEducations.length > 0) {
       candidate_others.educations = req.body.candidateEducations;
     }
-
     if (req.body.removedEducations && JSON.parse(req.body.removedEducations) && JSON.parse(req.body.removedEducations).length > 0) {
       candidate_others.educationsTobeRemoved = JSON.parse(req.body.removedEducations);
     }
@@ -350,7 +361,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     if (req.body.candidateExperiences && req.body.candidateExperiences.length > 0) {
       candidate_others.experiences = req.body.candidateExperiences;
     }
-
     if (req.body.removedExperiences && JSON.parse(req.body.removedExperiences) && JSON.parse(req.body.removedExperiences).length > 0) {
       candidate_others.experiencesTobeRemoved = JSON.parse(req.body.removedExperiences);
     }
@@ -358,7 +368,6 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
     if (req.body.candidatePortfolios && req.body.candidatePortfolios.length > 0) {
       candidate_others.portfolios = req.body.candidatePortfolios;
     }
-
     if (req.body.removedPortfolios && JSON.parse(req.body.removedPortfolios) && JSON.parse(req.body.removedPortfolios).length > 0) {
       candidate_others.portfoliosTobeRemoved = JSON.parse(req.body.removedPortfolios);
     }
@@ -480,16 +489,9 @@ ${websiteUrl}/verify/${registerInfo.verification_key}
   };
 
   checkAuthentication = async (req, res, next) => {
+
     let user = '';
-
-    if (req.currentUser) {
-      user = await UserModel.findOne({ 'id': req.currentUser.id })
-
-      const { password, ...userWithoutPassword } = user;
-      new AppSuccess(res, 200, "200_successful", "", userWithoutPassword);
-
-      return;
-    };
+    if (req.currentUser) user = await UserModel.findOne({ 'id': req.currentUser.id });
 
     new AppSuccess(res, 200, "200_successful", "", user);
 

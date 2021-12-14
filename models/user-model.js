@@ -378,7 +378,7 @@ class UserModel {
   getUserDetails = async ({ username }) => {
 
     const sqlUser = `SELECT u.id, u.email, u.first_name, u.last_name, u.username, u.display_name, u.dob, u.phone, u.is_business, u.description, u.job_sectors_id,
-      u.pubic_view, u.profile_photo, u.cover_photo, u.role, u.views, u.address, u.latitude, u.longitude, u.featured, u.auth_type, u.verified, u.created_at,
+      u.pubic_view, u.profile_photo, u.cover_photo, u.role, u.forum_role, u.views, u.address, u.latitude, u.longitude, u.featured, u.auth_type, u.verified, u.created_at,
       u.updated_at, u.role, s.title AS sector
       FROM ${this.tableName} u
       LEFT JOIN job_sectors s ON s.id = u.job_sectors_id  

@@ -12,6 +12,7 @@ const validation = require('../utils/listingValidator');
 router.post('/add-topic', apiKey(), authVerified(), canCreateTopic(), awaitHandlerFactory(forumController.newTopic));
 router.post('/get-topics', apiKey(), awaitHandlerFactory(forumController.getTopics));
 router.put('/update-topic/:topic_id', apiKey(), authVerified(), awaitHandlerFactory(forumController.updateTopic));
+router.delete('/delete-topic/:topic_id', apiKey(), authVerified(), awaitHandlerFactory(forumController.deleteTopic));
 
 router.get('/get-topic/:topic_id', apiKey(), awaitHandlerFactory(forumController.getSingleTopic));
 
