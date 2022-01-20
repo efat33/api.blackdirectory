@@ -26,6 +26,22 @@ class NewsModel {
 
     }
 
+    find = async (params = {}, table = `${DBTables.events}`, orderby = '') => {
+        let sql = `SELECT * FROM ${table}`;
+    
+        if (!Object.keys(params).length) {
+            if (orderby != '') sql += ` ${orderby}`;
+            return await query(sql);
+        }
+    
+        const { columnSet, values } = multipleColumnSet(params)
+        sql += ` WHERE ${columnSet}`;
+    
+        if (orderby != '') sql += ` ${orderby}`;
+    
+        return await query(sql, [...values]);
+    }
+
     createNews = async (params) => {
         let slug = await commonfn.generateSlug(params.title, this.tableName);
         let output = {};
@@ -184,7 +200,7 @@ class NewsModel {
     getNewsCategories = async () => {
         let sql = `SELECT *, (SELECT count(*) FROM ${this.tableName} WHERE category_id=${this.tableNameCategories}.id) as count 
             FROM ${this.tableNameCategories} 
-            ORDER BY category_order`;
+            ORDER BY name ASC`;
 
         return await query(sql);
     }

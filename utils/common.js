@@ -58,6 +58,10 @@ exports.DBTables = {
   'reply_notifications': 'reply_notifications',
   'topic_tags': 'topic_tags',
   'topic_tag_relationships': 'topic_tag_relationships',
+
+  // news table
+  'news_categories': 'news_categories',
+
 };
 
 exports.multipleColumnSet = (object, joinBy = 'AND') => {
