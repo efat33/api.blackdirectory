@@ -135,6 +135,12 @@ class MobilesModel {
     //   values.push(params[param])
     // }
 
+    // remove top mobile
+    if (params.topMobile) {
+      paramArray.push(`Mobile.id != ?`);
+      values.push(params.topMobile);
+    }
+
     if (params.category) {
       paramArray.push(`Mobile.category = ?`);
       values.push(params.category);

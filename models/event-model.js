@@ -23,6 +23,7 @@ class EventModel {
     let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if (orderby != '') sql += ` ${orderby}`;
       return await query(sql);
     }
 
@@ -60,14 +61,14 @@ class EventModel {
     // first insert into event table
     const sql = `INSERT INTO ${DBTables.events} 
                     (user_id, title, slug, description, start_time, end_time, 
-                        featured_img, address, latitude, longitude, website_url, 
+                        featured_img, venue, address, latitude, longitude, website_url, 
                         youtube_url, featured, is_virtual, created_at, updated_at) 
                     VALUES (?,?,?,?,?,?,
-                        ?,?,?,?,?,
+                        ?,?,?,?,?,?,
                         ?,?,?,?,?)`;
     const values = [
       user_id, params.title, slug, params.description, params.start_time, params.end_time, params.featured_img,
-      params.address, params.latitude, params.longitude, params.website_url, params.youtube_url,
+      params.venue, params.address, params.latitude, params.longitude, params.website_url, params.youtube_url,
       0, is_virtual, current_date, current_date
     ];
 
@@ -179,6 +180,7 @@ class EventModel {
       'start_time': params.start_time,
       'end_time': params.end_time,
       'featured_img': params.featured_img,
+      'venue': params.venue,
       'address': params.address,
       'latitude': params.latitude,
       'longitude': params.longitude,

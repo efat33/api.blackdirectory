@@ -1310,10 +1310,10 @@ class ListingModel {
     let output = {};
 
     const sql = `INSERT INTO ${this.tableCategories} 
-      (title, image) 
-      VALUES (?,?)`;
+      (title, image, featured_image) 
+      VALUES (?,?,?)`;
 
-    const result = await query(sql, [params.title, params.image]);
+    const result = await query(sql, [params.title, params.image, params.featured_image]);
 
     if (result.insertId) {
       const listing_category_id = result.insertId;
@@ -1353,11 +1353,35 @@ class ListingModel {
   getListingCategories = async () => {
     let sql = `SELECT * FROM ${this.tableCategories}`;
 
-    return await query(sql);
+    const categories = await query(sql);
+
+    // get listing count of each category 
+    let sql_count = `SELECT COUNT(listing_id) as total_listing, listing_categories_id as cat_id
+    FROM ${DBTables.listing_categories_listing} 
+    GROUP BY listing_categories_id`;
+
+    const listing_count = await query(sql_count);
+    const listing_count_obj = {};
+
+    // prepare listing_count_obj to make things easy, to get listing count using cat_id
+    for (let index = 0; index < listing_count.length; index++) {
+      const item = listing_count[index];
+      listing_count_obj[item.cat_id] = item.total_listing;
+    }
+
+    // prepare final output - add number of listings to the category array
+    for (let index = 0; index < categories.length; index++) {
+      const item = categories[index];
+      const cat_id = item.id;
+
+      categories[index]['listing_number'] = listing_count_obj[cat_id] ? listing_count_obj[cat_id] : 0;
+    }
+
+    return categories;
   }
 
   getTrendingCategories = async () => {
-    let sql = `SELECT COUNT(lc.listing_id) as total_listing, lc.listing_categories_id, c.title, c.image
+    let sql = `SELECT COUNT(lc.listing_id) as total_listing, lc.listing_categories_id, c.title, c.image, c.featured_image
     FROM ${DBTables.listing_categories_listing} AS lc
     JOIN ${DBTables.listing_categories} AS c ON lc.listing_categories_id = c.id
     GROUP BY lc.listing_categories_id
