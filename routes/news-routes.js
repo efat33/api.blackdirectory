@@ -16,6 +16,7 @@ router.put('/update-news/:news_id', apiKey(), authVerified(), isAdmin(), awaitHa
 router.delete('/delete-news/:news_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(newsController.deleteNews));
 
 router.get('/get-categories', apiKey(), awaitHandlerFactory(newsController.getNewsCategories));
+router.get('/get-categories-list', apiKey(), awaitHandlerFactory(newsController.getNewsCategoriesList));
 router.post('/add-category', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(newsController.newNewsCategory));
 router.put('/update-category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(newsController.updateNewsCategory));
 router.delete('/delete-category/:category_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(newsController.deleteNewsCategory));
