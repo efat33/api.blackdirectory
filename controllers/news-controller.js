@@ -90,6 +90,12 @@ class NewsController {
         new AppSuccess(res, 200, "200_successful", { 'entity': 'entity_category' }, result);
     };
 
+    getNewsCategoriesList = async (req, res, next) => {
+        const result = await NewsModel.find({}, commonfn.DBTables.news_categories, 'ORDER BY name ASC')
+
+        new AppSuccess(res, 200, "200_successful", { 'entity': 'entity_category' }, result);
+    };
+
     newNewsCategory = async (req, res, next) => {
         const newsCategory = await NewsModel.createNewsCategory(req.body);
 
