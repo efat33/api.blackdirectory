@@ -8,6 +8,7 @@ class ShopModel {
   tableName = 'products';
   tableNameReviews = 'product_reviews';
   tableNameShopDetails = 'store_details';
+  tableNameShopPayment = 'store_payment';
   tableNameCartItems = 'store_cart_items';
 
   tableOrders = 'orders';
@@ -85,10 +86,10 @@ class ShopModel {
                     ?,?,?,?,?,
                     ?,?,?,?)`;
     const values = [
-      user_id, params.title, slug, params.price, params.discounted_price, 
-      params.discount_start ? commonfn.dateTime(new Date(params.discount_start)) : null, 
+      user_id, params.title, slug, params.price, params.discounted_price,
+      params.discount_start ? commonfn.dateTime(new Date(params.discount_start)) : null,
       params.discount_end ? commonfn.dateTime(new Date(params.discount_end)) : null,
-      params.image, JSON.stringify(params.galleries), params.short_desc, 
+      params.image, JSON.stringify(params.galleries), params.short_desc,
       params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
       current_date, current_date
     ];
@@ -658,6 +659,41 @@ class ShopModel {
     }
   }
 
+  getShopPayment = async (user_id) => {
+    let sql = `SELECT *
+      FROM ${this.tableNameShopPayment}  
+      WHERE user_id=?`;
+
+    return await query(sql, [user_id]);
+  }
+
+  updateShopPayment = async (params, user_id) => {
+    const sql = `INSERT INTO ${this.tableNameShopPayment} 
+      (user_id, account_name, account_number, bank_name, bank_address, routing_number, iban, swift_code) 
+      VALUES ? ON DUPLICATE KEY 
+      UPDATE account_name=VALUES(account_name),
+        account_number=VALUES(account_number),
+        bank_name=VALUES(bank_name),
+        bank_address=VALUES(bank_address),
+        routing_number=VALUES(routing_number),
+        iban=VALUES(iban),
+        swift_code=VALUES(swift_code)
+      `;
+
+    const values = [];
+    values.push(user_id);
+
+    let availableKeys = ['account_name', 'account_number', 'bank_name', 'bank_address', 'routing_number', 'iban', 'swift_code'];
+
+    for (const key of availableKeys) {
+      values.push(params[key]);
+    }
+
+    if (values.length) {
+      return await query2(sql, [[values]]);
+    }
+  }
+
   getCartItems = async (user_id) => {
     let sql = `SELECT Cart.*, 
     Product.title as product_title, Product.slug as product_slug, Product.price as product_price, Product.image as product_image,
@@ -1071,7 +1107,7 @@ class ShopModel {
     let sql = `SELECT *
     FROM ${DBTables.product_shippings}
     WHERE id IN (${encodeURI(ids.join(','))})`;
-    
+
     return await query(sql);
   }
 
@@ -1101,7 +1137,7 @@ class ShopModel {
 
     return output;
   }
-  
+
   editShippingMethod = async (shipping_id, body) => {
     const sqlParamsArr = [];
     const values = [];
@@ -1149,7 +1185,7 @@ class ShopModel {
 
     return output;
   }
-  
+
   editCategory = async (category_id, body) => {
     const sqlParamsArr = [];
     const values = [];
@@ -1205,7 +1241,7 @@ class ShopModel {
 
     return output;
   }
-  
+
   editCategoryOption = async (option_id, body) => {
     const sqlParamsArr = [];
     const values = [];
@@ -1256,7 +1292,7 @@ class ShopModel {
 
     return output;
   }
-  
+
   editOptionChoice = async (choice_id, body) => {
     const sqlParamsArr = [];
     const values = [];
@@ -1280,14 +1316,14 @@ class ShopModel {
 
     return await query(sql, values);
   }
-  
+
   assignCategoryOptions = async (body) => {
     let ids = body.selectedOptions.map(option => option.id);
     ids = encodeURI(ids.join(','));
 
     let remove_sql = `DELETE FROM ${DBTables.product_category_option_relationships} 
       WHERE category_id=?`;
-    
+
     if (ids) {
       remove_sql += ` AND option_id NOT IN (${ids})`;
     }

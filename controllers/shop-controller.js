@@ -307,6 +307,22 @@ class ShopController {
     new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_details' });
   }
 
+  getShopPayment = async (req, res, next) => {
+    const payment = await shopModel.getShopPayment(req.currentUser.id);
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_details' }, payment[0]);
+  };
+
+  updateShopPayment = async (req, res, next) => {
+    const result = await shopModel.updateShopPayment(req.body, req.currentUser.id);
+
+    if (result.affectedRows == 0) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_details' });
+  }
+
   getCartItems = async (req, res, next) => {
     const items = await shopModel.getCartItems(req.currentUser.id);
 

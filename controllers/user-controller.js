@@ -68,7 +68,8 @@ class UserController {
 
       res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
 
-      this.sendActivationMail(req.body.email, registerInfo.verification_key);
+      this.sendWelcomeMail(req.body.username, req.body.email);
+      this.sendActivationMail(req.body.username, req.body.email, registerInfo.verification_key);
 
       new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
@@ -82,17 +83,18 @@ class UserController {
   resendVerificationEmail = async (req, res, next) => {
     const user = await UserModel.getUserProfile({ "id": req.currentUser.id });
 
+    const username = user.data.username;
     const email = user.data.email;
     const key = user.meta_data.find((data) => data.meta_key === 'verification_key');
 
     if (email && key) {
-      this.sendActivationMail(email, key.meta_value);
+      this.sendActivationMail(username, email, key.meta_value);
     }
     
     new AppSuccess(res, 200, "Sent");
   }
 
-  sendActivationMail = (email, key) => {
+  sendWelcomeMail = (username, email) => {
     let websiteUrl;;
     if (process.env.NODE_ENV === 'development') {
       websiteUrl = 'http://localhost:4200';
@@ -102,11 +104,37 @@ class UserController {
 
     const mailOptions = {
       to: email,
-      subject: 'Email Verification',
-      body: `Welcome to Blackdirectory!<br><br>
-Please click on the following link to verify your email.<br>
-${websiteUrl}/verify/${key}
-            `,
+      subject: 'Welcome to Black Directory!',
+      body: `Hello ${username},
+      
+Thank you for registering with Black Directory, we look forward to you using our website as a business or service provider, consumer, employer or job seeker.
+
+Best regards,
+
+Black Directory Team`,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
+
+  sendActivationMail = (username, email, key) => {
+    let websiteUrl;;
+    if (process.env.NODE_ENV === 'development') {
+      websiteUrl = 'http://localhost:4200';
+    } else {
+      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
+    }
+
+    const mailOptions = {
+      to: email,
+      subject: 'Black Directory - Email Confirmation',
+      body: `Hello ${username},
+      
+Please confirm your email address to complete your account registration. Just click this link ${websiteUrl}/verify/${key}.
+
+Best regards,
+
+Black Directory Team`,
     }
 
     mailHandler.sendEmail(mailOptions);

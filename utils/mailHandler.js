@@ -76,7 +76,7 @@ const mailTemplate = `
                                 <td colspan="2" valign="middle"
                                   style="border:0;color:#777;font-family:Arial;font-size:12px;line-height:125%;text-align:center">
 
-                                  ©2021 Black Directory </td>
+                                  &copy;${new Date().getFullYear()} Black Directory </td>
                               </tr>
                             </tbody>
                           </table>
