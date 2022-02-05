@@ -31,7 +31,7 @@ const auth = () => {
 
       // Verify Token
       const decoded = jwt.verify(token, secretKey);
-      // const user = await UserModel.findOne({ id: decoded.user_id });
+      const user = await UserModel.findOne({ id: decoded.user_id });
 
       // if (!user) {
       //   throw new AppError(401, "401_invalidCredentials");
@@ -40,6 +40,7 @@ const auth = () => {
       // if the user has permissions
       req.currentUser = {
         id: decoded.user_id,
+        email: user.email,
         role: decoded.role,
       };
 

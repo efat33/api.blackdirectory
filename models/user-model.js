@@ -745,8 +745,8 @@ class UserModel {
 
   getNotification = async (id) => {
     let sql = `SELECT Notifications.*, 
-        ActedUser.display_name as user_display_name, ActedUser.username as user_username,
-        User.email as email 
+        ActedUser.display_name as acted_user_display_name, ActedUser.username as acted_user_username,
+        User.email as user_email, User.display_name as user_display_name, User.username as user_username 
         FROM ${this.tableNameNotifications} as Notifications 
         LEFT JOIN ${this.tableName} as User ON User.id=Notifications.user_id 
         LEFT JOIN ${this.tableName} as ActedUser ON ActedUser.id=Notifications.acted_user_id

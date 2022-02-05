@@ -25,7 +25,7 @@ const mailTemplate = `
                               data-saferedirecturl="https://www.google.com/url?q=https://www.blackdirectory.co.uk&amp;source=gmail&amp;ust=1629564381513000&amp;usg=AFQjCNF-Yv05TqCfiShAJgjRLrXXIgGK-g"><img
                                 style="max-width:100%"
                                 src="https://ci4.googleusercontent.com/proxy/g8ydsk6btECnwbYoYkM5qgnMKUMjPO7Z2zVVp1UMidTA17Ix8Wm1Mk1VQLvCK1nfZdtX5eT4OEMGxg3V1221L28JRCDI9wZJ739bDzdm_YNCTGYb_8IAXwbA2ciS=s0-d-e1-ft#https://blackdirectory.co.uk/wp-content/uploads/2020/09/logo-162x100-1.png"
-                                alt="UK's Leading Black Directory"> </a>
+                                > </a>
                           </h1>
 
                         </td>
