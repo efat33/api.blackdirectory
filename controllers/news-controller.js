@@ -51,9 +51,9 @@ class NewsController {
         let body = {};
 
         if (isNaN(req.params.news_id)) {
-            body = { 'News.slug': req.params.news_id }
+            body = { 'slug': req.params.news_id }
         } else {
-            body = { 'News.id': req.params.news_id }
+            body = { 'id': req.params.news_id }
         }
 
         const result = await NewsModel.getSingleNews(body);
