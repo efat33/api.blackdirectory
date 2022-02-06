@@ -5,6 +5,7 @@ const AppError = require("../utils/appError");
 exports.DBTables = {
   'users': 'users',
   'users_meta': 'users_meta',
+  'countries': 'countries',
 
   'listings': 'listings',
   'listing_business_hours': 'listing_business_hours',

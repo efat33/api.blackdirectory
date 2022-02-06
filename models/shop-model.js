@@ -271,6 +271,13 @@ class ShopModel {
     return false;
   }
 
+  deleteProduct = async (id) => {
+    const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
+    const values = [id];
+
+    return await query(sql, values);
+  }
+
   getProduct = async (slug) => {
     let sql = `SELECT p.*, store.store_name as store_name, 
       users.username as user_username, users.display_name as user_display_name
@@ -1080,12 +1087,13 @@ class ShopModel {
     const output = {}
 
     const sql = `INSERT INTO ${DBTables.product_shippings} 
-            (vendor_id, title, fee, shipping_order) 
-            VALUES (?,?,?,?)`;
+            (vendor_id, title, zones, fee, shipping_order) 
+            VALUES (?,?,?,?,?)`;
 
     const values = [
       user_id,
       body.title,
+      JSON.stringify(body.zones),
       body.fee || 0,
       body.shipping_order || 1
     ];
@@ -1108,7 +1116,14 @@ class ShopModel {
 
     Object.entries(body).forEach(([key, val]) => {
       sqlParamsArr.push(`${key} = ?`);
-      values.push(val);
+
+      if(key == 'zones'){
+        values.push(JSON.stringify(val));
+      }
+      else{
+        values.push(val);
+      }
+      
     });
 
     const sqlParams = sqlParamsArr.join(',');
