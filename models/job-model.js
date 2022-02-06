@@ -440,7 +440,7 @@ class JobModel {
   }
 
   getJobApplications = async (params = {}) => {
-    let sql = `SELECT Applications.*, Jobs.title as job_title, 
+    let sql = `SELECT Applications.*, Jobs.title as job_title, Jobs.slug as job_slug, 
             Users.username as user_username, Users.display_name as user_display_name, 
             Users.email as user_email, Users.profile_photo as user_profile_photo  
             FROM ${this.tableJobApplications} as Applications
