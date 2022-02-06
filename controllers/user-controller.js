@@ -583,8 +583,14 @@ Black Directory Team`,
 
     // send email
     const notification = (await UserModel.getNotification(result.id))[0];
+    const job = (await jobModel.getJobsByIds([notification.notification_type_id]))[0];
+
+    if (job.job_apply_type === 'with_email') {
+      return;
+    }
+
     const emailSubject = await this.getJobNotificationEmailSubject(notification);
-    const emailBody = await this.getJobNotificationEmailBody(notification);
+    const emailBody = await this.getJobNotificationEmailBody(notification, job);
 
     const mailOptions = {
       to: notification.user_email,
@@ -613,9 +619,7 @@ Black Directory Team`,
     }
   }
 
-  getJobNotificationEmailBody = async (notification) => {
-    const job = (await jobModel.getJobsByIds([notification.notification_type_id]))[0];
-
+  getJobNotificationEmailBody = async (notification, job) => {
     let websiteUrl;
     if (process.env.NODE_ENV === 'development') {
       websiteUrl = 'http://localhost:4200';

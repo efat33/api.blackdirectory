@@ -30,6 +30,7 @@ exports.DBTables = {
   'product_wishlists': 'product_wishlists',
   'product_shippings': 'product_shippings',
   'store_details': 'store_details',
+  'withdraw_requests': 'withdraw_requests',
 
   // event tables
   'events': 'events',

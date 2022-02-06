@@ -996,15 +996,38 @@ class ShopModel {
   }
 
   getWithdrawRequests = async (currentUser) => {
-    let sql = `SELECT * FROM ${this.tableWithdrawRequests}`;
+    let sql = `SELECT Requests.*, Payment.account_name as payment_account_name, 
+      Payment.account_number as payment_account_number, Payment.bank_name as payment_bank_name,
+      Payment.bank_address as payment_bank_address, Payment.routing_number as payment_routing_number,
+      Payment.iban as payment_iban, Payment.swift_code as payment_swift_code
+      FROM ${this.tableWithdrawRequests} as Requests
+      LEFT JOIN ${this.tableNameShopPayment} as Payment ON Payment.user_id=Requests.user_id 
+      `;
 
     if (currentUser.role === 'admin') {
       return await query(sql);
     }
 
-    sql += ` WHERE user_id=?`;
+    sql += ` WHERE Requests.user_id=?`;
 
     return await query(sql, [currentUser.id]);
+  }
+
+  getWithdrawRequest = async (request_id) => {
+    let sql = `SELECT Requests.*, Users.display_name as user_display_name, Users.email as user_email
+      FROM ${this.tableWithdrawRequests} as Requests
+      LEFT JOIN ${this.tableNameUsers} as Users ON Users.id=Requests.user_id 
+      `;
+
+    sql += ` WHERE Requests.id=?`;
+
+    return await query(sql, [request_id]);
+  }
+
+  completeWithdrawRequest = async (request_id) => {
+    const sql = `UPDATE ${DBTables.withdraw_requests} SET status='Processed' WHERE id=?`;
+
+    return await query(sql, [request_id]);
   }
 
   getSoldItems = async (currentUser) => {
