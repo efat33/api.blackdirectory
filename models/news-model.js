@@ -7,6 +7,7 @@ class NewsModel {
     tableName = 'news';
     tableNameComments = 'news_comments';
     tableNameCategories = 'news_categories';
+    tableNewsCatRel = 'news_category_relationships';
     tableNameTopNews = 'news_top_news';
     tableNameComments = 'news_comments';
     tableNameCommentLikes = 'news_comment_likes';
@@ -47,16 +48,30 @@ class NewsModel {
         let output = {};
 
         const sql = `INSERT INTO ${this.tableName} 
-            (title, slug, content, short_content, featured_image, category_id, featured) 
-            VALUES (?,?,?,?,?,?,?)`;
+            (title, slug, content, short_content, featured_image, featured) 
+            VALUES (?,?,?,?,?,?)`;
 
-        const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.category_id, params.featured];
+        const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.featured];
 
         const result = await query(sql, values);
 
 
         if (result.insertId) {
             const news_id = result.insertId;
+
+            // insert data to listing categories table
+            if (params.category_id.length > 0) {
+                const sql_meta = `INSERT INTO ${this.tableNewsCatRel} (news_id, category_id) VALUES ?`;
+                const values = [];
+
+                for (let x of params.category_id) {
+                    const tmp = [news_id, x];
+                    values.push(tmp);
+                }
+
+                await query2(sql_meta, [values]);
+
+            }
 
             output.status = 200
             output.data = { news_id, slug }
@@ -73,8 +88,12 @@ class NewsModel {
         let sql = `UPDATE ${this.tableName} SET`;
 
         const paramArray = [];
+        const values = [];
         for (let param in params) {
-            paramArray.push(` ${param} = ?`);
+            if (param != 'category_id') {
+                paramArray.push(` ${param} = ?`);
+                values.push(params[param]);
+            }
         }
 
         paramArray.push(` updated_at = ?`);
@@ -83,22 +102,39 @@ class NewsModel {
 
         sql += ` WHERE id = ?`;
 
-        const values = [
-            ...Object.values(params),
-            current_date,
-            id
-        ];
+        values.push(current_date);
+        values.push(id);
 
         const result = await query(sql, values);
+
+        if (result.affectedRows == 1) {
+            // insert data to listing categories table
+            if (params.category_id.length > 0) {
+
+                 // first delete the existing categories
+                const sql_cat_del = `DELETE FROM ${this.tableNewsCatRel} WHERE news_id = ?`;
+                await query(sql_cat_del, [id]);
+                
+                const sql_meta = `INSERT INTO ${this.tableNewsCatRel} (news_id, category_id) VALUES ?`;
+                const values = [];
+
+                for (let x of params.category_id) {
+                    const tmp = [id, x];
+                    values.push(tmp);
+                }
+
+                await query2(sql_meta, [values]);
+
+            }
+        }
 
         return result;
     }
 
     getNews = async (params = {}, page = 1, limit = -1) => {
-        let sql = `SELECT News.*, NewsCategories.name as category 
-            FROM ${this.tableName} as News
-            LEFT JOIN ${this.tableNameCategories} as NewsCategories ON NewsCategories.id=News.category_id
-            `;
+        let sql = `SELECT DISTINCT News.*
+            FROM ${this.tableName} as News 
+            LEFT JOIN ${this.tableNewsCatRel} as ncr ON ncr.news_id = News.id`;
 
         const paramArray = [];
         const values = [];
@@ -107,6 +143,9 @@ class NewsModel {
             if (param === 'exclude') {
                 const ids = encodeURI(params.exclude.join(','));
                 paramArray.push(`News.id NOT IN (${ids})`);
+            } else if(param === 'category_id') {
+                paramArray.push(`ncr.${param} = ?`);
+                values.push(params[param])
             } else {
                 paramArray.push(`News.${param} = ?`);
                 values.push(params[param])
@@ -123,28 +162,58 @@ class NewsModel {
             sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
         }
 
-        return await query(sql, values);
+        const news =  await query(sql, values);
+
+        if(news.length > 0){
+            const news_ids = news.map((n) => n['id']);
+
+            // get categories
+            const sqlListCat = `SELECT ncr.news_id, ncr.category_id, nc.name
+                                FROM ${this.tableNewsCatRel} ncr
+                                JOIN ${this.tableNameCategories} nc ON ncr.category_id = nc.id   
+                                WHERE ncr.news_id IN (${news_ids.join()})`;
+            const categories = await query(sqlListCat);
+
+
+            for (const item of news) {
+                item.categories = categories.filter((c) => c.news_id == item.id);
+            }
+        }
+        
+        return news;
     }
 
     getSingleNews = async (params = {}) => {
-        let sql = `SELECT News.*, NewsCategories.name as category 
-            FROM ${this.tableName} as News
-            LEFT JOIN ${this.tableNameCategories} as NewsCategories ON NewsCategories.id=News.category_id
-            `;
+        let sql = `SELECT * FROM ${this.tableName}`;
 
         const { columnSet, values } = multipleColumnSet(params)
         sql += ` WHERE ${columnSet}`;
 
         const result = await query(sql, [...values]);
-
+        
         if (result.length) {
+            const news_id = result[0].id;
+
+            // fetch categories
+            const sqlCat = `SELECT ncr.news_id, ncr.category_id, nc.name
+                    FROM ${this.tableNewsCatRel} ncr
+                    JOIN ${this.tableNameCategories} nc ON ncr.category_id = nc.id  
+                    WHERE ncr.news_id = ?`;
+
+                    result[0].categories = await query(sqlCat, [news_id]);
+
             result[0].comments = await this.getNewsComments(result[0].id);
         }
-
+        
         return result;
     }
 
     deleteNews = async (id) => {
+        const sqlCat = `DELETE FROM ${this.tableNewsCatRel} WHERE news_id=?`;
+        const valuesCat = [id];
+
+        await query(sqlCat, valuesCat);
+
         const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
         const values = [id];
 
@@ -198,7 +267,7 @@ class NewsModel {
     }
 
     getNewsCategories = async () => {
-        let sql = `SELECT *, (SELECT count(*) FROM ${this.tableName} WHERE category_id=${this.tableNameCategories}.id) as count 
+        let sql = `SELECT *, (SELECT count(*) FROM ${this.tableNewsCatRel} WHERE category_id=${this.tableNameCategories}.id) as count 
             FROM ${this.tableNameCategories} 
             ORDER BY name ASC`;
 

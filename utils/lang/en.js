@@ -120,6 +120,9 @@ exports.ENTITIES = Object.freeze({
   // news
   entity_news: "News",
 
+   // travel
+   entity_travel: "Travel",
+
   // forum
   entity_forum: "Forum",
 
