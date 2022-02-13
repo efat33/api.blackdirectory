@@ -105,9 +105,14 @@ class DealsModel {
 
     for (let param in params) {
       if (param.startsWith('dealer')) {
-        paramArray.push(`Dealer.${param.substring(7)} = ?`);
-        values.push(params[param]);
-      } else {
+        if(params[param] != ''){
+          paramArray.push(`Dealer.${param.substring(7)} = ?`);
+          values.push(params[param]);
+        }
+      } else if(param == 'title')  {
+        paramArray.push(`Deal.${param} LIKE ?`);
+        values.push(`%${params[param]}%`);
+      } else  {
         paramArray.push(`Deal.${param} = ?`);
         values.push(params[param]);
       }

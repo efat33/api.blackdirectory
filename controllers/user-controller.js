@@ -103,6 +103,9 @@ class UserController {
 
     if (!user || user.auth_type != 'general') {
       throw new AppError(403, "403_signInInvalidEmail");
+    }
+    else if (user.is_deactivated == 1) {
+      throw new AppError(403, "Account is deactivated. Please contact with Admin");
     } else {
 
       const dbPassword = user.password;
@@ -420,8 +423,46 @@ class UserController {
       throw new AppError(403, "403_invalidVerificationKey");
     }
 
+  }
 
+  userRequest = async (req, res, next) => {
 
+    const result = await UserModel.userRequest(req.body, req.currentUser);
+
+    if (result.affectedRows == 1) {
+      new AppSuccess(res, 200, "200_successful");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  getUserRequests = async (req, res, next) => {
+
+    const result = await UserModel.find({}, commonfn.DBTables.user_requests, 'ORDER BY created_at DESC');
+    new AppSuccess(res, 200, "200_successful", {}, result);
+  }
+
+  userRequestDeactivate = async (req, res, next) => {
+
+    const result = await UserModel.userRequestDeactivate(req.body);
+
+    if (result.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "Deactivated Successfully",);
+  }
+
+  userRequestReactivate = async (req, res, next) => {
+
+    const result = await UserModel.userRequestReactivate(req.body);
+
+    if (result.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "Activated Successfully",);
   }
 
   userImports = async (req, res, next) => {
@@ -437,6 +478,17 @@ class UserController {
     if (!userList.length) {
       throw new AppError(404, "Users not found");
     }
+
+    userList = userList.map((user) => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+
+    res.send(userList);
+  };
+
+  getDeactivatedUsers = async (req, res, next) => {
+    let userList = await UserModel.find({is_deactivated: 1});
 
     userList = userList.map((user) => {
       const { password, ...userWithoutPassword } = user;
