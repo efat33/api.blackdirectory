@@ -25,6 +25,11 @@ router.post('/user-update', apiKey(), auth(), awaitHandlerFactory(userController
 router.post('/user-update/:id', apiKey(), auth(), isAdmin(), awaitHandlerFactory(userController.updateUser));
 router.get('/authenticated', apiKey(), currentUser(), awaitHandlerFactory(userController.checkAuthentication));
 
+router.post('/user-request', apiKey(), auth(), awaitHandlerFactory(userController.userRequest));
+router.get('/user-request', apiKey(), auth(), awaitHandlerFactory(userController.getUserRequests));
+router.post('/user-request-deactivate', apiKey(), auth(), isAdmin(), awaitHandlerFactory(userController.userRequestDeactivate));
+router.post('/user-request-reactivate', apiKey(), auth(), isAdmin(), awaitHandlerFactory(userController.userRequestReactivate));
+
 router.get('/logout', apiKey(), awaitHandlerFactory(userController.logout));
 
 router.get('/user-profile', apiKey(), auth(), awaitHandlerFactory(userController.userProfile));
@@ -51,6 +56,7 @@ router.delete('/notification/:notification_id', apiKey(), auth(), awaitHandlerFa
 
 router.post('/get-users', apiKey(), auth(), awaitHandlerFactory(userController.getUsersByIds));
 router.get('/get-all-users', apiKey(), auth(), awaitHandlerFactory(userController.getAllUsers));
+router.get('/get-deactivated-users', apiKey(), auth(), awaitHandlerFactory(userController.getDeactivatedUsers));
 
 router.get('/get-candidate-cv/:application_id', apiKey(), authVerified(), awaitHandlerFactory(userController.getCandidateCV));
 

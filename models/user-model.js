@@ -12,6 +12,7 @@ class UserModel {
   tableNameUserReview = 'user_reviews';
   tableNameFollowStats = 'user_follow_stats';
   tableNameNotifications = 'user_notifications';
+  tableNameUserRequest = 'user_requests';
 
   findOneMatchAny = async (params = {}) => {
     let sql = `SELECT * FROM ${this.tableName}`;
@@ -38,15 +39,18 @@ class UserModel {
     return result[0];
   }
 
-  find = async (params = {}) => {
-    let sql = `SELECT * FROM ${this.tableName}`;
+  find = async (params = {}, table = `${this.tableName}`, orderby = '') => {
+    let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if(orderby != '') sql += ` ${orderby}`;
       return await query(sql);
     }
 
     const { columnSet, values } = multipleColumnSet(params)
     sql += ` WHERE ${columnSet}`;
+
+    if(orderby != '') sql += ` ${orderby}`;
 
     return await query(sql, [...values]);
   }
@@ -781,6 +785,88 @@ class UserModel {
 
     return await query2(sql, [[[currentUser.id, 'cv_download', 1]]]);
   }
+
+  userRequest = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    const user_id = currentUser.id;
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableNameUserRequest} 
+            (
+              user_id, 
+              user_email, 
+              request_type, 
+              description, 
+              created_at
+            ) 
+            VALUES (?,?,?,?,?)`;
+
+    const values = [
+      user_id,
+      params.user_email,
+      params.request,
+      params.description,
+      current_date
+    ];
+
+    const result = await query(sql, values);
+
+    return result;
+    
+  }
+
+  userRequestDeactivate = async (params) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = { status: 401};
+    const user_id = params.user_id;
+
+    const basic_info = {
+      'is_deactivated': 1,
+      'updated_at': current_date
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const result = await query(sql, [...basic_colset.values, user_id]);
+    
+    
+    if (result.affectedRows == 1) {
+      const sql = `DELETE FROM ${this.tableNameUserRequest} WHERE id IN (?)`;
+      await query(sql, [params.id]);
+
+      output.status = 200;
+    }
+
+    return output;
+  }
+
+  userRequestReactivate = async (params) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = { status: 401};
+    const user_id = params.id;
+    console.log(params);
+    const basic_info = {
+      'is_deactivated': 0,
+      'updated_at': current_date
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const result = await query(sql, [...basic_colset.values, user_id]);
+    
+    
+    if (result.affectedRows == 1) {
+
+      output.status = 200;
+    }
+
+    return output;
+  }
+
 }
 
 module.exports = new UserModel;

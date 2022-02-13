@@ -2,6 +2,7 @@ const { query, query2 } = require('../server');
 const { multipleColumnSet } = require('../utils/common');
 const PHPUnserialize = require('php-unserialize');
 const commonfn = require('../utils/common');
+const logger = require("../logger");
 
 class NewsModel {
     tableName = 'news';
@@ -86,6 +87,7 @@ class NewsModel {
     updateNews = async (id, params) => {
         const current_date = commonfn.dateTimeNow();
         let sql = `UPDATE ${this.tableName} SET`;
+        logger.error('printsql');
 
         const paramArray = [];
         const values = [];
@@ -95,7 +97,7 @@ class NewsModel {
                 values.push(params[param]);
             }
         }
-
+        
         paramArray.push(` updated_at = ?`);
 
         sql += paramArray.join(', ');
@@ -104,7 +106,8 @@ class NewsModel {
 
         values.push(current_date);
         values.push(id);
-
+        
+        logger.info(sql);
         const result = await query(sql, values);
 
         if (result.affectedRows == 1) {
@@ -146,6 +149,10 @@ class NewsModel {
             } else if(param === 'category_id') {
                 paramArray.push(`ncr.${param} = ?`);
                 values.push(params[param])
+            } else if(param === 'keyword') {
+                paramArray.push(`News.title LIKE ? OR News.content LIKE ? `);
+                values.push(`%${params[param]}%`);
+                values.push(`%${params[param]}%`);
             } else {
                 paramArray.push(`News.${param} = ?`);
                 values.push(params[param])
