@@ -38,4 +38,7 @@ router.post('/image-deal-ckeditor', storageImage.storageImageDealCkeditor, await
 router.post('/image-travel', storageImage.storageImageTravel, awaitHandlerFactory(UploadController.uploadImage));
 router.post('/image-travel-ckeditor', storageImage.storageImageTravelCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
 
+router.post('/image-finance', storageImage.storageImageFinance, awaitHandlerFactory(UploadController.uploadImage));
+router.post('/image-finance-ckeditor', storageImage.storageImageFinanceCkeditor, awaitHandlerFactory(UploadController.uploadImageCkeditor));
+
 module.exports = router;

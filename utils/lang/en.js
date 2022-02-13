@@ -9,6 +9,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "401_unauthorised": "Uauthorized",
   "401_invalidCredentials": "Uauthorized",
   "401_accountNotVerified": "Account is not verified",
+  "401_accountDeactivated": "Account is deactivated",
   "401_invalidAge": "You must be 18 to register",
   "401_notEmployer": "You must be an employer",
   "401_notAdmin": "You must be an admin",
@@ -120,8 +121,11 @@ exports.ENTITIES = Object.freeze({
   // news
   entity_news: "News",
 
-   // travel
-   entity_travel: "Travel",
+  // travel
+  entity_travel: "Travel",
+
+  // finance
+  entity_finance: "Finance",   
 
   // forum
   entity_forum: "Forum",

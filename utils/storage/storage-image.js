@@ -259,7 +259,7 @@ const storageImageTravel = multer({ storage: diskStorageTravel, fileFilter: file
 // ckeditor storage for travel
 const diskStorageTravelCkeditor = multer.diskStorage({
     destination: (reqm, file, cb) => {
-        cb(null, `uploads/news`);
+        cb(null, `uploads/travels`);
     },
     filename: (reqm, file, cb) => {
         const mimeType = file.mimetype.split('/');
@@ -271,6 +271,45 @@ const diskStorageTravelCkeditor = multer.diskStorage({
 });
 
 const storageImageTravelCkeditor = multer({ storage: diskStorageTravelCkeditor, fileFilter: fileFilter }).single(
+    'upload'
+);
+
+
+
+// finance storage
+const diskStorageFinance = multer.diskStorage({
+    destination: (reqm, file, cb) => {
+        cb(null, `uploads/finance`);
+    },
+    filename: (reqm, file, cb) => {
+        const mimeType = file.mimetype.split('/');
+        const fileType = mimeType[1];
+        const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
+        cb(null, fileName);
+    },
+});
+
+
+const storageImageFinance = multer({ storage: diskStorageFinance, fileFilter: fileFilter }).single(
+    'image'
+);
+
+// ckeditor storage for finance
+const diskStorageFinanceCkeditor = multer.diskStorage({
+    destination: (reqm, file, cb) => {
+        cb(null, `uploads/finance`);
+    },
+    filename: (reqm, file, cb) => {
+        const mimeType = file.mimetype.split('/');
+        const fileType = mimeType[1];
+        const onlyName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+        const fileName = onlyName.replace(regexPattern, '-') + '-' + Date.now() + '.' + fileType;
+        cb(null, fileName);
+    },
+});
+
+const storageImageFinanceCkeditor = multer({ storage: diskStorageFinanceCkeditor, fileFilter: fileFilter }).single(
     'upload'
 );
 
@@ -288,5 +327,7 @@ module.exports = {
     storageImageDeal,
     storageImageDealCkeditor,
     storageImageTravel,
-    storageImageTravelCkeditor
+    storageImageTravelCkeditor,
+    storageImageFinance,
+    storageImageFinanceCkeditor
 }
