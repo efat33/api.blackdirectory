@@ -510,7 +510,7 @@ class EventModel {
     let queryDistance = ''
 
     if (params.lat && params.lng) {
-      sql = `SELECT e.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( e.latitude ) ) * cos( radians( e.longitude ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( e.latitude ) ) ) ) as event_distance 
+      sql = `SELECT DISTINCT e.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( e.latitude ) ) * cos( radians( e.longitude ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( e.latitude ) ) ) ) as event_distance 
           FROM ${DBTables.events} AS e`;
 
       queryDistance = ` HAVING event_distance < 10`;
@@ -742,7 +742,7 @@ class EventModel {
     const orgArr = await query(sqlOrgan, [event_id]);
     let organisers = orgArr.map(o => o.organizer_id);
 
-    const sql = `SELECT e.* FROM ${DBTables.events} e 
+    const sql = `SELECT DISTINCT e.* FROM ${DBTables.events} e 
                     LEFT JOIN ${DBTables.event_category_relationships} c ON c.event_id = e.id  
                     LEFT JOIN ${DBTables.event_tag_relationships} t ON t.event_id = e.id 
                     LEFT JOIN ${DBTables.event_organiser_relationships} o ON o.event_id = e.id`;

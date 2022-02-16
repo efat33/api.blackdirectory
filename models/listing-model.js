@@ -617,7 +617,7 @@ class ListingModel {
     let queryDistance = ''
 
     if(params.lat && params.lng){
-      sql = `SELECT l.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( l.lat ) ) * cos( radians( l.lng ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( l.lat ) ) ) ) as listing_distance 
+      sql = `SELECT DISTINCT l.*, ( 6371 * acos( cos( radians('${encodeURI(input_lat)}') ) * cos( radians( l.lat ) ) * cos( radians( l.lng ) - radians('${encodeURI(input_lng)}') ) + sin( radians('${encodeURI(input_lat)}') ) * sin( radians( l.lat ) ) ) ) as listing_distance 
       FROM ${this.tableName} AS l`;
 
       queryDistance = ` HAVING listing_distance < 10`;

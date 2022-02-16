@@ -50,4 +50,8 @@ router.get('/get-current-package', apiKey(), auth(), isEmployerOrAdmin(), awaitH
 router.post('/create-checkout-session', apiKey(), auth(), isEmployer(), awaitHandlerFactory(jobController.createStripeCheckoutSession));
 // router.post('/stripe-webhook', express.raw({ type: 'application/json' }), awaitHandlerFactory(jobController.stripeWebhook));
 
+router.post('/create-job-alert', apiKey(), awaitHandlerFactory(jobController.newJobAlert));
+router.post('/unsubscribe-job-alert', apiKey(), awaitHandlerFactory(jobController.unsubscribeJobAlert));
+router.get('/send-job-alert',  awaitHandlerFactory(jobController.sendJobAlert));
+
 module.exports = router;

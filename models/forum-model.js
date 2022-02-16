@@ -259,7 +259,7 @@ class ForumModel {
 
             let user_last_reply_time = null;
             let user_last_topic_time = null;
-            let user_last_activity_time = null;
+            let user_last_activity_time = '';
 
             if (Object.keys(user_last_reply).length > 0) {
                 user_last_reply_time = user_last_reply.created_at;
