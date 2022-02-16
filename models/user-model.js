@@ -811,6 +811,19 @@ class UserModel {
 
     const result = await query(sql, values);
 
+    // deactivate the account if user requests for delete 
+    if(params.request == 'delete'){
+      const basic_info = {
+        'is_deactivated': 1,
+        'updated_at': current_date
+      }
+      
+      const basic_colset = multipleColumnSet(basic_info, ',');
+      
+      const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+      await query(sql, [...basic_colset.values, user_id]);
+    }
+
     return result;
     
   }

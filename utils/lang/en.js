@@ -17,6 +17,7 @@ exports.RESPONSE_CODES = Object.freeze({
   "401_notUpdateForum": "You are not allowed to update forum",
   "401_notCreateTopic": "You are not allowed to create topic",
   "401_notUpdateTopic": "You are not allowed to update topic",
+  "401_notCreateReply": "You are not allowed to post reply",
   "401_notUpdateReply": "You are not allowed to update reply",
   "401_notAdminOrEmployer": "You must be an admin or an employer",
   "403_unknownError": "Something went wrong. Please try again.",

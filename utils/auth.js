@@ -41,6 +41,7 @@ const auth = () => {
       req.currentUser = {
         id: decoded.user_id,
         role: decoded.role,
+        forum_role: user.forum_role
       };
 
       next();
