@@ -1,4 +1,4 @@
-const { query, query2 } = require('../server');
+const { query, query2, query3 } = require('../server');
 const { multipleColumnSet, DBTables } = require('../utils/common');
 const PHPUnserialize = require('php-unserialize');
 const commonfn = require('../utils/common');
@@ -328,12 +328,25 @@ class ReplyModel {
     deleteReply = async (reply) => {
         const current_date = commonfn.dateTimeNow();
         const reply_id = reply.id;
+
         const sql = `DELETE FROM ${this.tableName} WHERE id=?`;
         const values = [reply_id];
 
         const result = await query(sql, values);
 
         if(result.affectedRows > 0){
+
+            // if any other reply has the reply_to to the deleted reply, then update them
+            const sql_reply_to = `SELECT id FROM ${this.tableName} WHERE reply_to=?`;
+            const reply_to = await query(sql_reply_to, values);
+
+            if(reply_to.length > 0){
+                const reply_to_ids = reply_to.map(x => x['id']);
+            
+                const sql_rt = `UPDATE ${this.tableName} SET reply_to = NULL WHERE id IN (${reply_to_ids.join()})`;
+                await query3(sql_rt);
+            }
+
             // get topic details 
             const topic = await this.findOne({'id': reply.topic_id}, DBTables.topics);
             let t_updated_replies_no = 0;
@@ -342,14 +355,16 @@ class ReplyModel {
             }
 
             // check any reply available with the same user  |  get the last reply of the same user
+            const user_topic_replies = await this.find({'user_id': reply.user_id, 'topic_id': reply.topic_id}, DBTables.replies, 'ORDER BY created_at DESC');
             const user_replies = await this.find({'user_id': reply.user_id}, DBTables.replies, 'ORDER BY created_at DESC');
             const user_topic_last = await this.findOne({'user_id': reply.user_id}, DBTables.topics, 'ORDER BY created_at DESC');
 
             let participants = topic.participants ? JSON.parse(topic.participants) : [];
             let removeReplyNotification = false;
-            if(user_replies.length === 0){
-                if (participants.indexOf(reply.user_id) !== -1) {
-                    participants.splice(reply.user_id, 1);
+            if(user_topic_replies.length === 0){
+                const rIndex = participants.indexOf(reply.user_id);
+                if (rIndex !== -1) {
+                    participants.splice(rIndex, 1);
 
                     removeReplyNotification = true;
                 }
@@ -357,7 +372,7 @@ class ReplyModel {
 
             let user_last_reply_time = null;
             let user_last_topic_time = null;
-            let user_last_activity_time = null;
+            let user_last_activity_time = '';
 
             if(user_replies.length > 0){
                 user_last_reply_time = user_replies[0].created_at;

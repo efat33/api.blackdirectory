@@ -105,7 +105,7 @@ class UserController {
       throw new AppError(403, "403_signInInvalidEmail");
     }
     else if (user.is_deactivated == 1) {
-      throw new AppError(403, "Account is deactivated. Please contact with Admin");
+      throw new AppError(403, "Account Deactivated: Contact Customer Service");
     } else {
 
       const dbPassword = user.password;
@@ -269,6 +269,7 @@ class UserController {
       'description': req.body.description,
       'profile_photo': req.body.profile_photo_name,
       'cover_photo': req.body.cover_photo_name,
+      'forum_role': req.body.forum_role,
       'address': req.body.address,
       'latitude': req.body.latitude,
       'longitude': req.body.longitude,
@@ -427,6 +428,12 @@ class UserController {
 
   userRequest = async (req, res, next) => {
 
+    // check if the user has already made the request 
+    const request = await UserModel.findOne({user_id: req.currentUser.id}, commonfn.DBTables.user_requests);
+    if (request && Object.keys(request).length > 0) {
+      throw new AppError(403, "Request has already been made");
+    }
+
     const result = await UserModel.userRequest(req.body, req.currentUser);
 
     if (result.affectedRows == 1) {
@@ -439,7 +446,7 @@ class UserController {
 
   getUserRequests = async (req, res, next) => {
 
-    const result = await UserModel.find({}, commonfn.DBTables.user_requests, 'ORDER BY created_at DESC');
+    const result = await UserModel.find({}, commonfn.DBTables.user_requests, 'ORDER BY created_at ASC');
     new AppSuccess(res, 200, "200_successful", {}, result);
   }
 

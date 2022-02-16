@@ -140,7 +140,8 @@ class TopicModel {
         let values = [];
         let forum = '';
 
-        let sql = `SELECT t.*, u.username, u.display_name, f.title as forum_title FROM ${DBTables.topics} AS t LEFT JOIN ${DBTables.users} u ON t.user_id = u.id 
+        let sql = `SELECT t.*, u.username, u.display_name, f.title as forum_title FROM ${DBTables.topics} AS t 
+                    LEFT JOIN ${DBTables.users} u ON t.user_id = u.id 
                     LEFT JOIN ${DBTables.forums} f ON f.id = t.forum_id`;
 
         let queryParams = ` WHERE 1=1`;
@@ -305,7 +306,7 @@ class TopicModel {
 
             let user_last_reply_time = null;
             let user_last_topic_time = null;
-            let user_last_activity_time = null;
+            let user_last_activity_time = '';
 
             if (Object.keys(user_last_reply).length > 0) {
                 user_last_reply_time = user_last_reply.created_at;
