@@ -483,6 +483,10 @@ class ShopController {
 
     let body = [];
 
+    if (groups.length > shipping_methods.length) {
+      throw new AppError(403, "Shipping method is required.")
+    }
+
     if (groups.length > 1) {
       // make sub orders
       let vendor_id;
@@ -500,9 +504,13 @@ class ShopController {
           total = total * (1 - promo[0].discount / 100);
         }
 
-        let shipping_method = {};
+        let shipping_method;
         if (shipping_methods.length) {
-          shipping_method = shipping_methods.find(shipping => shipping.vendor_id === vendor_id) || {};
+          shipping_method = shipping_methods.find(shipping => shipping.vendor_id === vendor_id);
+          
+          if (!shipping_method) {
+            throw new AppError(403, "Shipping method is required.")
+          }
 
           if (shipping_method.fee) {
             total += parseFloat(shipping_method.fee);
