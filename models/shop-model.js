@@ -279,6 +279,13 @@ class ShopModel {
     return await query(sql, values);
   }
 
+  deleteProductFromCart = async (id) => {
+    const sql = `DELETE FROM ${this.tableNameCartItems} WHERE product_id=?`;
+    const values = [id];
+
+    await query(sql, values);
+  }
+
   getProduct = async (slug) => {
     let sql = `SELECT p.*, store.store_name as store_name, 
       users.username as user_username, users.display_name as user_display_name

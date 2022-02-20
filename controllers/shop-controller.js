@@ -160,7 +160,6 @@ class ShopController {
 
   // get all products and product filter
   getProducts = async (req, res, next) => {
-
     if (req.currentUser && req.currentUser.role === 'admin' && req.body.params && req.body.params.user_id) {
       delete req.body.params.user_id;
     }
@@ -179,9 +178,15 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    await shopModel.deleteProduct(req.params.product_id);
+    const deleteResult = await shopModel.deleteProduct(req.params.product_id);
 
-    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_product' });
+    if (deleteResult.affectedRows > 0) {
+      await shopModel.deleteProductFromCart(req.params.product_id);
+
+      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_product' });
+    } else {
+      throw new AppError(403, "403_unknownError");
+    }
   };
 
   // get product categories
@@ -337,7 +342,8 @@ class ShopController {
   }
 
   getCartItems = async (req, res, next) => {
-    const items = await shopModel.getCartItems(req.currentUser.id);
+    let items = await shopModel.getCartItems(req.currentUser.id);
+    items = items.filter(item => item.product_slug != null);
 
     items.forEach(item => {
       if (item.product_discounted_price) {
@@ -463,6 +469,10 @@ class ShopController {
     const productIds = items.map(item => item.product_id);
 
     const products = await shopModel.getProducts({ params: { ids: productIds } });
+
+    if (productIds.length !== products.length) {
+      throw new AppError(403, "Some products are not available. Please refresh your page to update your cart.")
+    }
 
     items.forEach((item) => {
       const product = products.find((product) => product.id === item.product_id);
