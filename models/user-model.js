@@ -12,6 +12,7 @@ class UserModel {
   tableNameUserReview = 'user_reviews';
   tableNameFollowStats = 'user_follow_stats';
   tableNameNotifications = 'user_notifications';
+  tableNameUserRequest = 'user_requests';
 
   findOneMatchAny = async (params = {}) => {
     let sql = `SELECT * FROM ${this.tableName}`;
@@ -38,15 +39,18 @@ class UserModel {
     return result[0];
   }
 
-  find = async (params = {}) => {
-    let sql = `SELECT * FROM ${this.tableName}`;
+  find = async (params = {}, table = `${this.tableName}`, orderby = '') => {
+    let sql = `SELECT * FROM ${table}`;
 
     if (!Object.keys(params).length) {
+      if(orderby != '') sql += ` ${orderby}`;
       return await query(sql);
     }
 
     const { columnSet, values } = multipleColumnSet(params)
     sql += ` WHERE ${columnSet}`;
+
+    if(orderby != '') sql += ` ${orderby}`;
 
     return await query(sql, [...values]);
   }
@@ -228,98 +232,65 @@ class UserModel {
 
         /*********===================================*********/
 
-        // update educations
-        if (candidate_others.educations && candidate_others.educations.length > 0) {
-          const sqlUserEdu = `INSERT INTO ${this.tableNameEducation} (id, user_id, title, institute, year, description, sequence) VALUES ? ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), title=VALUES(title),  institute=VALUES(institute),  year=VALUES(year), description=VALUES(description), sequence=VALUES(sequence)`;
-          const valuesEdu = [];
+        // first delete the existing educations 
+        const sql_del_edu = `DELETE FROM ${this.tableNameEducation} WHERE user_id IN (?)`;
+        await query(sql_del_edu, [user_id]);
 
+        // insert educations anew 
+        if (candidate_others.educations && candidate_others.educations.length > 0) {
+          const sql = `INSERT INTO ${this.tableNameEducation} (user_id, title, institute, year, description, sequence) VALUES ?`;
+          const insertData = [];
+          
           for (let i = 0; i < candidate_others.educations.length; i++) {
             const edu = candidate_others.educations[i];
-            const temp_arr = [edu.id, edu.user_id, edu.title, edu.institute, edu.year, edu.description, i];
-            valuesEdu.push(temp_arr);
+            const temp_arr = [edu.user_id, edu.title, edu.institute, edu.year, edu.description, i];
+            insertData.push(temp_arr);
           }
-
-          await query2(sqlUserEdu, [valuesEdu]);
-
-        }
-
-        // remove educations
-        if (candidate_others.educationsTobeRemoved && candidate_others.educationsTobeRemoved.length > 0) {
-          const sql = `DELETE FROM ${this.tableNameEducation} WHERE id IN (?)`;
-
-          const values = [];
-          for (const item of candidate_others.educationsTobeRemoved) {
-            if (item.id != '') values.push(item.id);
-          }
-
-          await query2(sql, [values]);
-
+          
+          await query2(sql, [insertData]);
         }
 
         /*********===================================*********/
 
-        // update experiences
-        if (candidate_others.experiences && candidate_others.experiences.length > 0) {
-          const sql = `INSERT INTO ${this.tableNameExperience} (id, user_id, title, start_date, end_date, present, company, description, sequence) VALUES ? ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), title=VALUES(title), start_date=VALUES(start_date),  end_date=VALUES(end_date),  present=VALUES(present), company=VALUES(company), description=VALUES(description), sequence=VALUES(sequence)`;
+        // first delete the existing experience 
+        const sql_del_exp = `DELETE FROM ${this.tableNameExperience} WHERE user_id IN (?)`;
+        await query(sql_del_exp, [user_id]);
 
-          const values = [];
+        // insert experience anew 
+        if (candidate_others.experiences && candidate_others.experiences.length > 0) {
+          const sql = `INSERT INTO ${this.tableNameExperience} (user_id, title, start_date, end_date, present, company, description, sequence) VALUES ?`;
+          const insertData = [];
 
           for (let i = 0; i < candidate_others.experiences.length; i++) {
             const item = candidate_others.experiences[i];
             const present = item.present ? 1 : 0;
-            const temp_arr = [item.id, item.user_id, item.title, item.start_date, item.end_date, item.present, item.company, item.description, i];
-            values.push(temp_arr);
+            const temp_arr = [item.user_id, item.title, item.start_date, item.end_date, present, item.company, item.description, i];
+            insertData.push(temp_arr);
           }
-
-          await query2(sql, [values]);
-        }
-
-        // remove experiences
-        if (candidate_others.experiencesTobeRemoved && candidate_others.experiencesTobeRemoved.length > 0) {
-          const sql = `DELETE FROM ${this.tableNameExperience} WHERE id IN (?)`;
-
-          const values = [];
-          for (const item of candidate_others.experiencesTobeRemoved) {
-            if (item.id != '') values.push(item.id);
-          }
-
-          await query2(sql, [values]);
-
+          
+          await query2(sql, [insertData]);
         }
 
 
         /*********===================================*********/
 
-        // update portfolios
+        // first delete the existing portfolios 
+        const sql_del_port = `DELETE FROM ${this.tableNamePortfolio} WHERE user_id IN (?)`;
+        await query(sql_del_port, [user_id]);
+
+        // insert portfolios anew 
         if (candidate_others.portfolios && candidate_others.portfolios.length > 0) {
-          const sql = `INSERT INTO ${this.tableNamePortfolio} (id, user_id, title, image, youtube_url, site_url, sequence) VALUES ? ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), title=VALUES(title),  image=VALUES(image), youtube_url=VALUES(youtube_url), site_url=VALUES(site_url), sequence=VALUES(sequence)`;
-
-          const values = [];
-
+          const sql = `INSERT INTO ${this.tableNamePortfolio} (user_id, title, image, youtube_url, site_url, sequence) VALUES ?`;
+          const insertData = [];
+          
           for (let i = 0; i < candidate_others.portfolios.length; i++) {
             const item = candidate_others.portfolios[i];
-            const present = item.present ? 1 : 0;
-            const temp_arr = [item.id, item.user_id, item.title, item.image_name, item.youtube_url, item.site_url, i];
-            values.push(temp_arr);
+            const temp_arr = [item.user_id, item.title, item.image_name, item.youtube_url, item.site_url, i];
+            insertData.push(temp_arr);
           }
-
-          await query2(sql, [values]);
+          
+          await query2(sql, [insertData]);
         }
-
-        // remove portfolios
-        if (candidate_others.portfoliosTobeRemoved && candidate_others.portfoliosTobeRemoved.length > 0) {
-          const sql = `DELETE FROM ${this.tableNamePortfolio} WHERE id IN (?)`;
-
-          const values = [];
-          for (const item of candidate_others.portfoliosTobeRemoved) {
-            if (item.id != '') values.push(item.id);
-          }
-
-          await query2(sql, [values]);
-
-        }
-
-
 
         return true;
 
@@ -814,6 +785,101 @@ class UserModel {
 
     return await query2(sql, [[[currentUser.id, 'cv_download', 1]]]);
   }
+
+  userRequest = async (params, currentUser) => {
+    const current_date = commonfn.dateTimeNow();
+    const user_id = currentUser.id;
+    let output = {};
+
+    const sql = `INSERT INTO ${this.tableNameUserRequest} 
+            (
+              user_id, 
+              user_email, 
+              request_type, 
+              description, 
+              created_at
+            ) 
+            VALUES (?,?,?,?,?)`;
+
+    const values = [
+      user_id,
+      params.user_email,
+      params.request,
+      params.description,
+      current_date
+    ];
+
+    const result = await query(sql, values);
+
+    // deactivate the account if user requests for delete 
+    if(params.request == 'delete'){
+      const basic_info = {
+        'is_deactivated': 1,
+        'updated_at': current_date
+      }
+      
+      const basic_colset = multipleColumnSet(basic_info, ',');
+      
+      const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+      await query(sql, [...basic_colset.values, user_id]);
+    }
+
+    return result;
+    
+  }
+
+  userRequestDeactivate = async (params) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = { status: 401};
+    const user_id = params.user_id;
+
+    const basic_info = {
+      'is_deactivated': 1,
+      'updated_at': current_date
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const result = await query(sql, [...basic_colset.values, user_id]);
+    
+    
+    if (result.affectedRows == 1) {
+      const sql = `DELETE FROM ${this.tableNameUserRequest} WHERE id IN (?)`;
+      await query(sql, [params.id]);
+
+      output.status = 200;
+    }
+
+    return output;
+  }
+
+  userRequestReactivate = async (params) => {
+    const current_date = commonfn.dateTimeNow();
+    let output = { status: 401};
+    const user_id = params.id;
+    console.log(params);
+    const basic_info = {
+      'is_deactivated': 0,
+      'updated_at': current_date
+    }
+    
+    const basic_colset = multipleColumnSet(basic_info, ',');
+    
+    const sql = `UPDATE ${this.tableName} SET ${basic_colset.columnSet} WHERE id = ?`;
+    
+    const result = await query(sql, [...basic_colset.values, user_id]);
+    
+    
+    if (result.affectedRows == 1) {
+
+      output.status = 200;
+    }
+
+    return output;
+  }
+
 }
 
 module.exports = new UserModel;

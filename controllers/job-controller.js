@@ -472,6 +472,90 @@ Black Directory Team`,
 
     new AppSuccess(res, 200, "200_successful", null, session);
   };
+
+  newJobAlert = async (req, res, next) => {
+
+    // check if alert with same criteria already exists
+    const params = Object.fromEntries(Object.entries(req.body).filter(([key, val]) => val != null));  // remove salary if it's null
+    const alert = await JobModel.findOne(params, commonfn.DBTables.job_alerts);
+
+    if (alert && Object.keys(alert).length > 0) {
+      throw new AppError(403, "Alert with the same criteria already exists");
+    }
+
+    const result = await JobModel.createJobAlert(req.body);
+
+    if (result.affectedRows && result.affectedRows > 0) {
+      new AppSuccess(res, 200, "Alert created successfully");
+    }
+    else{
+      throw new AppError(403, "403_unknownError");
+    }
+    
+  }
+
+  unsubscribeJobAlert = async (req, res, next) => {
+
+    const result = await JobModel.unsubscribeJobAlert(req.body);
+
+    if (!result) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    new AppSuccess(res, 200, "200_successful");
+    
+  }
+
+  sendJobAlert = async (req, res, next) => {
+
+    const allAlerts = await JobModel.find({}, commonfn.DBTables.job_alerts);
+
+    const current_time = commonfn.dateTimeNow();
+
+    const periods = {
+      1: '24hours',
+      7: '7days',
+      14: '14days',
+      30: '30days'
+    }
+    
+    for (let index = 0; index < allAlerts.length; index++) {
+      const element = allAlerts[index];
+      const last_sent_at = commonfn.dateTime(element.last_sent_at)
+      
+      const date1 = new Date(last_sent_at);
+      const date2 = new Date(current_time);
+        
+      const Difference_In_Time = date2.getTime() - date1.getTime();
+      const Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+
+      if(Difference_In_Days > element.period){
+        // fetch the jobs 
+        const params = {
+          datePosted: periods[element.period],
+          jobType: element.type,
+          keyword: element.keyword,
+          sector: element.sector
+        }
+        if(element.salary){
+          params.salaryMin = (parseInt(element.salary) - 200) > 0 ? (parseInt(element.salary) - 200) : 0;
+          params.salaryMax = parseInt(element.salary) + 200;
+        }
+
+        const jobs = await JobModel.getAlertJobs(params);
+        allAlerts[index]['jobs'] = jobs;
+
+        // send email only when jobs are available
+        if(jobs.length > 0){
+
+        }
+      }
+      
+    }
+
+    new AppSuccess(res, 200, "200_successful", '', allAlerts);
+  }
+
 }
 
 module.exports = new JobController();

@@ -32,16 +32,17 @@ const auth = () => {
       // Verify Token
       const decoded = jwt.verify(token, secretKey);
       const user = await UserModel.findOne({ id: decoded.user_id });
-
-      // if (!user) {
-      //   throw new AppError(401, "401_invalidCredentials");
-      // }
+      
+      if (user.is_deactivated == 1) {
+        throw new AppError(401, "401_accountDeactivated");
+      }
 
       // if the user has permissions
       req.currentUser = {
         id: decoded.user_id,
         email: user.email,
         role: decoded.role,
+        forum_role: user.forum_role
       };
 
       next();

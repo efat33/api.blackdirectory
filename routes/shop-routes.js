@@ -9,6 +9,7 @@ const awaitHandlerFactory = require('../utils/awaitHandlerFactory');
 
 const validation = require('../utils/validators/shopValidator');
 const { isAdmin } = require('../utils/common');
+const shopController = require('../controllers/shop-controller');
 
 
 // router.post('/products/:limit?/:offset?/:orderby?/:all?', apiKey(), awaitHandlerFactory(listingController.searchListing));
@@ -19,6 +20,7 @@ router.get('/product/:slug/related-products', apiKey(), awaitHandlerFactory(Shop
 router.get('/product-categories', apiKey(), awaitHandlerFactory(ShopController.getProductCategories));
 router.get('/product-tags', apiKey(), awaitHandlerFactory(ShopController.getProductTags));
 router.post('/products', apiKey(), currentUser(), awaitHandlerFactory(ShopController.getProducts));
+router.delete('/delete-product/:product_id', apiKey(), authVerified(), awaitHandlerFactory(shopController.deleteProduct));
 
 router.get('/product/:product_id/reviews', apiKey(), awaitHandlerFactory(ShopController.getProductReviews));
 router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandlerFactory(ShopController.createProductReview));

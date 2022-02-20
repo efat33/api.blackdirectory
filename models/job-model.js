@@ -16,6 +16,34 @@ class JobModel {
   tableUsers = 'users';
   tableUsersMeta = 'users_meta';
 
+  findOne = async (params, table = `${this.tableName}`) => {
+    const { columnSet, values } = multipleColumnSet(params)
+
+    const sql = `SELECT * FROM ${table}
+    WHERE ${columnSet} LIMIT 1`;
+
+    const result = await query(sql, [...values]);
+
+    // return back the first row (user)
+    return result[0];
+  }
+
+  find = async (params = {}, table = `${this.tableName}`, orderby = '') => {
+    let sql = `SELECT * FROM ${table}`;
+
+    if (!Object.keys(params).length) {
+      if(orderby != '') sql += ` ${orderby}`;
+      return await query(sql);
+    }
+
+    const { columnSet, values } = multipleColumnSet(params)
+    sql += ` WHERE ${columnSet}`;
+
+    if(orderby != '') sql += ` ${orderby}`;
+
+    return await query(sql, [...values]);
+  }
+
   createJob = async (params, currentUser) => {
     const current_date = commonfn.dateTimeNow();
     const user_id = currentUser.id;
@@ -163,7 +191,7 @@ class JobModel {
       exclude = null
     } = params;
 
-    let sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
+    let sql = `SELECT DISTINCT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
                 JobSector.title as job_sector, JobSector.id as job_sector_id, Job.filled as filled, Job.address as address, 
                 Users.username as username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo, 
                 Job.created_at as created_at 
@@ -173,7 +201,7 @@ class JobModel {
                 `;
 
     if (latitude && longitude) {
-      sql = `SELECT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
+      sql = `SELECT DISTINCT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
                         JobSector.title as job_sector, JobSector.id as job_sector_id, Job.filled as filled, Job.address as address, 
                         Users.username as username, Users.display_name as user_display_name, Users.profile_photo as user_profile_photo, 
                         Job.created_at as created_at, 
@@ -252,6 +280,92 @@ class JobModel {
     if (latitude && longitude) {
       sql += ` HAVING listing_distance < ?`
       values.push(loc_radius);
+    }
+
+    return { sql, values };
+  }
+
+  getAlertJobs = async (params, page = 1, limit = 10) => {
+    let { sql, values } = this.getJobAlertSqlGenerate(params);
+
+    sql += ` ORDER BY Job.created_at DESC`;
+
+    sql += ` LIMIT ${limit} OFFSET ${limit * (page - 1)}`;
+
+    return await query(sql, [...values]);
+  }
+
+  getJobAlertSqlGenerate(params = {}) {
+    let {
+      status = 'approved',
+      datePosted = null,
+      jobType = null,
+      keyword = null,
+      salaryMin = null,
+      salaryMax = null,
+      sector = null,
+    } = params;
+
+    let sql = `SELECT DISTINCT Job.id as id, Job.title as title, Job.slug as slug, Job.job_type as job_type, 
+                JobSector.title as job_sector, JobSector.id as job_sector_id, Job.filled as filled, Job.address as address, 
+                Job.created_at as created_at 
+                FROM ${this.tableName} as Job 
+                LEFT JOIN ${this.tableSectors} as JobSector ON Job.job_sector_id=JobSector.id
+                `;
+
+    const values = [];
+    const conditions = [];
+
+    conditions.push('Job.expiry_date > CURDATE()');
+    conditions.push('Job.filled = 0');
+
+    if (status) {
+      conditions.push('Job.status = ?');
+      values.push(status)
+    }
+
+    if (keyword) {
+      conditions.push(`(Job.title LIKE '%${keyword}%' OR Job.description LIKE '%${keyword}%')`);
+    }
+
+    if (jobType) {
+      conditions.push('Job.job_type = ?');
+      values.push(jobType)
+    }
+
+    if (sector) {
+      conditions.push('Job.job_sector_id = ?');
+      values.push(sector)
+    }
+
+    if (salaryMin) {
+      conditions.push('Job.salary >= ?');
+      values.push(salaryMin);
+    }
+
+    if (salaryMax) {
+      conditions.push('Job.salary <= ?');
+      values.push(salaryMax);
+    }
+
+    sql += ' WHERE ' + conditions.join(' AND ');
+
+    if (datePosted) {
+      if (datePosted === '1hour') {
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 HOUR) AND Job.created_at <= UTC_TIMESTAMP()';
+      }
+      else if (datePosted === '24hours') {
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
+      }
+      else if (datePosted === '7days') {
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
+      }
+      else if (datePosted === '14days') {
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 14 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
+      }
+      else if (datePosted === '30days') {
+        sql += ' AND Job.created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) AND Job.created_at <= UTC_TIMESTAMP()';
+      }
     }
 
     return { sql, values };
@@ -700,6 +814,36 @@ class JobModel {
     }
 
     return output;
+  }
+
+  createJobAlert = async (params) => {
+    const current_date = commonfn.dateTimeNow();
+    const output = {}
+    let unsubscribe_key = commonfn.randomCode();
+
+    // insert data into listings table
+    const sql = `INSERT INTO ${commonfn.DBTables.job_alerts} 
+            (name, email, period, keyword, type, 
+            sector, salary, unsubscribe_key, last_sent_at, created_at) 
+            VALUES (?,?,?,?,?,
+            ?,?,?,?,?)`;
+
+    const result = await query(sql, [ params.name, params.email, params.period, params.keyword, params.type, 
+      params.sector, params.salary, unsubscribe_key, current_date, current_date]);
+
+      return result;
+
+  }
+
+  unsubscribeJobAlert = async (params) => {
+    const sql = `DELETE FROM ${commonfn.DBTables.job_alerts} WHERE id = ? AND unsubscribe_key = ?`;
+    const result =  await query(sql, [params.alertID, params.alertKey]);
+
+    if(result.affectedRows > 0){
+      return true;
+    }
+
+    return false;
   }
 }
 

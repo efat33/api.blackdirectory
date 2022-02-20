@@ -53,8 +53,8 @@ class MobilesModel {
     let output = {};
 
     const sql = `INSERT INTO ${this.tableName} 
-        (description, link, provider_id, cost, data, minutes, texts, contract_length, category, created_at) 
-        VALUES (?,?,?,?,?,?,?,?,?,?)`;
+        (description, link, provider_id, cost, data, minutes, texts, contract_length, category, brand, model, image, created_at) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
     const values = [
       params.description,
@@ -66,6 +66,9 @@ class MobilesModel {
       params.texts,
       params.contract_length,
       params.category,
+      params.brand,
+      params.model,
+      params.image,
       current_date
     ];
 
@@ -94,7 +97,7 @@ class MobilesModel {
 
     const paramArray = [];
     let values = [];
-    const acceptedParams = ['description', 'link', 'provider_id', 'cost', 'data', 'minutes', 'texts', 'contract_length', 'category'];
+    const acceptedParams = ['description', 'link', 'provider_id', 'cost', 'data', 'minutes', 'texts', 'contract_length', 'category', 'brand', 'model', 'image'];
 
     for (let param in params) {
       if (acceptedParams.includes(param)) {
@@ -181,6 +184,18 @@ class MobilesModel {
     if (params.providers) {
       const ids = encodeURI(params.providers);
       paramArray.push(`Mobile.provider_id IN (${ids})`);
+    }
+    
+    if (params.brands) {
+      const ids = encodeURI(params.brands);
+      const ids_str = ids.split(',').map(x => `'${x}'`).join();
+      paramArray.push(`Mobile.brand IN (${ids_str})`);
+    }
+
+    if (params.models) {
+      const ids = encodeURI(params.models);
+      const ids_str = ids.split(',').map(x => `'${x}'`).join();
+      paramArray.push(`Mobile.model IN (${ids_str})`);
     }
 
     if (params.contracts && params.contracts !== 'any') {

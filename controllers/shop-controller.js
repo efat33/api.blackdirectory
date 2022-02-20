@@ -172,6 +172,18 @@ class ShopController {
 
   };
 
+  deleteProduct = async (req, res, next) => {
+    const product = await shopModel.findOne({ id: req.params.product_id });
+
+    if (Object.keys(product).length === 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    await shopModel.deleteProduct(req.params.product_id);
+
+    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_product' });
+  };
+
   // get product categories
   getProductCategories = async (req, res, next) => {
     const categories_result = await shopModel.find({}, DBTables.product_categories, 'ORDER BY parent_id');

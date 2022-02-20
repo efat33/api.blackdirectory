@@ -5,6 +5,8 @@ const AppError = require("../utils/appError");
 exports.DBTables = {
   'users': 'users',
   'users_meta': 'users_meta',
+  'user_requests': 'user_requests',
+  'countries': 'countries',
 
   'listings': 'listings',
   'listing_business_hours': 'listing_business_hours',
@@ -62,6 +64,8 @@ exports.DBTables = {
 
   // news table
   'news_categories': 'news_categories',
+
+  'job_alerts': 'job_alerts',
 
 };
 
@@ -243,6 +247,21 @@ exports.canCreateTopic = () => {
         next();
       } else {
         throw new AppError(401, "401_notCreateTopic");
+      }
+    } catch (e) {
+      e.status = 401;
+      next(e);
+    }
+  };
+};
+
+exports.canCreateReply = () => {
+  return async function (req, res, next) {
+    try {
+      if (req.currentUser.role === 'admin' || req.currentUser.forum_role === 'keymaster' || req.currentUser.forum_role === 'moderator' || req.currentUser.forum_role === 'participant') {
+        next();
+      } else {
+        throw new AppError(401, "401_notCreateReply");
       }
     } catch (e) {
       e.status = 401;

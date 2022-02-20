@@ -19,7 +19,7 @@ class NewsController {
     }
 
     updateNews = async (req, res, next) => {
-        const getNewsResult = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
+        const getNewsResult = await NewsModel.getSingleNews({ 'id': req.params.news_id });
 
         if (Object.keys(getNewsResult).length === 0) {
             throw new AppError(403, "403_unknownError")
@@ -51,9 +51,9 @@ class NewsController {
         let body = {};
 
         if (isNaN(req.params.news_id)) {
-            body = { 'News.slug': req.params.news_id }
+            body = { 'slug': req.params.news_id }
         } else {
-            body = { 'News.id': req.params.news_id }
+            body = { 'id': req.params.news_id }
         }
 
         const result = await NewsModel.getSingleNews(body);
@@ -73,7 +73,7 @@ class NewsController {
     };
 
     deleteNews = async (req, res, next) => {
-        const result = await NewsModel.getSingleNews({ 'News.id': req.params.news_id });
+        const result = await NewsModel.getSingleNews({ 'id': req.params.news_id });
 
         if (Object.keys(result).length === 0) {
             throw new AppError(403, "403_unknownError")

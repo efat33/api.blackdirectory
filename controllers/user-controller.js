@@ -150,6 +150,9 @@ Black Directory Team`,
 
     if (!user || user.auth_type != 'general') {
       throw new AppError(403, "403_signInInvalidEmail");
+    }
+    else if (user.is_deactivated == 1) {
+      throw new AppError(403, "Account Deactivated: Contact Customer Service");
     } else {
 
       const dbPassword = user.password;
@@ -313,6 +316,7 @@ Black Directory Team`,
       'description': req.body.description,
       'profile_photo': req.body.profile_photo_name,
       'cover_photo': req.body.cover_photo_name,
+      'forum_role': req.body.forum_role,
       'address': req.body.address,
       'latitude': req.body.latitude,
       'longitude': req.body.longitude,
@@ -467,8 +471,52 @@ Black Directory Team`,
       throw new AppError(403, "403_invalidVerificationKey");
     }
 
+  }
 
+  userRequest = async (req, res, next) => {
 
+    // check if the user has already made the request 
+    const request = await UserModel.findOne({user_id: req.currentUser.id}, commonfn.DBTables.user_requests);
+    if (request && Object.keys(request).length > 0) {
+      throw new AppError(403, "Request has already been made");
+    }
+
+    const result = await UserModel.userRequest(req.body, req.currentUser);
+
+    if (result.affectedRows == 1) {
+      new AppSuccess(res, 200, "200_successful");
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
+  getUserRequests = async (req, res, next) => {
+
+    const result = await UserModel.find({}, commonfn.DBTables.user_requests, 'ORDER BY created_at ASC');
+    new AppSuccess(res, 200, "200_successful", {}, result);
+  }
+
+  userRequestDeactivate = async (req, res, next) => {
+
+    const result = await UserModel.userRequestDeactivate(req.body);
+
+    if (result.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "Deactivated Successfully",);
+  }
+
+  userRequestReactivate = async (req, res, next) => {
+
+    const result = await UserModel.userRequestReactivate(req.body);
+
+    if (result.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "Activated Successfully",);
   }
 
   userImports = async (req, res, next) => {
@@ -484,6 +532,17 @@ Black Directory Team`,
     if (!userList.length) {
       throw new AppError(404, "Users not found");
     }
+
+    userList = userList.map((user) => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+
+    res.send(userList);
+  };
+
+  getDeactivatedUsers = async (req, res, next) => {
+    let userList = await UserModel.find({is_deactivated: 1});
 
     userList = userList.map((user) => {
       const { password, ...userWithoutPassword } = user;

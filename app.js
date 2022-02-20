@@ -26,6 +26,8 @@ const dealsRouter = require('./routes/deals-routes');
 const pagesRouter = require('./routes/pages-routes');
 const stripeRouter = require('./routes/stripe-routes');
 const commonRouter = require('./routes/common-routes');
+const travelRouter = require('./routes/travel-routes');
+const financeRouter = require('./routes/finance-routes');
 
 const StripeController = require('./controllers/stripe-controller');
 const awaitHandlerFactory = require('./utils/awaitHandlerFactory');
@@ -86,6 +88,8 @@ app.use('/deals', dealsRouter);
 app.use('/pages', pagesRouter);
 app.use('/stripe', stripeRouter);
 app.use('/common', commonRouter);
+app.use('/travels', travelRouter);
+app.use('/finance', financeRouter);
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Blackdirectory!!!" });
