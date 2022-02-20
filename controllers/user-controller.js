@@ -484,6 +484,21 @@ Black Directory Team`,
     const result = await UserModel.userRequest(req.body, req.currentUser);
 
     if (result.affectedRows == 1) {
+      const emailBody = `Dear Admin,
+
+A user has requested to ${req.body.request} his/her account.
+
+User Email: ${req.body.user_email}
+Request: ${req.body.request}
+Description: ${req.body.description}`;
+  
+      const mailOptions = {
+        subject: 'Black Directory - Account Deactivate or Delete',
+        body: emailBody,
+      }
+
+      mailHandler.sendEmail(mailOptions)
+
       new AppSuccess(res, 200, "200_successful");
     }
     else {
