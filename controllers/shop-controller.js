@@ -417,11 +417,17 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    const body = { 'Orders.id': req.params.order_id };
+    const order = await this.getOrderData(req.params.order_id, req.currentUser);
 
-    if (req.currentUser.role !== 'admin') {
-      body['Orders.user_id'] = req.currentUser.id;
-      body['Orders.vendor_id'] = req.currentUser.id;
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
+  };
+
+  getOrderData = async (order_id, currentUser) => {
+    const body = { 'Orders.id': order_id };
+
+    if (currentUser.role !== 'admin' && currentUser.id) {
+      body['Orders.user_id'] = currentUser.id;
+      body['Orders.vendor_id'] = currentUser.id;
     }
 
     const order = await shopModel.getOrder(body);
@@ -444,8 +450,8 @@ class ShopController {
       order[0].items = items;
     }
 
-    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
-  };
+    return order;
+  }
 
   processNewOrderData = async (orderBody) => {
     let promo;

@@ -802,12 +802,13 @@ class ShopModel {
   }
 
   getOrder = async (params = {}) => {
-    let sql = `SELECT Orders.*, 
+    let sql = `SELECT Orders.*, Users.display_name as vendor_name, Users.email as vendor_email, 
       Promo.code as promo_code, Promo.discount as discount,
       Shipping.title as shipping_title, Shipping.fee as shipping_fee
       FROM ${this.tableOrders} as Orders
       LEFT JOIN ${this.tableOrderPromoCodes} as Promo ON Promo.id=Orders.promo_id
       LEFT JOIN ${DBTables.product_shippings} as Shipping ON Shipping.id=Orders.shipping_id
+      LEFT JOIN ${DBTables.users} as Users ON Users.id=Orders.vendor_id
       `;
 
     let orCondition = '';
