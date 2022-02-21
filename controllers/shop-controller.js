@@ -617,6 +617,26 @@ class ShopController {
       throw new AppError(403, "403_unknownError")
     };
 
+    const websiteUrl = process.env.WEBSITE_URL;
+    const emailBody = `Dear ${order[0].user_name},
+
+Your order status has beed updated.
+
+Order: <a href="${websiteUrl}/dashboard/order/${order[0].id}">#${order[0].id.toString().padStart(5, '0')}</a> 
+Status: ${req.body.status}
+
+Best regards,
+
+Black Directory Team`;
+
+    const mailOptions = {
+      to: order[0].user_email,
+      subject: 'Black Directory - Order Updated',
+      body: emailBody,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+
     new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_order' });
   }
 
