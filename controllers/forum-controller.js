@@ -210,12 +210,7 @@ class ForumController {
 
     const replyNotifications = await ReplyModel.getReplyNotifications(req.body.topic_id);
 
-    let websiteUrl;
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
+    const websiteUrl = process.env.WEBSITE_URL;
 
     for (const replyNotification of replyNotifications) {
       if (req.currentUser.id === replyNotification.user_id) {

@@ -95,14 +95,6 @@ class UserController {
   }
 
   sendWelcomeMail = (username, email) => {
-    let websiteUrl;
-
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
-
     const mailOptions = {
       to: email,
       subject: 'Welcome to Black Directory!',
@@ -119,13 +111,7 @@ Black Directory Team`,
   }
 
   sendActivationMail = (username, email, key) => {
-    let websiteUrl;
-
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
+    const websiteUrl = process.env.WEBSITE_URL;
 
     const mailOptions = {
       to: email,
@@ -694,12 +680,7 @@ Description: ${req.body.description}`;
   }
 
   getJobNotificationEmailBody = async (notification, job) => {
-    let websiteUrl;
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
+    const websiteUrl = process.env.WEBSITE_URL;
 
     if (notification.notification_trigger === 'shortlisted') {
       return `Dear ${notification.user_display_name},

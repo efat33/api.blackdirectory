@@ -255,12 +255,7 @@ class JobController {
     const employer = (await UserModel.getUserDetailsByID({ id: req.body.employer_id })).data;
     const job = (await JobModel.getJobsByIds([req.body.job_id]))[0];
 
-    let websiteUrl;
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
+    const websiteUrl = process.env.WEBSITE_URL;
     
     const mailOptions = {
       to: req.currentUser.email,
