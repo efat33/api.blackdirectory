@@ -10,6 +10,7 @@ const nodemailer = require('nodemailer');
 const dotenv = require("dotenv");
 const shopModel = require("../models/shop-model");
 const userModel = require("../models/user-model");
+const mailHandler = require('../utils/mailHandler.js');
 dotenv.config();
 
 const stripeSecretKey = process.env.NODE_ENV === 'development' ? process.env.STRIPE_SECRET_KEY : process.env.STRIPE_TEST_SECRET_KEY;
@@ -159,7 +160,6 @@ class ShopController {
 
   // get all products and product filter
   getProducts = async (req, res, next) => {
-
     if (req.currentUser && req.currentUser.role === 'admin' && req.body.params && req.body.params.user_id) {
       delete req.body.params.user_id;
     }
@@ -178,9 +178,15 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    await shopModel.deleteProduct(req.params.product_id);
+    const deleteResult = await shopModel.deleteProduct(req.params.product_id);
 
-    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_product' });
+    if (deleteResult.affectedRows > 0) {
+      await shopModel.deleteProductFromCart(req.params.product_id);
+
+      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_product' });
+    } else {
+      throw new AppError(403, "403_unknownError");
+    }
   };
 
   // get product categories
@@ -319,8 +325,25 @@ class ShopController {
     new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_details' });
   }
 
+  getShopPayment = async (req, res, next) => {
+    const payment = await shopModel.getShopPayment(req.currentUser.id);
+
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_details' }, payment[0]);
+  };
+
+  updateShopPayment = async (req, res, next) => {
+    const result = await shopModel.updateShopPayment(req.body, req.currentUser.id);
+
+    if (result.affectedRows == 0) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_details' });
+  }
+
   getCartItems = async (req, res, next) => {
-    const items = await shopModel.getCartItems(req.currentUser.id);
+    let items = await shopModel.getCartItems(req.currentUser.id);
+    items = items.filter(item => item.product_slug != null);
 
     items.forEach(item => {
       if (item.product_discounted_price) {
@@ -394,11 +417,17 @@ class ShopController {
       throw new AppError(403, "403_unknownError");
     }
 
-    const body = { 'Orders.id': req.params.order_id };
+    const order = await this.getOrderData(req.params.order_id, req.currentUser);
 
-    if (req.currentUser.role !== 'admin') {
-      body['Orders.user_id'] = req.currentUser.id;
-      body['Orders.vendor_id'] = req.currentUser.id;
+    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
+  };
+
+  getOrderData = async (order_id, currentUser) => {
+    const body = { 'Orders.id': order_id };
+
+    if (currentUser.role !== 'admin' && currentUser.id) {
+      body['Orders.user_id'] = currentUser.id;
+      body['Orders.vendor_id'] = currentUser.id;
     }
 
     const order = await shopModel.getOrder(body);
@@ -421,8 +450,8 @@ class ShopController {
       order[0].items = items;
     }
 
-    new AppSuccess(res, 200, "200_detailFound", { 'entity': 'entity_order' }, order);
-  };
+    return order;
+  }
 
   processNewOrderData = async (orderBody) => {
     let promo;
@@ -447,6 +476,10 @@ class ShopController {
 
     const products = await shopModel.getProducts({ params: { ids: productIds } });
 
+    if (productIds.length !== products.length) {
+      throw new AppError(403, "Some products are not available. Please refresh your page to update your cart.")
+    }
+
     items.forEach((item) => {
       const product = products.find((product) => product.id === item.product_id);
       item.user_id = product.user_id;
@@ -455,6 +488,10 @@ class ShopController {
     const groups = Object.values(lodash.groupBy(items, (product) => product.user_id));
 
     let body = [];
+
+    if (groups.length > shipping_methods.length) {
+      throw new AppError(403, "Shipping method is required.")
+    }
 
     if (groups.length > 1) {
       // make sub orders
@@ -473,9 +510,13 @@ class ShopController {
           total = total * (1 - promo[0].discount / 100);
         }
 
-        let shipping_method = {};
+        let shipping_method;
         if (shipping_methods.length) {
-          shipping_method = shipping_methods.find(shipping => shipping.vendor_id === vendor_id) || {};
+          shipping_method = shipping_methods.find(shipping => shipping.vendor_id === vendor_id);
+          
+          if (!shipping_method) {
+            throw new AppError(403, "Shipping method is required.")
+          }
 
           if (shipping_method.fee) {
             total += parseFloat(shipping_method.fee);
@@ -576,6 +617,26 @@ class ShopController {
       throw new AppError(403, "403_unknownError")
     };
 
+    const websiteUrl = process.env.WEBSITE_URL;
+    const emailBody = `Dear ${order[0].user_name},
+
+Your order status has beed updated.
+
+Order: <a href="${websiteUrl}/dashboard/order/${order[0].id}">#${order[0].id.toString().padStart(5, '0')}</a> 
+Status: ${req.body.status}
+
+Best regards,
+
+Black Directory Team`;
+
+    const mailOptions = {
+      to: order[0].user_email,
+      subject: 'Black Directory - Order Updated',
+      body: emailBody,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+
     new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_order' });
   }
 
@@ -627,8 +688,65 @@ class ShopController {
     if (withdraw_request.status !== 200) {
       throw new AppError(403, "403_unknownError")
     };
+    
+    const mailOptions = {
+      subject: 'Black Directory - Withdraw Request',
+      body: `Dear admin,
+      
+A new withdraw request of amount £${req.body.amount} has been submitted by ${req.currentUser.name}.`,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+    
+    // confirmation mail to vendor
+    const request = (await shopModel.getWithdrawRequest(withdraw_request.data.request_id))[0];
+    const confirmationMailOptions = {
+      to: request.user_email,
+      subject: 'Black Directory - Withdraw Request',
+      body: `Dear ${request.user_display_name},
+      
+This is to confirm that you have requested for a withdraw of amount £${req.body.amount}.
+
+Best regards,
+
+Black Directory Team`,
+    }
+
+    mailHandler.sendEmail(confirmationMailOptions);
 
     new AppSuccess(res, 200, "200_successful", null);
+  }
+
+  completeRequest = async (req, res, next) => {
+    const request = (await shopModel.getWithdrawRequest(req.params.request_id))[0];
+
+    if (!request || Object.keys(request).length == 0) {
+      throw new AppError(403, "Withdraw request not found");
+    }
+
+    const result = await shopModel.completeWithdrawRequest(req.params.request_id);
+
+    if (Object.keys(result).length == 0) {
+      throw new AppError(403, "403_unknownError");
+    }
+
+    // send mail to vendor
+    const mailOptions = {
+      to: request.user_email,
+      subject: 'Black Directory - Withdraw Request',
+      body: `Dear ${request.user_display_name},
+      
+Your withdraw request of amount £${request.amount} has been processed.
+
+Best regards,
+
+Black Directory Team`,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+
+
+    new AppSuccess(res, 200, "200_updated_successfully");
   }
 
   getWithdrawRequests = async (req, res, next) => {
