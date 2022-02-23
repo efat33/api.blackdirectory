@@ -40,6 +40,8 @@ const auth = () => {
       // if the user has permissions
       req.currentUser = {
         id: decoded.user_id,
+        name: user.display_name,
+        email: user.email,
         role: decoded.role,
         forum_role: user.forum_role
       };

@@ -68,23 +68,8 @@ class UserController {
 
       res.cookie("BDY-authorization", `Bearer ${token}`, { httpOnly: true, sameSite: 'none', secure: true });
 
-      let websiteUrl;;
-      if (process.env.NODE_ENV === 'development') {
-        websiteUrl = 'http://localhost:4200';
-      } else {
-        websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-      }
-
-      const mailOptions = {
-        to: req.body.email,
-        subject: 'Email Verification',
-        body: `Welcome to Blackdirectory!<br><br>
-        Please click on the following link to verify your email.<br>
-        ${websiteUrl}/verify/${registerInfo.verification_key}
-        `,
-      }
-
-      mailHandler.sendEmail(mailOptions);
+      this.sendWelcomeMail(req.body.username, req.body.email);
+      this.sendActivationMail(req.body.username, req.body.email, registerInfo.verification_key);
 
       new AppSuccess(res, 200, "200_registerSuccess", {}, { ...userWithoutPassword, id: registerResult.data.user_id });
 
@@ -94,6 +79,54 @@ class UserController {
     }
 
   };
+
+  resendVerificationEmail = async (req, res, next) => {
+    const user = await UserModel.getUserProfile({ "id": req.currentUser.id });
+
+    const username = user.data.username;
+    const email = user.data.email;
+    const key = user.meta_data.find((data) => data.meta_key === 'verification_key');
+
+    if (email && key) {
+      this.sendActivationMail(username, email, key.meta_value);
+    }
+
+    new AppSuccess(res, 200, "Sent");
+  }
+
+  sendWelcomeMail = (username, email) => {
+    const mailOptions = {
+      to: email,
+      subject: 'Welcome to Black Directory!',
+      body: `Hello ${username},
+      
+Thank you for registering with Black Directory, we look forward to you using our website as a business or service provider, consumer, employer or job seeker.
+
+Best regards,
+
+Black Directory Team`,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
+
+  sendActivationMail = (username, email, key) => {
+    const websiteUrl = process.env.WEBSITE_URL;
+
+    const mailOptions = {
+      to: email,
+      subject: 'Black Directory - Email Confirmation',
+      body: `Hello ${username},
+      
+Please confirm your email address to complete your account registration. Just click this link ${websiteUrl}/verify/${key}.
+
+Best regards,
+
+Black Directory Team`,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
 
   userLogin = async (req, res, next) => {
 
@@ -437,6 +470,21 @@ class UserController {
     const result = await UserModel.userRequest(req.body, req.currentUser);
 
     if (result.affectedRows == 1) {
+      const emailBody = `Dear Admin,
+
+A user has requested to ${req.body.request} his/her account.
+
+User Email: ${req.body.user_email}
+Request: ${req.body.request}
+Description: ${req.body.description}`;
+  
+      const mailOptions = {
+        subject: 'Black Directory - Account Deactivate or Delete',
+        body: emailBody,
+      }
+
+      mailHandler.sendEmail(mailOptions)
+
       new AppSuccess(res, 200, "200_successful");
     }
     else {
@@ -595,42 +643,83 @@ class UserController {
 
     // send email
     const notification = (await UserModel.getNotification(result.id))[0];
-    const notificationText = await this.getJobNotificationText(notification);
+    const job = (await jobModel.getJobsByIds([notification.notification_type_id]))[0];
+
+    if (job.job_apply_type === 'with_email') {
+      return;
+    }
+
+    const emailSubject = await this.getJobNotificationEmailSubject(notification);
+    const emailBody = await this.getJobNotificationEmailBody(notification, job);
 
     const mailOptions = {
-      to: notification.email,
-      subject: 'Job Notification',
-      body: notificationText,
+      to: notification.user_email,
+      subject: emailSubject,
+      body: emailBody,
     }
 
     mailHandler.sendEmail(mailOptions);
   }
 
-  
-  getJobNotificationText = async (notification) => {
-    const job = (await jobModel.getJobsByIds([notification.notification_type_id]))[0];
-
-    let websiteUrl;;
-    if (process.env.NODE_ENV === 'development') {
-      websiteUrl = 'http://localhost:4200';
-    } else {
-      websiteUrl = 'https://blackdir.mibrahimkhalil.com';
-    }
-
+  getJobNotificationEmailSubject = async (notification) => {
     if (notification.notification_trigger === 'shortlisted') {
-      return `You are shortlisted for interview the job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you applied.`;
+      return `Black Directory - Candidate Shortlisted for Interview`;
     }
 
     if (notification.notification_trigger === 'rejected') {
-      return `You are rejected for interview the job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you applied.`;
+      return `Black Directory - Application Rejected for Interview`;
     }
 
     if (notification.notification_trigger === 'new job application') {
-      return `A new application is submitted on your job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you applied.`;
+      return `Black Directory - Job Application`;
     }
 
     if (notification.notification_trigger === 'new job') {
-      return `A new job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' is posted by '<a href="${websiteUrl}/user-details/${notification.user_username}">${notification.user_display_name}</a>' you are following.`;
+      return `Black Directory - New Job Alert`;
+    }
+  }
+
+  getJobNotificationEmailBody = async (notification, job) => {
+    const websiteUrl = process.env.WEBSITE_URL;
+
+    if (notification.notification_trigger === 'shortlisted') {
+      return `Dear ${notification.user_display_name},
+      
+Thank you for your application for the job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>". We are pleased to inform you that you have been shortlisted for an interview. The employer "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>" will conatct you to inform you of details of the interview.
+
+Best regards,
+
+Black Directory Team`;
+    }
+
+    if (notification.notification_trigger === 'rejected') {
+      return `Dear ${notification.user_display_name},
+      
+Thank you for your application for the job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>". We regret to inform you that your application was rejected.
+
+Best regards,
+
+Black Directory Team`;
+    }
+
+    if (notification.notification_trigger === 'new job application') {
+      return `Hi ${notification.user_display_name},
+      
+You have recieved a new application for your job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>" by applicant "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>". Their CV is attached and you can download it via your account.
+
+Best regards,
+
+Black Directory Team`;
+    }
+
+    if (notification.notification_trigger === 'new job') {
+      return `Dear ${notification.user_display_name},
+      
+A new job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>" is posted by "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>" you are following.
+
+Best regards,
+
+Black Directory Team`;
     }
   }
 
@@ -706,7 +795,7 @@ class UserController {
     const cvDownload = currentPackage.meta_values.find(meta => meta.meta_key === 'cv_download');
     const cvDownloadCount = cvDownload ? cvDownload.meta_value : 0;
 
-    if (currentPackage.currentPackage.cv_download > -1 && 
+    if (currentPackage.currentPackage.cv_download > -1 &&
       cvDownloadCount.meta_value >= currentPackage.currentPackage.cv_download
     ) {
       throw new AppError(403, "Please upgrade your package");

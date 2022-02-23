@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require('nodemailer');
 const dotenv = require("dotenv");
 const listingModel = require("../models/listing-model");
+const mailHandler = require('../utils/mailHandler.js');
 dotenv.config();
 
 class ListingController {
@@ -469,6 +470,23 @@ class ListingController {
     const result = await ListingModel.newClaim(req.body, req.currentUser);
 
     if (result) {
+      const listing = await ListingModel.findOne({id: req.body.listing_id}, DBTables.listings);
+      const emailBody = `Dear Admin,
+
+A user has claimed one of your listings.
+
+Listing: ${listing.title}
+First Name: ${req.body.firstname}
+Last Name: ${req.body.lastname}
+Phone: ${req.body.phone}
+Email: ${req.body.email}`;
+
+      const mailOptions = {
+        subject: 'Black Directory - New Listing Claim',
+        body: emailBody,
+      }
+
+      mailHandler.sendEmail(mailOptions)
 
       new AppSuccess(res, 200, "Submitted Successfully");
 
