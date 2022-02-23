@@ -11,6 +11,7 @@ const nodemailer = require('nodemailer');
 const JobModel = require('../models/job-model');
 const UserModel = require('../models/user-model');
 const UserController = require('../controllers/user-controller');
+const mailHandler = require('../utils/mailHandler.js');
 
 class JobController {
   sectors = async (req, res, next) => {
@@ -249,6 +250,27 @@ class JobController {
 
     await UserController.createNotification(notificationBody);
 
+    // send email to candidate
+    const candidate = (await UserModel.getUserDetailsByID({ id: req.currentUser.id })).data;
+    const employer = (await UserModel.getUserDetailsByID({ id: req.body.employer_id })).data;
+    const job = (await JobModel.getJobsByIds([req.body.job_id]))[0];
+
+    const websiteUrl = process.env.WEBSITE_URL;
+    
+    const mailOptions = {
+      to: req.currentUser.email,
+      subject: 'Black Directory - Job Application',
+      body: `Hello ${candidate.display_name},
+
+This is to confirm your application to the job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' posted by '<a href="${websiteUrl}/user-details/${employer.username}">${employer.display_name}</a>'.
+
+Best regards,
+
+Black Directory Team`,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+
     new AppSuccess(res, 200, "200_added", { 'entity': 'entity_jobApplication' });
   }
 
@@ -302,8 +324,8 @@ class JobController {
   };
 
   getUserJobApplication = async (req, res, next) => {
-    let body = {job_id: req.params.job_id};
-    
+    let body = { job_id: req.params.job_id };
+
     if (req.currentUser.role !== 'admin') {
       body['user_id'] = req.currentUser.id;
     }

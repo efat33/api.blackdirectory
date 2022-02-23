@@ -28,6 +28,9 @@ router.post('/product/:product_id/review', apiKey(), authVerified(), awaitHandle
 router.get('/details/:user_id', apiKey(), awaitHandlerFactory(ShopController.getShopDetails));
 router.post('/details', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateShopDetails));
 
+router.get('/payment', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getShopPayment));
+router.post('/payment', apiKey(), authVerified(), awaitHandlerFactory(ShopController.updateShopPayment));
+
 router.get('/cart', apiKey(), auth(), awaitHandlerFactory(ShopController.getCartItems));
 router.post('/cart', apiKey(), auth(), awaitHandlerFactory(ShopController.updateCartItems));
 router.delete('/cart/:item_id', apiKey(), auth(), awaitHandlerFactory(ShopController.deleteCartItem));
@@ -46,6 +49,7 @@ router.get('/countries', apiKey(), awaitHandlerFactory(ShopController.getCountri
 router.get('/withdraw-requests-all', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.getWithdrawRequestsAll));
 router.get('/withdraw-requests', apiKey(), authVerified(), awaitHandlerFactory(ShopController.getWithdrawRequests));
 router.post('/withdraw-request', apiKey(), authVerified(), awaitHandlerFactory(ShopController.newWithdrawRequest));
+router.put('/withdraw-request/complete/:request_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(ShopController.completeRequest));
 
 router.get('/wishlist', apiKey(), auth(), awaitHandlerFactory(ShopController.getWishlistProducts));
 router.post('/wishlist/:product_id', apiKey(), auth(), awaitHandlerFactory(ShopController.addWishlistProduct));
