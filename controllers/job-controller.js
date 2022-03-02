@@ -13,6 +13,15 @@ const UserModel = require('../models/user-model');
 const UserController = require('../controllers/user-controller');
 const mailHandler = require('../utils/mailHandler.js');
 
+const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+const jobTypes = {
+  contract: 'Contract',
+  internship: 'Internship',
+  temporary: 'Temporary',
+  'full-time': 'Full Time',
+  'part-time': 'Part Time',
+};
+
 class JobController {
   sectors = async (req, res, next) => {
     const sectors = await JobModel.getSectors();
@@ -102,6 +111,33 @@ class JobController {
     const result = await JobModel.updateJob(req.body);
 
     if (result) {
+      const updatedJob = (await JobModel.getJob({ id: req.params.job_id }))[0];
+
+      const websiteUrl = process.env.WEBSITE_URL;
+      const user = await UserModel.findOne({ id: updatedJob.user_id });
+      const emailBody = `Dear ${user.display_name},
+
+The posted job "<a href='${websiteUrl}/jobs/details/${updatedJob.slug}'>${updatedJob.title}</a>" has been updated.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Job Update</strong>
+Job Title&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${updatedJob.title}
+Job Type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${jobTypes[updatedJob.job_type]}
+Industry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${updatedJob.job_industry}
+Post Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${new Date(updatedJob.created_at).toLocaleDateString(undefined, dateOptions)}
+Expiry Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${new Date(updatedJob.deadline).toLocaleDateString(undefined, dateOptions)}
+
+Best regards,
+
+Black Directory`;
+
+      const mailOptions = {
+        to: user.email,
+        subject: 'Black Directory - Job Update',
+        body: emailBody,
+      }
+
+      mailHandler.sendEmail(mailOptions);
+
       new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_job' }, result);
     }
     else {
@@ -256,17 +292,17 @@ class JobController {
     const job = (await JobModel.getJobsByIds([req.body.job_id]))[0];
 
     const websiteUrl = process.env.WEBSITE_URL;
-    
+
     const mailOptions = {
       to: req.currentUser.email,
       subject: 'Black Directory - Job Application',
-      body: `Hello ${candidate.display_name},
+      body: `Hi ${candidate.display_name},
 
-This is to confirm your application to the job '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' posted by '<a href="${websiteUrl}/user-details/${employer.username}">${employer.display_name}</a>'.
+This is to confirm your job application for '<a href="${websiteUrl}/jobs/details/${job.slug}">${job.title}</a>' has been submitted to '<a href="${websiteUrl}/user-details/${employer.username}">${employer.display_name}</a>'.
 
-Best regards,
+Best wishes,
 
-Black Directory Team`,
+Black Directory`,
     }
 
     mailHandler.sendEmail(mailOptions);
@@ -483,10 +519,10 @@ Black Directory Team`,
     if (result.affectedRows && result.affectedRows > 0) {
       new AppSuccess(res, 200, "Alert created successfully");
     }
-    else{
+    else {
       throw new AppError(403, "403_unknownError");
     }
-    
+
   }
 
   unsubscribeJobAlert = async (req, res, next) => {
@@ -498,7 +534,7 @@ Black Directory Team`,
     }
 
     new AppSuccess(res, 200, "200_successful");
-    
+
   }
 
   sendJobAlert = async (req, res, next) => {
@@ -513,18 +549,18 @@ Black Directory Team`,
       14: '14days',
       30: '30days'
     }
-    
+
     for (let index = 0; index < allAlerts.length; index++) {
       const element = allAlerts[index];
       const last_sent_at = commonfn.dateTime(element.last_sent_at)
-      
+
       const date1 = new Date(last_sent_at);
       const date2 = new Date(current_time);
-        
+
       const Difference_In_Time = date2.getTime() - date1.getTime();
       const Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
 
-      if(Difference_In_Days > element.period){
+      if (Difference_In_Days > element.period) {
         // fetch the jobs 
         const params = {
           datePosted: periods[element.period],
@@ -532,7 +568,7 @@ Black Directory Team`,
           keyword: element.keyword,
           sector: element.sector
         }
-        if(element.salary){
+        if (element.salary) {
           params.salaryMin = (parseInt(element.salary) - 200) > 0 ? (parseInt(element.salary) - 200) : 0;
           params.salaryMax = parseInt(element.salary) + 200;
         }
@@ -541,16 +577,47 @@ Black Directory Team`,
         allAlerts[index]['jobs'] = jobs;
 
         // send email only when jobs are available
-        if(jobs.length > 0){
+        if (jobs.length > 0) {
 
         }
       }
-      
+
     }
 
     new AppSuccess(res, 200, "200_successful", '', allAlerts);
   }
 
+  jobExpiryMail = async (req, res, next) => {
+    const jobsExpiredToday = await JobModel.getJobsExpiredToday();
+    const websiteUrl = process.env.WEBSITE_URL;
+
+    for (const job of jobsExpiredToday) {
+      const emailBody = `Dear ${job.user_display_name},
+
+The posted job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>" has expired. Please kindly review the details on your <a href='${websiteUrl}/dashboard/profile'>Account</a>.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Job Expiry</strong>
+Job Title&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${job.title}
+Job Type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${jobTypes[job.job_type]}
+Industry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${job.job_industry}
+Post Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${new Date(job.created_at).toLocaleDateString(undefined, dateOptions)}
+Expiry Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${new Date(job.deadline).toLocaleDateString(undefined, dateOptions)}
+
+Best regards,
+
+Black Directory`;
+  
+      const mailOptions = {
+        to: job.user_email,
+        subject: 'Black Directory - Job Expiry',
+        body: emailBody,
+      }
+
+      mailHandler.sendEmail(mailOptions);
+    }
+    
+    new AppSuccess(res, 200, "200_successful", '', jobsExpiredToday);
+  }
 }
 
 module.exports = new JobController();

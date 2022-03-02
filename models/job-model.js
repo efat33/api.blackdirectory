@@ -165,6 +165,19 @@ class JobModel {
     return result;
   }
 
+  getJobsExpiredToday = async () => {
+    let sql = `SELECT DISTINCT Job.title as title, Job.slug as slug, Job.job_type as job_type, 
+                Job.job_industry as job_industry, Job.deadline as deadline,
+                Users.display_name as user_display_name, Users.email as user_email, 
+                Job.created_at as created_at, Job.expiry_date as expiry_date 
+                FROM ${this.tableName} as Job 
+                LEFT JOIN ${this.tableUsers} as Users ON Job.user_id=Users.id 
+                WHERE Job.expiry_date < UTC_TIMESTAMP() AND Job.expiry_date >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
+                `;
+
+    return await query(sql);
+  }
+
   getJobs = async (params, page = 1, limit = 10) => {
     let { sql, values } = this.getJobSqlGenerate(params);
 

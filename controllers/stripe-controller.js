@@ -9,6 +9,7 @@ const EventModel = require('../models/event-model');
 const shopModel = require("../models/shop-model");
 const shopController = require("../controllers/shop-controller");
 const mailHandler = require('../utils/mailHandler.js');
+const EventController = require("./event-controller");
 
 class StripeController {
   stripeWebhook = async (req, res, next) => {
@@ -62,6 +63,8 @@ class StripeController {
     }
 
     await EventModel.buyEventTickets(meta.items, meta.event_id, meta.user_id);
+
+    await EventController.sendEventEmail(meta.event_id, meta.user_id);
   }
 
   shopPackageHook = async (session) => {
@@ -182,7 +185,7 @@ We have received a new order of the following items.
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
 
     const userMailOptions = {
       to: user.email,
@@ -196,20 +199,21 @@ Black Directory Team`;
   sendOrderEmailToVendor(order) {
     const websiteUrl = process.env.WEBSITE_URL;
     const tableString = this.generateOrderTable(order);
+    const orderID = order[0].id.toString().padStart(5, '0');
 
     let emailBody = `Dear ${order[0].vendor_name},
 
 You have received a new order of the following items.
 
-<h3><a href="${websiteUrl}/dashboard/order/${order[0].id}">ORDER #${order[0].id.toString().padStart(5, '0')}</a></h3>${tableString}
+<h3><a href="${websiteUrl}/dashboard/order/${order[0].id}">ORDER #${orderID}</a></h3>${tableString}
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
 
     const mailOptions = {
       to: order[0].vendor_email,
-      subject: 'Black Directory - New Order',
+      subject: `You have a new order #${orderID}`,
       body: emailBody,
     }
 
