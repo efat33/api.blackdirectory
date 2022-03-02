@@ -627,7 +627,7 @@ Status: ${req.body.status}
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
 
     const mailOptions = {
       to: order[0].user_email,
@@ -691,9 +691,13 @@ Black Directory Team`;
     
     const mailOptions = {
       subject: 'Black Directory - Withdraw Request',
-      body: `Dear admin,
+      body: `Dear BD Payments,
       
-A new withdraw request of amount £${req.body.amount} has been submitted by ${req.currentUser.name}.`,
+${req.currentUser.name} has submitted a withdrawal request of £${req.body.amount}.
+
+Kind regards,
+
+${req.currentUser.name}`,
     }
 
     mailHandler.sendEmail(mailOptions);
@@ -705,11 +709,11 @@ A new withdraw request of amount £${req.body.amount} has been submitted by ${re
       subject: 'Black Directory - Withdraw Request',
       body: `Dear ${request.user_display_name},
       
-This is to confirm that you have requested for a withdraw of amount £${req.body.amount}.
+This is to confirm that we have received your withdrawal request of amount £${req.body.amount} from your account. Your request is now being processed.
 
-Best regards,
+Kind regards,
 
-Black Directory Team`,
+Black Directory Payments`,
     }
 
     mailHandler.sendEmail(confirmationMailOptions);
@@ -735,12 +739,14 @@ Black Directory Team`,
       to: request.user_email,
       subject: 'Black Directory - Withdraw Request',
       body: `Dear ${request.user_display_name},
-      
-Your withdraw request of amount £${request.amount} has been processed.
+
+Your withdraw request of amount £${req.body.amount} has been successfully processed. The funds have now been transferred and should be in to your designated bank account in 3-5 working days.
+
+Thank you for using Black Directory.
 
 Best regards,
 
-Black Directory Team`,
+Black Directory Payments`,
     }
 
     mailHandler.sendEmail(mailOptions);

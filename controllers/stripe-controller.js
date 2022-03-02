@@ -62,6 +62,8 @@ class StripeController {
     }
 
     await EventModel.buyEventTickets(meta.items, meta.event_id, meta.user_id);
+
+    await this.sendEventEmail(meta.event_id, meta.user_id);
   }
 
   shopPackageHook = async (session) => {
@@ -182,7 +184,7 @@ We have received a new order of the following items.
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
 
     const userMailOptions = {
       to: user.email,
@@ -196,24 +198,65 @@ Black Directory Team`;
   sendOrderEmailToVendor(order) {
     const websiteUrl = process.env.WEBSITE_URL;
     const tableString = this.generateOrderTable(order);
+    const orderID = order[0].id.toString().padStart(5, '0');
 
     let emailBody = `Dear ${order[0].vendor_name},
 
 You have received a new order of the following items.
 
-<h3><a href="${websiteUrl}/dashboard/order/${order[0].id}">ORDER #${order[0].id.toString().padStart(5, '0')}</a></h3>${tableString}
+<h3><a href="${websiteUrl}/dashboard/order/${order[0].id}">ORDER #${orderID}</a></h3>${tableString}
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
 
     const mailOptions = {
       to: order[0].vendor_email,
-      subject: 'Black Directory - New Order',
+      subject: `You have a new order #${orderID}`,
       body: emailBody,
     }
 
     mailHandler.sendEmail(mailOptions);
+  }
+
+  async sendEventEmail(eventId, userId) {
+    const event = await EventModel.findOne({ id: eventId });
+    const user = await UserModel.findOne({ id: userId });
+    let emailBody = `Hello ${user.display_name},
+    
+${event.title}
+${this.formatEventDateTime(event.start_time)}&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;${this.formatEventDateTime(event.end_time)}
+
+Thank you for confirming that you will be attending the above event.
+
+Best regards,
+
+Black Directory`;
+
+    const mailOptions = {
+      to: user.email,
+      subject: `Black Directory - Event Confirmation`,
+      body: emailBody,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
+
+  formatEventDateTime(dateString) {
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const datetime = new Date(dateString);
+    const date = datetime.getDate();
+    const month = monthNames[datetime.getMonth()];
+    const year = datetime.getFullYear();
+    let hours = datetime.getHours();
+    const minutes = datetime.getMinutes();
+    let suffix = hours < 12 ? 'AM' : 'PM';
+    
+    hours = hours % 12 || 12;
+
+    return `${month} ${date}, ${year} @ ${hours}:${minutes} ${suffix}`;
   }
 }
 

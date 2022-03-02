@@ -223,11 +223,13 @@ A user has replied to a forum topic you are following.
 
 Forum: <a href="${websiteUrl}/forums/forum/${replyNotification.forum_slug}">${replyNotification.forum_title}</a>
 Topic: <a href="${websiteUrl}/forums/topic/${replyNotification.topic_slug}">${replyNotification.topic_title}</a>
-Content: ${req.body.content}
 
-Best regards,
+Content
+${req.body.content}
 
-Black Directory Team`;
+Kind regards,
+
+Black Directory`;
 
       const mailOptions = {
         to: replyNotification.user_email,
