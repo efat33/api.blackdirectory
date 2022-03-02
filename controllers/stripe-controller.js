@@ -9,6 +9,7 @@ const EventModel = require('../models/event-model');
 const shopModel = require("../models/shop-model");
 const shopController = require("../controllers/shop-controller");
 const mailHandler = require('../utils/mailHandler.js');
+const EventController = require("./event-controller");
 
 class StripeController {
   stripeWebhook = async (req, res, next) => {
@@ -63,7 +64,7 @@ class StripeController {
 
     await EventModel.buyEventTickets(meta.items, meta.event_id, meta.user_id);
 
-    await this.sendEventEmail(meta.event_id, meta.user_id);
+    await EventController.sendEventEmail(meta.event_id, meta.user_id);
   }
 
   shopPackageHook = async (session) => {
@@ -217,46 +218,6 @@ Black Directory`;
     }
 
     mailHandler.sendEmail(mailOptions);
-  }
-
-  async sendEventEmail(eventId, userId) {
-    const event = await EventModel.findOne({ id: eventId });
-    const user = await UserModel.findOne({ id: userId });
-    let emailBody = `Hello ${user.display_name},
-    
-${event.title}
-${this.formatEventDateTime(event.start_time)}&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;${this.formatEventDateTime(event.end_time)}
-
-Thank you for confirming that you will be attending the above event.
-
-Best regards,
-
-Black Directory`;
-
-    const mailOptions = {
-      to: user.email,
-      subject: `Black Directory - Event Confirmation`,
-      body: emailBody,
-    }
-
-    mailHandler.sendEmail(mailOptions);
-  }
-
-  formatEventDateTime(dateString) {
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    const datetime = new Date(dateString);
-    const date = datetime.getDate();
-    const month = monthNames[datetime.getMonth()];
-    const year = datetime.getFullYear();
-    let hours = datetime.getHours();
-    const minutes = datetime.getMinutes();
-    let suffix = hours < 12 ? 'AM' : 'PM';
-    
-    hours = hours % 12 || 12;
-
-    return `${month} ${date}, ${year} @ ${hours}:${minutes} ${suffix}`;
   }
 }
 
