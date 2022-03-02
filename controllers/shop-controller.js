@@ -510,6 +510,9 @@ class ShopController {
           total = total * (1 - promo[0].discount / 100);
         }
 
+        // add vat : 2% on subtotal 
+        total = total + subtotal * 0.2;
+
         let shipping_method;
         if (shipping_methods.length) {
           shipping_method = shipping_methods.find(shipping => shipping.vendor_id === vendor_id);
@@ -564,6 +567,9 @@ class ShopController {
       if (promo) {
         total = total * (1 - promo[0].discount / 100);
       }
+
+      // add vat : 2% on subtotal 
+      total = total + subtotal * 0.2;
 
       let shipping_method = {};
       if (shipping_methods.length) {
