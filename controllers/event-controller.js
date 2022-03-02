@@ -9,6 +9,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require('nodemailer');
 const dotenv = require("dotenv");
 const EventModel = require("../models/event-model");
+const userModel = require("../models/user-model");
+const mailHandler = require('../utils/mailHandler.js');
 dotenv.config();
 
 
@@ -137,8 +139,8 @@ class EventController {
   // get single event details by event ID
   getEventByID = async (req, res, next) => {
 
-    const result = await EventModel.findOne({id: req.params.id});
-    
+    const result = await EventModel.findOne({ id: req.params.id });
+
     new AppSuccess(res, 200, "200_retrieved", '', result);
 
   };
@@ -273,7 +275,7 @@ class EventController {
     const attendee_table = req.body.attendee_type == 'rsvp' ? DBTables.event_rsvp_attendees : DBTables.event_ticket_attendees;
     const attendee = await EventModel.getAttendeeEvent(req.body.code, attendee_table);
 
-    if (req.currentUser.role != 'admin' && attendee.event_user_id != req.currentUser.id ) {
+    if (req.currentUser.role != 'admin' && attendee.event_user_id != req.currentUser.id) {
       throw new AppError(401, "Unauthorised Request");
     }
 
@@ -287,7 +289,7 @@ class EventController {
 
     if (result.affectedRows == 1) {
 
-      new AppSuccess(res, 200, "200_updated_successfully", '', {checked_in: data.checked_in});
+      new AppSuccess(res, 200, "200_updated_successfully", '', { checked_in: data.checked_in });
 
     }
     else {
@@ -331,25 +333,25 @@ class EventController {
   };
 
   updateOrganiser = async (req, res, next) => {
-      const result = await EventModel.updateOrganiser(req.params.organiser_id, req.body);
+    const result = await EventModel.updateOrganiser(req.params.organiser_id, req.body);
 
-      if (Object.keys(result).length === 0) {
-          throw new AppError(403, "403_unknownError")
-      };
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
 
-      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_organiser' });
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_organiser' });
   };
 
   deleteOrganiser = async (req, res, next) => {
-      const result = await EventModel.getOrganiser(req.params.organiser_id);
+    const result = await EventModel.getOrganiser(req.params.organiser_id);
 
-      if (Object.keys(result).length === 0) {
-          throw new AppError(403, "403_unknownError")
-      };
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
 
-      await EventModel.deleteOrganiser(req.params.organiser_id);
+    await EventModel.deleteOrganiser(req.params.organiser_id);
 
-      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_organiser' });
+    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_organiser' });
   };
 
   // add new category
@@ -383,25 +385,25 @@ class EventController {
   };
 
   updateCategory = async (req, res, next) => {
-      const result = await EventModel.updateCategory(req.params.category_id, req.body);
+    const result = await EventModel.updateCategory(req.params.category_id, req.body);
 
-      if (Object.keys(result).length === 0) {
-          throw new AppError(403, "403_unknownError")
-      };
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
 
-      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_category' });
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_category' });
   };
 
   deleteCategory = async (req, res, next) => {
-      const result = await EventModel.getCategory(req.params.category_id);
+    const result = await EventModel.getCategory(req.params.category_id);
 
-      if (Object.keys(result).length === 0) {
-          throw new AppError(403, "403_unknownError")
-      };
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
 
-      await EventModel.deleteCategory(req.params.category_id);
+    await EventModel.deleteCategory(req.params.category_id);
 
-      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
+    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_category' });
   };
 
   // add new tag
@@ -435,25 +437,25 @@ class EventController {
   };
 
   updateTag = async (req, res, next) => {
-      const result = await EventModel.updateTag(req.params.tag_id, req.body);
+    const result = await EventModel.updateTag(req.params.tag_id, req.body);
 
-      if (Object.keys(result).length === 0) {
-          throw new AppError(403, "403_unknownError")
-      };
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
 
-      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_tag' });
+    new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_tag' });
   };
 
   deleteTag = async (req, res, next) => {
-      const result = await EventModel.getTag(req.params.tag_id);
+    const result = await EventModel.getTag(req.params.tag_id);
 
-      if (Object.keys(result).length === 0) {
-          throw new AppError(403, "403_unknownError")
-      };
+    if (Object.keys(result).length === 0) {
+      throw new AppError(403, "403_unknownError")
+    };
 
-      await EventModel.deleteTag(req.params.tag_id);
+    await EventModel.deleteTag(req.params.tag_id);
 
-      new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_tag' });
+    new AppSuccess(res, 200, "200_deleted", { 'entity': 'entity_tag' });
   };
 
   newEventComment = async (req, res, next) => {
@@ -492,15 +494,60 @@ class EventController {
     new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_comment' }, result);
   };
 
+  buyEventTickets = async (req, res, next) => {
+    // Used when total price is 0
+    if (!req.body) {
+      throw new AppError(403, "403_unknownError")
+    };
+
+    const ids = req.body.map(ticket => ticket.id);
+    const tickets = await EventModel.getTickets(ids);
+    const meta_items = [];
+
+    for (const ticket of tickets) {
+      if (ticket.price > 0) {
+        throw new AppError(403, "Please purchase the tickets");
+      }
+
+      const quantity = req.body.find(t => t.id === ticket.id).quantity;
+
+      if (ticket.available != null && ticket.available < quantity) {
+        throw new AppError(403, "Please provide a valid quantity")
+      };
+
+      meta_items.push({
+        ticketId: ticket.id,
+        price: ticket.price,
+        quantity: quantity
+      });
+
+    }
+
+    const meta = {
+      items: meta_items,
+      event_id: req.params.event_id,
+      user_id: req.currentUser.id
+    }
+
+    const result = await EventModel.buyEventTickets(meta.items, meta.event_id, meta.user_id);
+
+    if (result.status !== 200) {
+      throw new AppError(403, "403_unknownError")
+    }
+
+    await this.sendEventEmail(meta.event_id, meta.user_id);
+    new AppSuccess(res, 200, "200_successful");
+  };
+
   createStripeCheckoutSession = async (req, res, next) => {
     if (!req.body.tickets || req.body.tickets.length === 0) {
       throw new AppError(403, "403_unknownError")
     };
 
-    
+
     const ids = req.body.tickets.map(ticket => ticket.id);
     const tickets = await EventModel.getTickets(ids);
-    
+
     const event_id = tickets[0].event_id;
     const line_items = [];
     const meta_items = [];
@@ -548,6 +595,46 @@ class EventController {
 
     new AppSuccess(res, 200, "200_successful", null, session);
   };
+
+  async sendEventEmail(eventId, userId) {
+    const event = await EventModel.findOne({ id: eventId });
+    const user = await userModel.findOne({ id: userId });
+    let emailBody = `Hello ${user.display_name},
+    
+${event.title}
+${this.formatEventDateTime(event.start_time)}&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;${this.formatEventDateTime(event.end_time)}
+
+Thank you for confirming that you will be attending the above event.
+
+Best regards,
+
+Black Directory`;
+
+    const mailOptions = {
+      to: user.email,
+      subject: `Black Directory - Event Confirmation`,
+      body: emailBody,
+    }
+
+    mailHandler.sendEmail(mailOptions);
+  }
+
+  formatEventDateTime(dateString) {
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const datetime = new Date(dateString);
+    const date = datetime.getDate();
+    const month = monthNames[datetime.getMonth()];
+    const year = datetime.getFullYear();
+    let hours = datetime.getHours();
+    const minutes = datetime.getMinutes();
+    let suffix = hours < 12 ? 'AM' : 'PM';
+
+    hours = hours % 12 || 12;
+
+    return `${month} ${date}, ${year} @ ${hours}:${minutes} ${suffix}`;
+  }
 }
 
 module.exports = new EventController();

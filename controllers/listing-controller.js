@@ -471,9 +471,9 @@ class ListingController {
 
     if (result) {
       const listing = await ListingModel.findOne({id: req.body.listing_id}, DBTables.listings);
-      const emailBody = `Dear Admin,
+      const emailBody = `Dear Black Directory,
 
-A user has claimed one of your listings.
+A user has claimed one of the directory listings.
 
 Listing: ${listing.title}
 First Name: ${req.body.firstname}

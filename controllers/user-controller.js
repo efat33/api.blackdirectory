@@ -98,13 +98,13 @@ class UserController {
     const mailOptions = {
       to: email,
       subject: 'Welcome to Black Directory!',
-      body: `Hello ${username},
+      body: `Hi ${username},
       
-Thank you for registering with Black Directory, we look forward to you using our website as a business or service provider, consumer, employer or job seeker.
+Thank you for registering with Black Directory. We look forward to you using our platform and enjoying all the features we have to offer.
 
-Best regards,
+Kind regards,
 
-Black Directory Team`,
+Black Directory`,
     }
 
     mailHandler.sendEmail(mailOptions);
@@ -118,11 +118,11 @@ Black Directory Team`,
       subject: 'Black Directory - Email Confirmation',
       body: `Hello ${username},
       
-Please confirm your email address to complete your account registration. Just click this link ${websiteUrl}/verify/${key}.
+Please confirm your email address to complete your account registration. Please <a href="${websiteUrl}/verify/${key}">click here</a>.
 
-Best regards,
+Kind regards,
 
-Black Directory Team`,
+Black Directory`,
     }
 
     mailHandler.sendEmail(mailOptions);
@@ -248,8 +248,26 @@ Black Directory Team`,
     }
 
     if (result.affectedRows == 1) {
+      const user = await UserModel.findOne({ email: req.body.email });
+      const emailBody = `Hello,
 
-      //TODO: mailing stuff
+Someone has requested a password reset for the following account:
+
+https://www.blackdirectory.co.uk/
+Username: ${user.username}
+
+If this was a mistake, just ignore this email and nothing will happen.
+
+To reset your password, use the following reset key:
+${reset_key}`;
+
+      const mailOptions = {
+        to: req.body.email,
+        subject: 'Black Directory - Password Reset',
+        body: emailBody,
+      }
+
+      mailHandler.sendEmail(mailOptions);
 
       new AppSuccess(res, 200, "200_successful");
     }
@@ -462,7 +480,7 @@ Black Directory Team`,
   userRequest = async (req, res, next) => {
 
     // check if the user has already made the request 
-    const request = await UserModel.findOne({user_id: req.currentUser.id}, commonfn.DBTables.user_requests);
+    const request = await UserModel.findOne({ user_id: req.currentUser.id }, commonfn.DBTables.user_requests);
     if (request && Object.keys(request).length > 0) {
       throw new AppError(403, "Request has already been made");
     }
@@ -470,20 +488,42 @@ Black Directory Team`,
     const result = await UserModel.userRequest(req.body, req.currentUser);
 
     if (result.affectedRows == 1) {
-      const emailBody = `Dear Admin,
+      const emailBody = `Dear Black Directory,
 
 A user has requested to ${req.body.request} his/her account.
 
 User Email: ${req.body.user_email}
 Request: ${req.body.request}
+
 Description: ${req.body.description}`;
-  
+
       const mailOptions = {
         subject: 'Black Directory - Account Deactivate or Delete',
         body: emailBody,
       }
 
-      mailHandler.sendEmail(mailOptions)
+      mailHandler.sendEmail(mailOptions);
+
+      // send mail to customer
+      const customerEmailBody = `Dear ${req.currentUser.name},
+
+You have requested to ${req.body.request} your account for the following account.
+
+User Email: ${req.body.user_email}
+Your requested is now being processed.
+
+Thank you for your patience.
+
+Kind regards,
+
+Black Directory`;
+
+      const customerMailOptions = {
+        subject: 'Black Directory - Account Deactivate or Delete',
+        body: customerEmailBody,
+      }
+
+      mailHandler.sendEmail(customerMailOptions);
 
       new AppSuccess(res, 200, "200_successful");
     }
@@ -543,7 +583,7 @@ Description: ${req.body.description}`;
   };
 
   getDeactivatedUsers = async (req, res, next) => {
-    let userList = await UserModel.find({is_deactivated: 1});
+    let userList = await UserModel.find({ is_deactivated: 1 });
 
     userList = userList.map((user) => {
       const { password, ...userWithoutPassword } = user;
@@ -689,7 +729,7 @@ Thank you for your application for the job "<a href='${websiteUrl}/jobs/details/
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
     }
 
     if (notification.notification_trigger === 'rejected') {
@@ -699,27 +739,27 @@ Thank you for your application for the job "<a href='${websiteUrl}/jobs/details/
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
     }
 
     if (notification.notification_trigger === 'new job application') {
       return `Hi ${notification.user_display_name},
       
-You have recieved a new application for your job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>" by applicant "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>". Their CV is attached and you can download it via your account.
+You have recieved a new application from "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>" for your job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>". "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>"'s profile, application and CV can be found in your <a href="${websiteUrl}/dashboard/all-applicants">Account</a> or you can find the CV attached within.
 
-Best regards,
+Best wishes,
 
-Black Directory Team`;
+Black Directory`;
     }
 
     if (notification.notification_trigger === 'new job') {
       return `Dear ${notification.user_display_name},
       
-A new job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>" is posted by "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>" you are following.
+A new job "<a href='${websiteUrl}/jobs/details/${job.slug}'>${job.title}</a>" has been posted by "<a href='${websiteUrl}/user-details/${notification.acted_user_username}'>${notification.acted_user_display_name}</a>" who you are following.
 
 Best regards,
 
-Black Directory Team`;
+Black Directory`;
     }
   }
 
