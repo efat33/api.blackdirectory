@@ -52,6 +52,8 @@ router.post('/create-checkout-session', apiKey(), auth(), isEmployer(), awaitHan
 
 router.post('/create-job-alert', apiKey(), awaitHandlerFactory(jobController.newJobAlert));
 router.post('/unsubscribe-job-alert', apiKey(), awaitHandlerFactory(jobController.unsubscribeJobAlert));
-router.get('/send-job-alert',  awaitHandlerFactory(jobController.sendJobAlert));
+router.get('/send-job-alert', awaitHandlerFactory(jobController.sendJobAlert));
+
+router.get('/job-expiry-mail', awaitHandlerFactory(jobController.jobExpiryMail));
 
 module.exports = router;
