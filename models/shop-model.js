@@ -80,17 +80,18 @@ class ShopModel {
     const sql = `INSERT INTO ${DBTables.products} (user_id, title, slug, price, discounted_price, 
                   discount_start, discount_end, image, galleries, 
                   short_desc, description, sku, stock_status, purchase_note, 
-                  is_downloadable, is_virtual, created_at, updated_at) VALUES 
+                  is_downloadable, is_virtual, meta_title, meta_keywords, meta_desc, created_at, updated_at) VALUES 
                   (?,?,?,?,?,
                     ?,?,?,?,
                     ?,?,?,?,?,
-                    ?,?,?,?)`;
+                    ?,?,?,?,?,?,?)`;
     const values = [
       user_id, params.title, slug, params.price, params.discounted_price,
       params.discount_start ? commonfn.dateTime(new Date(params.discount_start)) : null,
       params.discount_end ? commonfn.dateTime(new Date(params.discount_end)) : null,
       params.image, JSON.stringify(params.galleries), params.short_desc,
       params.description, params.sku, params.stock_status, params.purchase_note, params.is_downloadable, params.is_virtual,
+      params.meta_title, params.meta_keywords, params.meta_desc,
       current_date, current_date
     ];
 
@@ -183,6 +184,9 @@ class ShopModel {
       'purchase_note': params.purchase_note,
       'is_downloadable': params.is_downloadable,
       'is_virtual': params.is_virtual,
+      'meta_title': params.meta_title,
+      'meta_keywords': params.meta_keywords,
+      'meta_desc': params.meta_desc,
       'updated_at': current_date
     }
 

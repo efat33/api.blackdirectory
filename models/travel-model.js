@@ -47,10 +47,10 @@ class TravelModel {
         let output = {};
 
         const sql = `INSERT INTO ${this.tableName} 
-            (title, slug, content, featured_image) 
-            VALUES (?,?,?,?)`;
+            (title, slug, content, featured_image, meta_title, meta_keywords, meta_desc) 
+            VALUES (?,?,?,?,?,?,?)`;
 
-        const values = [params.title, slug, params.content, params.featured_image];
+        const values = [params.title, slug, params.content, params.featured_image, params.meta_title, params.meta_keywords, params.meta_desc];
 
         const result = await query(sql, values);
 

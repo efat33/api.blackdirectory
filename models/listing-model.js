@@ -106,20 +106,20 @@ class ListingModel {
       price_range, price_min, price_max, featured_img, galleries, 
       business_hour, video_urls, products, button_icon, button_link, 
       coupon_title, coupon_description, coupon_image, coupon_code, coupon_popup_desc, coupon_link, coupon_expiry_date,
-      button_name, status, created_at, updated_at) 
+      button_name, status, meta_title, meta_keywords, meta_desc, created_at, updated_at) 
       VALUES (?,?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,?,?,
-        ?,?,?,?)`;
+        ?,?,?,?,?,?,?)`;
         
     const regResult = await query(sql, [user_id, claimer_id, params.title, slug, params.tagline, params.logo,
       params.cover_img, params.description, params.address, params.lat, params.lng,
       params.price_range, params.price_min, params.price_max, params.featured_img, JSON.stringify(galleries),
       params.business_hour, JSON.stringify(video_urls), products, params.button_icon, params.button_link,
       params.coupon_title, params.coupon_description, params.coupon_image, params.coupon_code, params.coupon_popup_desc, params.coupon_link, params.coupon_expiry_date,
-      params.button_name, 'publish', current_date, current_date]);
+      params.button_name, 'publish', params.meta_title, params.meta_keywords, params.meta_desc, current_date, current_date]);
       
     if (regResult.insertId) {
 
@@ -359,6 +359,9 @@ class ListingModel {
       'coupon_link': params.coupon_link,
       'coupon_expiry_date': params.coupon_expiry_date,
       'status': 'publish',
+      'meta_title': params.meta_title,
+      'meta_keywords': params.meta_keywords,
+      'meta_desc': params.meta_desc,
       'updated_at': current_date
     }
 
