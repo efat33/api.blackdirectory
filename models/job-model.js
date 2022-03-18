@@ -62,17 +62,20 @@ class JobModel {
             job_sector_id, job_industry, job_apply_type, experience, salary, 
             address, latitude, longitude, attachment, urgent, 
             filled, status, views, expiry_date, featured, 
+            meta_title, meta_keywords, meta_desc, 
             applicants_number, job_type, created_at, updated_at) 
             VALUES (?,?,?,?,?,
             ?,?,?,?,?,
             ?,?,?,?,?,
             ?,?,?,?,?,
+            ?,?,?,
             ?,?,?,?)`;
 
     const result = await query(sql, [user_id, params.title, slug, params.description, new Date(params.deadline),
       params.job_sector_id, params.job_industry, params.job_apply_type, params.experience, params.salary,
       params.address, params.latitude, params.longitude, params.attachment, 0,
       0, 'approved', 0, expiry_date, 0,
+      params.meta_title, params.meta_keywords, params.meta_desc,
       0, params.job_type, current_date, current_date]);
 
 
@@ -125,6 +128,9 @@ class JobModel {
                 longitude = ?, 
                 attachment = ?, 
                 job_type = ?, 
+                meta_title = ?, 
+                meta_keywords = ?, 
+                meta_desc = ?, 
                 updated_at = ? 
             WHERE id = ${params.id}`;
 
@@ -142,6 +148,9 @@ class JobModel {
       params.longitude,
       params.attachment,
       params.job_type,
+      params.meta_title,
+      params.meta_keywords,
+      params.meta_desc,
       current_date,
     ];
 

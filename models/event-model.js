@@ -62,14 +62,16 @@ class EventModel {
     const sql = `INSERT INTO ${DBTables.events} 
                     (user_id, title, slug, description, start_time, end_time, 
                         featured_img, venue, address, latitude, longitude, website_url, 
-                        youtube_url, featured, is_virtual, created_at, updated_at) 
+                        youtube_url, featured, is_virtual, meta_title, meta_keywords, 
+                        meta_desc, created_at, updated_at) 
                     VALUES (?,?,?,?,?,?,
                         ?,?,?,?,?,?,
-                        ?,?,?,?,?)`;
+                        ?,?,?,?,?,
+                        ?,?,?)`;
     const values = [
       user_id, params.title, slug, params.description, params.start_time, params.end_time, params.featured_img,
       params.venue, params.address, params.latitude, params.longitude, params.website_url, params.youtube_url,
-      0, is_virtual, current_date, current_date
+      0, is_virtual, params.meta_title, params.meta_keywords, params.meta_desc, current_date, current_date
     ];
 
     const result = await query(sql, values);
@@ -187,6 +189,9 @@ class EventModel {
       'website_url': params.website_url,
       'youtube_url': params.youtube_url,
       'is_virtual': is_virtual,
+      'meta_title': params.meta_title,
+      'meta_keywords': params.meta_keywords,
+      'meta_desc': params.meta_desc,
       'updated_at': current_date
     }
 

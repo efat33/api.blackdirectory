@@ -13,13 +13,16 @@ class PagesModel {
     let output = {};
 
     const sql = `INSERT INTO ${this.tableName} 
-        (title, slug, content, created_at, updated_at) 
-        VALUES (?,?,?,?,?)`;
+        (title, slug, content, meta_title, meta_keywords, meta_desc, created_at, updated_at) 
+        VALUES (?,?,?,?,?,?,?,?)`;
 
     const values = [
       params.title,
       slug,
       params.content,
+      params.meta_title,
+      params.meta_keywords,
+      params.meta_desc,
       current_date,
       current_date
     ];
@@ -42,7 +45,7 @@ class PagesModel {
 
     const paramArray = [];
     let values = [];
-    const acceptedParams = ['title', 'content'];
+    const acceptedParams = ['title', 'content', 'meta_title', 'meta_keywords', 'meta_desc'];
 
     for (let param in params) {
       if (acceptedParams.includes(param)) {
