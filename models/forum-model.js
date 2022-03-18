@@ -48,10 +48,12 @@ class ForumModel {
         let output = {};
 
         const sql = `INSERT INTO ${this.tableName} 
-            (user_id, category_id, title, slug, description, status, created_at, updated_at) 
-            VALUES (?,?,?,?,?,?,?,?)`;
+            (user_id, category_id, title, slug, description, 
+                status, meta_title, meta_keywords, meta_desc, created_at, updated_at) 
+            VALUES (?,?,?,?,?,
+                ?,?,?,?,?,?)`;
 
-        const values = [user.id, params.category_id, params.title, slug, params.description, params.status, current_date, current_date];
+        const values = [user.id, params.category_id, params.title, slug, params.description, params.status, params.meta_title, params.meta_keywords, params.meta_desc, current_date, current_date];
 
         const result = await query(sql, values);
 
@@ -76,6 +78,9 @@ class ForumModel {
           'title': params.title,
           'description': params.description,
           'status': params.status,
+          'meta_title': params.meta_title,
+          'meta_keywords': params.meta_keywords,
+          'meta_desc': params.meta_desc,
           'updated_at': current_date
         }
         

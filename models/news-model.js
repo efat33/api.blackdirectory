@@ -49,10 +49,10 @@ class NewsModel {
         let output = {};
 
         const sql = `INSERT INTO ${this.tableName} 
-            (title, slug, content, short_content, featured_image, featured) 
-            VALUES (?,?,?,?,?,?)`;
+            (title, slug, content, short_content, featured_image, featured, meta_title, meta_keywords, meta_desc) 
+            VALUES (?,?,?,?,?,?,?,?,?)`;
 
-        const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.featured];
+        const values = [params.title, slug, params.content, params.short_content, params.featured_image, params.featured, params.meta_title, params.meta_keywords, params.meta_desc];
 
         const result = await query(sql, values);
 

@@ -24,10 +24,13 @@ class DealsModel {
         free_shipping, 
         discount_code, 
         expiry_date, 
+        meta_title, 
+        meta_keywords, 
+        meta_desc, 
         created_at,
         updated_at
       ) 
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
     const values = [
       params.title,
@@ -41,6 +44,9 @@ class DealsModel {
       params.free_shipping,
       params.discount_code,
       params.expiry_date ? commonfn.dateTime(new Date(params.expiry_date)) : null,
+      params.meta_title,
+      params.meta_keywords,
+      params.meta_desc,
       current_date,
       current_date
     ];
