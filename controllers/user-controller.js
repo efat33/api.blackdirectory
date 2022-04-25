@@ -273,6 +273,39 @@ ${reset_key}`;
     }
   }
 
+  changePassword = async (req, res, next) => {
+    this.checkValidation(req);
+
+    const currentUserID = req.currentUser.id;
+    const user = await UserModel.findOne({ id: currentUserID });
+
+    const dbPassword = user.password;
+    const isPassMatched = hasher.CheckPassword(req.body.password, dbPassword);
+
+    if (!isPassMatched) {
+      throw new AppError(403, "403_passwordsCurrentDontMatch");
+    }
+
+    if (req.body.new_password != req.body.confirm_password) {
+      throw new AppError(403, "403_passwordsDontMatch");
+    }
+
+    const updateInfo = {
+      "id": user.id,
+      "password": hasher.HashPassword(req.body.new_password),
+      "updated_at": commonfn.dateTimeNow()
+    }
+
+    const result = await UserModel.changePassword(updateInfo);
+
+    if (result) {
+      new AppSuccess(res, 200, "200_updated", { 'entity': 'entity_password' });
+    }
+    else {
+      throw new AppError(403, "403_unknownError");
+    }
+  }
+
   resetPassword = async (req, res, next) => {
     this.checkValidation(req);
 
@@ -621,12 +654,7 @@ Black Directory`;
   checkAuthentication = async (req, res, next) => {
 
     let user = '';
-    if (req.currentUser){
-      user = await UserModel.findOne({ 'id': req.currentUser.id });
-      const { password, ...userWithoutPassword } = user;
-  
-      new AppSuccess(res, 200, "200_successful", "", userWithoutPassword);
-    } 
+    if (req.currentUser) user = await UserModel.findOne({ 'id': req.currentUser.id });
 
     new AppSuccess(res, 200, "200_successful", "", user);
 
