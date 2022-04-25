@@ -53,7 +53,7 @@ exports.validateUsername = [
 ];
 
 exports.validateChangePassword = [
-  check('old_password')
+  check('password')
       .exists()
       .withMessage('Old password is required')
       .notEmpty()
@@ -63,7 +63,7 @@ exports.validateChangePassword = [
       .withMessage('New password is required')
       .notEmpty()
       .withMessage('New password must be filled'),
-  check('con_new_password')
+  check('confirm_password')
       .exists()
       .withMessage('Confirm new password is required')
       .notEmpty()

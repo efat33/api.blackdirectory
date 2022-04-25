@@ -14,7 +14,7 @@ router.post('/add-page', apiKey(), authVerified(), isAdmin(), awaitHandlerFactor
 router.put('/update-page/:page_slug', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(pagesController.updatePage));
 router.delete('/delete-page/:page_slug', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(pagesController.deletePage));
 
-router.get('/get-faqs', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(pagesController.getFaqs));
+router.get('/get-faqs', apiKey(), awaitHandlerFactory(pagesController.getFaqs));
 router.get('/get-faq/:faq_id', apiKey(), awaitHandlerFactory(pagesController.getFaq));
 router.post('/add-faq', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(pagesController.newFaq));
 router.put('/update-faq/:faq_id', apiKey(), authVerified(), isAdmin(), awaitHandlerFactory(pagesController.updateFaq));
