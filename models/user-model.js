@@ -192,6 +192,17 @@ class UserModel {
     return false;
   }
 
+  changePassword = async ({ id, password, updated_at }) => {
+    const sqlUser = `UPDATE ${this.tableName} SET password = ?, updated_at = ? WHERE id = ?`;
+    const result = await query(sqlUser, [password, updated_at, id]);
+
+    if (result.affectedRows == 1) {
+      return true;
+    }
+
+    return false;
+  }
+
   updateProfile = async (basic_info, employer_info, candidate_info, current_user, candidate_others) => {
 
     const user_id = current_user.id;
